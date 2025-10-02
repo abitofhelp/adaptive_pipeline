@@ -1,0 +1,79 @@
+@startuml deployment_diagram
+skinparam node {
+    BackgroundColor lightblue
+    BorderColor black
+}
+
+skinparam component {
+    BackgroundColor lightyellow
+    BorderColor black
+}
+
+skinparam database {
+    BackgroundColor lightgreen
+    BorderColor black
+}
+
+node "Processing Server" as ProcessingNode {
+    component "Optimized Pipeline Binary" as Binary {
+        [Pipeline Manager]
+        [Stage Executor]
+        [Memory Manager]
+        [Security Module]
+    }
+    
+    component "System Resources" as Resources {
+        [CPU Cores: 32]
+        [RAM: 64GB]
+        [NVMe SSD: 2TB]
+        [GPU: Optional]
+    }
+}
+
+node "Storage Node" as StorageNode {
+    database "File System" as FileSystem {
+        [Input Files]
+        [Output Files]
+        [Temporary Storage]
+        [Checkpoint Data]
+    }
+    
+    database "Configuration Store" as ConfigStore {
+        [Pipeline Configs]
+        [Security Policies]
+        [Plugin Definitions]
+    }
+}
+
+node "Monitoring Node" as MonitoringNode {
+    component "Metrics Stack" as MetricsStack {
+        [Prometheus Server]
+        [Grafana Dashboard]
+        [Alert Manager]
+    }
+    
+    component "Security Services" as SecurityServices {
+        [HSM Service]
+        [Key Management]
+        [Audit Logging]
+    }
+}
+
+cloud "External Services" as ExternalCloud {
+    [Log Aggregation]
+    [Backup Services]
+    [Security Monitoring]
+    [Performance Analytics]
+}
+
+' Connections
+ProcessingNode <--> StorageNode : "High-speed Network\n(10Gbps+)"
+ProcessingNode --> MonitoringNode : "Metrics & Logs\n(gRPC/HTTP)"
+MonitoringNode --> ExternalCloud : "HTTPS/TLS 1.3"
+ProcessingNode --> SecurityServices : "Secure Channel"
+
+note top of ProcessingNode : "Main processing unit with\nhigh-performance hardware"
+note right of StorageNode : "Dedicated storage with\nfast I/O capabilities"
+note bottom of MonitoringNode : "Centralized monitoring\nand security services"
+
+@enduml

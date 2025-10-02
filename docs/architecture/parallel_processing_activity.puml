@@ -1,0 +1,88 @@
+@startuml parallel_processing_activity
+skinparam activity {
+    BackgroundColor lightblue
+    BorderColor black
+}
+
+skinparam note {
+    BackgroundColor lightgreen
+    BorderColor black
+}
+
+start
+
+:Read Configuration;
+:Initialize Pipeline;
+
+if (Large File?) then (yes)
+    :Calculate Optimal Chunk Size;
+    note right: "Adaptive sizing based on\nfile size and system resources"
+else (no)
+    :Use Default Chunk Size;
+endif
+
+:Open Input File;
+
+fork
+    :Chunk 1|
+    :Memory Pool Get Buffer;
+    :Read Data into Buffer;
+    fork
+        :Compression Stage;
+    fork again
+        :Metrics Collection;
+    end fork
+    :Encryption Stage;
+    :Integrity Stage;
+    :Write to Output;
+    :Return Buffer to Pool;
+fork again
+    :Chunk 2|
+    :Memory Pool Get Buffer;
+    :Read Data into Buffer;
+    fork
+        :Compression Stage;
+    fork again
+        :Metrics Collection;
+    end fork
+    :Encryption Stage;
+    :Integrity Stage;
+    :Write to Output;
+    :Return Buffer to Pool;
+fork again
+    :Chunk N|
+    :Memory Pool Get Buffer;
+    :Read Data into Buffer;
+    fork
+        :Compression Stage;
+    fork again
+        :Metrics Collection;
+    end fork
+    :Encryption Stage;
+    :Integrity Stage;
+    :Write to Output;
+    :Return Buffer to Pool;
+end fork
+
+:Synchronize All Chunks;
+
+if (All Chunks Successful?) then (yes)
+    :Finalize Output File;
+    :Generate Final Metrics;
+    :Success;
+else (no)
+    if (Checkpoint Available?) then (yes)
+        :Restore from Checkpoint;
+        :Resume Processing;
+    else (no)
+        :Report Error;
+        :Cleanup Resources;
+        :Failure;
+    endif
+endif
+
+stop
+
+note bottom: "Parallel processing allows\nmultiple chunks to be processed\nsimultaneously across different stages"
+
+@enduml

@@ -1,0 +1,53 @@
+CONFIDENTIAL LEGAL DOCUMENT
+
+SERVICE AGREEMENT
+
+Client Information:
+Name: John Doe
+SSN: 123-45-6789
+Phone: (555) 123-4567
+Email: john.doe@example.com
+Address: 123 Main Street, Anytown, ST 12345
+
+Contract Details:
+Contract ID: ACME-2024-001
+Date: January 15, 2024
+Duration: 24 months
+Value: $125,000.00
+
+Payment Information:
+Bank Account: 9876543210
+Routing Number: 123456789
+Credit Card: 4532-1234-5678-9012
+
+Terms and Conditions:
+1. Service Duration: 24 months from contract execution
+2. Payment Terms: Net 30 days from invoice date
+3. Confidentiality: All information is proprietary and confidential
+4. Termination: Either party may terminate with 30 days written notice
+5. Governing Law: This agreement shall be governed by state law
+
+Personal References:
+- Emergency Contact: Jane Smith, (555) 987-6543
+- Business Partner: Bob Johnson, bob.johnson@partner.com
+- Attorney: Alice Brown, (555) 456-7890
+
+Authorized Signatures:
+Client Representative: [SIGNATURE REQUIRED]
+Service Provider: [SIGNATURE REQUIRED]
+
+NOTICE: This document contains confidential business information and personally 
+identifiable information (PII). Unauthorized disclosure is prohibited.
+
+Social Security Numbers, phone numbers, email addresses, and financial account 
+information must be protected according to company privacy policies.
+
+Additional PII Examples for Testing:
+- Driver's License: DL123456789
+- Passport: P123456789
+- Tax ID: 98-7654321
+- Medical Record: MR2024001
+- Employee ID: EMP789012
+
+This document is intended for pipeline redaction testing and contains only 
+synthetic data for demonstration purposes.

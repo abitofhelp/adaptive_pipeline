@@ -1,0 +1,122 @@
+@startuml file_processing_sequence
+skinparam participant {
+    BackgroundColor lightblue
+    BorderColor black
+}
+
+skinparam note {
+    BackgroundColor lightgreen
+    BorderColor black
+}
+
+actor User
+participant "CLI Interface" as CLI
+participant "Pipeline Manager" as PM
+participant "Memory Manager" as MM
+participant "Stage Executor" as SE
+participant "Compression Stage" as CS
+participant "Encryption Stage" as ES
+participant "Integrity Stage" as IS
+participant "File System" as FS
+participant "Metrics Collector" as MC
+
+== Initialization Phase ==
+User -> CLI: execute command\n"pipeline process input.txt output.txt"
+activate CLI
+
+CLI -> PM: initialize_pipeline(config)
+activate PM
+
+PM -> MM: initialize_memory_pool()
+activate MM
+MM --> PM: memory_pool_ready
+deactivate MM
+
+PM -> SE: create_executor(thread_count)
+activate SE
+SE --> PM: executor_ready
+deactivate SE
+
+PM --> CLI: pipeline_ready
+CLI --> User: "Pipeline initialized"
+
+== File Processing Phase ==
+CLI -> PM: process_file("input.txt", "output.txt")
+
+PM -> FS: open_file("input.txt")
+activate FS
+FS --> PM: file_handle
+deactivate FS
+
+PM -> PM: split_into_chunks()
+note right: "Adaptive chunk sizing\nbased on file characteristics"
+
+loop For each chunk
+    PM -> MM: get_buffer(chunk_size)
+    activate MM
+    MM --> PM: buffer
+    deactivate MM
+    
+    PM -> FS: read_chunk(buffer)
+    activate FS
+    FS --> PM: chunk_data
+    deactivate FS
+    
+    PM -> SE: execute_stage_pipeline(chunk_data)
+    activate SE
+    
+    SE -> CS: process(chunk_data)
+    activate CS
+    CS -> CS: compress_data()
+    CS --> SE: compressed_chunk
+    deactivate CS
+    
+    SE -> ES: process(compressed_chunk)
+    activate ES
+    ES -> ES: encrypt_data()
+    ES --> SE: encrypted_chunk
+    deactivate ES
+    
+    SE -> IS: process(encrypted_chunk)
+    activate IS
+    IS -> IS: calculate_integrity_hash()
+    IS --> SE: final_chunk
+    deactivate IS
+    
+    SE --> PM: processed_chunk
+    deactivate SE
+    
+    PM -> FS: write_chunk(processed_chunk)
+    activate FS
+    FS --> PM: write_complete
+    deactivate FS
+    
+    PM -> MM: return_buffer(buffer)
+    activate MM
+    deactivate MM
+    
+    PM -> MC: record_metrics(chunk_metrics)
+    activate MC
+    deactivate MC
+end
+
+== Completion Phase ==
+PM -> FS: close_files()
+activate FS
+FS --> PM: files_closed
+deactivate FS
+
+PM -> MC: finalize_metrics()
+activate MC
+MC --> PM: final_metrics
+deactivate MC
+
+PM --> CLI: processing_complete(metrics)
+deactivate PM
+
+CLI --> User: "File processed successfully\nMetrics: {throughput, time, compression_ratio}"
+deactivate CLI
+
+note across: "Error handling and circuit breakers\nare active throughout the process"
+
+@enduml

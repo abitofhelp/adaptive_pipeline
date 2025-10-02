@@ -1,0 +1,35 @@
+[package]
+name = "pipeline-domain"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Core dependencies
+serde = { workspace = true }
+uuid = { workspace = true }
+ulid = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+rand = { workspace = true }
+
+# Additional domain dependencies
+tracing = { workspace = true }
+sha2 = "0.10"
+zeroize = "1.8"
+hex = "0.4"
+regex = "1.0"
+ring = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+serde_yaml = { workspace = true }
+futures = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+tempfile = "3.0"

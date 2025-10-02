@@ -1,0 +1,80 @@
+@startuml system_overview
+!define RECTANGLE class
+
+skinparam component {
+    BackgroundColor lightblue
+    BorderColor black
+    FontSize 12
+}
+
+skinparam interface {
+    BackgroundColor lightyellow
+    BorderColor black
+}
+
+skinparam note {
+    BackgroundColor lightgreen
+    BorderColor black
+}
+
+package "Application Layer" {
+    [CLI Interface] as CLI
+    [Configuration Manager] as Config
+    [API Server] as API
+}
+
+package "Business Logic Layer" {
+    [Pipeline Manager] as PM
+    [Stage Executor] as SE
+    [Plugin Registry] as PR
+}
+
+package "Processing Layer" {
+    [Compression Service] as CS
+    [Encryption Service] as ES
+    [Integrity Service] as IS
+    [Memory Manager] as MM
+}
+
+package "Infrastructure Layer" {
+    [Metrics Collector] as MC
+    [Security Module] as SM
+    [Checkpoint Manager] as CM
+    [Circuit Breaker] as CB
+}
+
+package "External Systems" {
+    database "File System" as FS
+    [HSM] as HSM
+    [Prometheus] as PROM
+    [Logging Service] as LOG
+}
+
+' Connections
+CLI --> PM : processes files
+Config --> PM : provides configuration
+API --> PM : REST endpoints
+
+PM --> SE : executes stages
+PM --> PR : loads plugins
+PM --> CM : manages checkpoints
+
+SE --> CS : compression
+SE --> ES : encryption  
+SE --> IS : integrity checks
+SE --> MM : memory allocation
+
+PM --> MC : records metrics
+PM --> CB : failure handling
+ES --> SM : key management
+
+PM --> FS : file I/O
+SM --> HSM : secure keys
+MC --> PROM : exports metrics
+PM --> LOG : audit logs
+
+note right of PM : "Central orchestrator\nmanaging pipeline execution"
+note bottom of SE : "Executes processing stages\nin parallel when possible"
+note right of MM : "Provides memory pooling\nand zero-copy operations"
+
+@enduml

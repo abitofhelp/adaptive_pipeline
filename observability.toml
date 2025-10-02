@@ -1,0 +1,144 @@
+# Copyright (c) 2025 A Bit of Help, Inc.
+# Observability Configuration for Optimized Adaptive Pipeline
+
+[observability]
+# Enable structured logging for better log analysis
+enable_structured_logging = true
+
+# Enable performance tracing for detailed timing analysis
+enable_performance_tracing = true
+
+# Enable health checks for system monitoring
+enable_health_checks = true
+
+# Interval for metrics export (seconds)
+metrics_export_interval_secs = 30
+
+# Trace sampling rate (0.0 to 1.0)
+trace_sample_rate = 1.0
+
+# Enable real-time operation tracking
+enable_operation_tracking = true
+
+# Enable pipeline stage metrics
+enable_stage_metrics = true
+
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+
+# Log format: json, pretty, compact
+format = "pretty"
+
+# Enable file logging
+enable_file_logging = false
+
+# Log file path (if file logging is enabled)
+log_file_path = "logs/adaptive_pipeline.log"
+
+[metrics]
+# Port where metrics are exposed for Prometheus to scrape
+port = 9091
+
+# Enable custom metrics
+enable_custom_metrics = true
+
+# Metrics retention period (hours)
+retention_hours = 24
+
+# Pipeline-specific metrics
+enable_pipeline_metrics = true
+enable_compression_metrics = true
+enable_encryption_metrics = true
+enable_throughput_metrics = true
+
+# Performance tracking
+enable_latency_histograms = true
+enable_error_rate_tracking = true
+enable_resource_usage_metrics = true
+
+[health_checks]
+# Health check interval (seconds)
+interval_secs = 30
+
+# Memory usage threshold (MB)
+memory_threshold_mb = 1000
+
+# Error rate threshold (percentage)
+error_rate_threshold_percent = 5.0
+
+# Throughput threshold (MB/s)
+throughput_threshold_mbps = 1.0
+
+[tracing]
+# Enable distributed tracing
+enable_distributed_tracing = false
+
+# Jaeger endpoint (if distributed tracing is enabled)
+jaeger_endpoint = "http://localhost:14268/api/traces"
+
+# Service name for tracing
+service_name = "adaptive_pipeline"
+
+[alerts]
+# Enable alerting
+enable_alerts = true
+
+# Webhook URL for alerts (optional)
+webhook_url = ""
+
+# Alert thresholds
+error_rate_alert_threshold = 10.0
+memory_usage_alert_threshold = 80.0
+disk_usage_alert_threshold = 90.0
+
+# Pipeline-specific alert thresholds
+processing_timeout_seconds = 300.0
+low_throughput_alert_mbps = 0.5
+high_error_rate_percent = 15.0
+queue_backlog_threshold = 100
+
+# Alert cooldown periods (seconds)
+alert_cooldown_seconds = 300
+critical_alert_cooldown_seconds = 60
+
+[pipeline]
+# Pipeline-specific observability settings
+enable_stage_timing = true
+enable_chunk_tracking = true
+enable_compression_ratio_tracking = true
+enable_encryption_overhead_tracking = true
+
+# Performance monitoring
+track_memory_usage_per_stage = true
+track_cpu_usage_per_stage = false  # Requires additional dependencies
+track_io_operations = true
+
+# Detailed logging
+log_chunk_processing = false  # Can be verbose
+log_stage_transitions = true
+log_error_details = true
+log_performance_warnings = true
+
+[dashboard]
+# Grafana dashboard settings (if using Grafana)
+enable_grafana_annotations = false
+grafana_url = "http://localhost:3000"
+dashboard_refresh_interval_seconds = 30
+
+# Custom dashboard metrics
+enable_custom_panels = true
+show_pipeline_topology = true
+show_real_time_throughput = true
+show_error_breakdown = true
+
+[export]
+# Metrics export settings
+export_format = "prometheus"  # prometheus, json, csv
+export_compressed = true
+export_batch_size = 1000
+
+# File export (optional)
+enable_file_export = false
+export_directory = "./metrics_export"
+export_rotation_hours = 24

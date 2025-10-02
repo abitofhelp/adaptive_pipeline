@@ -1,0 +1,17 @@
+date,product,sales_rep,amount,region
+2024-01-15,Widget A,John Smith,1250.00,North
+2024-01-16,Widget B,Jane Doe,890.50,South
+2024-01-17,Widget A,Bob Johnson,NULL,East
+2024-01-18,Widget C,Alice Brown,2100.75,West
+2024-01-19,,John Smith,450.00,North
+2024-01-20,Widget B,Jane Doe,1800.25,South
+2024-01-21,Widget A,Carol White,975.00,East
+2024-01-22,Widget C,David Lee,1650.50,West
+2024-01-23,Widget B,Emma Wilson,1200.00,North
+2024-01-24,Widget A,Frank Miller,NULL,South
+2024-01-25,Widget C,Grace Taylor,2250.75,East
+2024-01-26,Widget B,,1100.00,West
+2024-01-27,Widget A,Henry Davis,1425.50,North
+2024-01-28,Widget C,Ivy Johnson,1875.25,South
+2024-01-29,Widget B,Jack Brown,1325.00,East
+2024-01-30,Widget A,Kate Wilson,1750.75,West

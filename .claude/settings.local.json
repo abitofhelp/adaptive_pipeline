@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make test:*)",
+      "Bash(git checkout:*)",
+      "Bash(cargo test:*)",
+      "Bash(find:*)",
+      "Bash(git stash:*)",
+      "Bash(cargo:*)",
+      "Bash(grep:*)",
+      "Bash(python3:*)",
+      "Bash(chmod:*)",
+      "Bash(/Users/mike/Rust/src/github.com/abitofhelp/optimized_adaptive_pipeline_rs/fix_all_doctests.sh)",
+      "Bash(while read file)",
+      "Bash(do python3 /Users/mike/Rust/src/github.com/abitofhelp/optimized_adaptive_pipeline_rs/fix_overcorrected.py \"$file\")",
+      "Bash(done)",
+      "Bash(do python3 /Users/mike/Rust/src/github.com/abitofhelp/optimized_adaptive_pipeline_rs/remove_all_doctests.py \"$file\")",
+      "Bash(cat:*)",
+      "Bash(make:*)",
+      "Bash(awk:*)",
+      "Read(//Users/mike/STANDARDS/**)",
+      "Bash(git mv:*)",
+      "Bash(tree:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(wc:*)",
+      "Bash(do)",
+      "Bash(if [ -f \"pipeline/src/infrastructure/persistence/$file.rs\" ])",
+      "Bash([ -f \"pipeline/src/infrastructure/repositories/$file.rs\" ])",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(diff:*)",
+      "Bash(fi)",
+      "Bash(xargs:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

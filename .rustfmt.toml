@@ -1,0 +1,10 @@
+max_width = 120
+tab_spaces = 4
+edition = "2024"
+format_code_in_doc_comments = true
+format_macro_bodies = true
+format_macro_matchers = true
+format_strings = true
+imports_granularity = "Module"
+use_field_init_shorthand = true
+wrap_comments = true

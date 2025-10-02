@@ -1,0 +1,91 @@
+@startuml Binary Format State Diagram
+!theme plain
+title Binary File Format - Processing States
+
+[*] --> FileInitialized : create_file_header()
+
+state "File Processing" as Processing {
+    FileInitialized --> ChunkProcessing : start_processing()
+    
+    state "Chunk Processing Loop" as ChunkProcessing {
+        [*] --> ReadingChunk
+        ReadingChunk --> Compressing : chunk_read
+        Compressing --> Encrypting : compression_complete
+        Encrypting --> WritingChunk : encryption_complete
+        WritingChunk --> ReadingChunk : chunk_written / increment_count
+        WritingChunk --> [*] : all_chunks_processed
+    }
+    
+    ChunkProcessing --> CalculatingMetadata : processing_complete
+    CalculatingMetadata --> WritingFooter : metadata_ready
+    WritingFooter --> FileComplete : footer_written
+}
+
+FileComplete --> [*] : file_closed
+
+state "File Reading" as Reading {
+    [*] --> ValidatingFile
+    ValidatingFile --> ReadingFooter : file_valid
+    ReadingFooter --> ParsingMetadata : footer_read
+    ParsingMetadata --> ValidatingIntegrity : metadata_parsed
+    ValidatingIntegrity --> RestoringChunks : integrity_verified
+    
+    state "Chunk Restoration Loop" as RestoringChunks {
+        [*] --> ReadingEncryptedChunk
+        ReadingEncryptedChunk --> DecryptingChunk : chunk_read
+        DecryptingChunk --> DecompressingChunk : decryption_complete
+        DecompressingChunk --> WritingOriginalChunk : decompression_complete
+        WritingOriginalChunk --> ReadingEncryptedChunk : chunk_written / decrement_count
+        WritingOriginalChunk --> [*] : all_chunks_restored
+    }
+    
+    RestoringChunks --> ValidatingRestoration : restoration_complete
+    ValidatingRestoration --> RestorationComplete : validation_passed
+}
+
+RestorationComplete --> [*] : file_restored
+
+state "Error Handling" as ErrorStates {
+    ValidatingFile --> CorruptedFile : validation_failed
+    ReadingFooter --> InvalidFormat : footer_corrupt
+    ParsingMetadata --> InvalidMetadata : parsing_failed
+    ValidatingIntegrity --> IntegrityFailure : checksum_mismatch
+    DecryptingChunk --> DecryptionFailure : decryption_failed
+    DecompressingChunk --> DecompressionFailure : decompression_failed
+    ValidatingRestoration --> RestorationFailure : final_validation_failed
+    
+    CorruptedFile --> [*] : error_reported
+    InvalidFormat --> [*] : error_reported
+    InvalidMetadata --> [*] : error_reported
+    IntegrityFailure --> [*] : error_reported
+    DecryptionFailure --> [*] : error_reported
+    DecompressionFailure --> [*] : error_reported
+    RestorationFailure --> [*] : error_reported
+}
+
+note right of Processing
+Write Process:
+1. Initialize header with original file info
+2. Process chunks sequentially
+3. Calculate final metadata
+4. Write footer with complete info
+end note
+
+note right of Reading
+Read Process:
+1. Validate file format
+2. Read footer metadata
+3. Verify file integrity
+4. Restore chunks in reverse order
+5. Validate final result
+end note
+
+note right of ErrorStates
+Error Recovery:
+- No self-healing capability
+- Corruption detection only
+- Graceful error reporting
+- External backup recommended
+end note
+
+@enduml
