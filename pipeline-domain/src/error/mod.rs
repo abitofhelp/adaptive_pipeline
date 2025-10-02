@@ -83,6 +83,6 @@
 //! - **Document Errors**: Document which errors can be returned from functions
 //! - **Test Error Paths**: Ensure error handling paths are tested
 
-mod error;
+mod pipeline_error;
 
-pub use error::PipelineError;
+pub use pipeline_error::PipelineError;

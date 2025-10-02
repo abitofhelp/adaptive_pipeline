@@ -271,7 +271,7 @@ impl Algorithm {
     /// # Errors
     /// See [`Algorithm::new`] for validation rules and error conditions.
     /// # Examples
-    pub fn from_str(name: &str) -> Result<Self, PipelineError> {
+    pub fn parse(name: &str) -> Result<Self, PipelineError> {
         Self::new(name.to_string())
     }
 
@@ -475,7 +475,7 @@ impl std::str::FromStr for Algorithm {
     type Err = PipelineError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s)
+        Self::parse(s)
     }
 }
 
@@ -748,8 +748,8 @@ mod tests {
         let algo = Algorithm::new("brotli".to_string()).unwrap();
         assert_eq!(algo.name(), "brotli");
 
-        // Test from_str creation
-        let algo = Algorithm::from_str("aes-256-gcm").unwrap();
+        // Test parse creation
+        let algo = Algorithm::parse("aes-256-gcm").unwrap();
         assert_eq!(algo.name(), "aes-256-gcm");
 
         // Test various valid formats
@@ -1074,7 +1074,7 @@ mod tests {
         }
     }
 
-    /// Tests error handling in Algorithm::from_str method.
+    /// Tests error handling in Algorithm::parse method.
     /// Validates that:
     /// - Invalid algorithm strings produce appropriate errors
     /// - Error messages are descriptive and helpful

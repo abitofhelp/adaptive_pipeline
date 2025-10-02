@@ -199,7 +199,7 @@ impl EncryptionKeyId {
     }
 
     /// Creates an encryption key ID from a string slice
-    pub fn from_str(key_id: &str) -> Result<Self, PipelineError> {
+    pub fn parse(key_id: &str) -> Result<Self, PipelineError> {
         Self::new(key_id.to_string())
     }
 
@@ -359,7 +359,7 @@ impl std::str::FromStr for EncryptionKeyId {
     type Err = PipelineError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s)
+        Self::parse(s)
     }
 }
 
@@ -507,7 +507,7 @@ mod tests {
         let key_id = EncryptionKeyId::new("aes256-v1-prod-2024".to_string()).unwrap();
         assert_eq!(key_id.value(), "aes256-v1-prod-2024");
 
-        let key_id = EncryptionKeyId::from_str("chacha20-v2-dev-test").unwrap();
+        let key_id = EncryptionKeyId::parse("chacha20-v2-dev-test").unwrap();
         assert_eq!(key_id.value(), "chacha20-v2-dev-test");
     }
 

@@ -449,7 +449,7 @@ impl<T: PathCategory> FilePath<T> {
     }
 
     /// Creates a file path from a string
-    pub fn from_str(path: &str) -> Result<Self, PipelineError> {
+    pub fn parse(path: &str) -> Result<Self, PipelineError> {
         Self::new(PathBuf::from(path))
     }
 
@@ -837,7 +837,7 @@ mod tests {
             // Create test file first
             FilePathTestImpl::create_test_file(path_str).unwrap();
 
-            let input_path = InputPath::from_str(path_str).unwrap();
+            let input_path = InputPath::parse(path_str).unwrap();
             assert_eq!(input_path.as_path().to_str().unwrap(), path_str);
             assert_eq!(input_path.category(), "input");
             assert!(input_path.validate().is_ok());
@@ -850,7 +850,7 @@ mod tests {
 
         // Test OutputPath creation
         for path_str in FilePathTestImpl::valid_output_paths() {
-            let output_path = OutputPath::from_str(path_str).unwrap();
+            let output_path = OutputPath::parse(path_str).unwrap();
             assert_eq!(output_path.as_path().to_str().unwrap(), path_str);
             assert_eq!(output_path.category(), "output");
 
@@ -874,11 +874,11 @@ mod tests {
         let test_file = "/tmp/type_safety_test.txt";
         FilePathTestImpl::create_test_file(test_file).unwrap();
 
-        let input_path = InputPath::from_str(test_file).unwrap();
-        let output_path = OutputPath::from_str("/tmp/output_test.txt").unwrap();
-        let temp_path = TempPath::from_str("/tmp/temp_test.txt").unwrap();
-        let config_path = ConfigPath::from_str("/tmp/config_test.toml").unwrap();
-        let log_path = LogPath::from_str("/tmp/logs/log_test.log").unwrap();
+        let input_path = InputPath::parse(test_file).unwrap();
+        let output_path = OutputPath::parse("/tmp/output_test.txt").unwrap();
+        let temp_path = TempPath::parse("/tmp/temp_test.txt").unwrap();
+        let config_path = ConfigPath::parse("/tmp/config_test.toml").unwrap();
+        let log_path = LogPath::parse("/tmp/logs/log_test.log").unwrap();
 
         // Test category identification
         assert_eq!(input_path.category(), "input");
@@ -913,7 +913,7 @@ mod tests {
         for invalid_path in FilePathTestImpl::invalid_paths() {
             if !invalid_path.is_empty() {
                 // Most invalid paths should fail validation, not creation
-                if let Ok(path) = InputPath::from_str(invalid_path) {
+                if let Ok(path) = InputPath::parse(invalid_path) {
                     assert!(
                         path.validate().is_err(),
                         "Path should fail validation: {}",
@@ -945,7 +945,7 @@ mod tests {
         let test_file = "/tmp/serialization_test.txt";
         FilePathTestImpl::create_test_file(test_file).unwrap();
 
-        let original = InputPath::from_str(test_file).unwrap();
+        let original = InputPath::parse(test_file).unwrap();
 
         // Test JSON roundtrip
         let json = serde_json::to_string(&original).unwrap();
@@ -984,25 +984,25 @@ mod tests {
         for (path_str, type_name) in test_cases {
             if type_name == "InputPath" {
                 FilePathTestImpl::create_test_file(path_str).unwrap();
-                let path = InputPath::from_str(path_str).unwrap();
+                let path = InputPath::parse(path_str).unwrap();
                 let json = serde_json::to_string(&path).unwrap();
                 let _: InputPath = serde_json::from_str(&json).unwrap();
                 FilePathTestImpl::cleanup_test_file(path_str);
             } else if type_name == "OutputPath" {
-                let path = OutputPath::from_str(path_str).unwrap();
+                let path = OutputPath::parse(path_str).unwrap();
                 let json = serde_json::to_string(&path).unwrap();
                 let _: OutputPath = serde_json::from_str(&json).unwrap();
             } else if type_name == "TempPath" {
-                let path = TempPath::from_str(path_str).unwrap();
+                let path = TempPath::parse(path_str).unwrap();
                 let json = serde_json::to_string(&path).unwrap();
                 let _: TempPath = serde_json::from_str(&json).unwrap();
             } else if type_name == "ConfigPath" {
-                let path = ConfigPath::from_str(path_str).unwrap();
+                let path = ConfigPath::parse(path_str).unwrap();
                 let json = serde_json::to_string(&path).unwrap();
                 let _: ConfigPath = serde_json::from_str(&json).unwrap();
             } else if type_name == "LogPath" {
                 fs::create_dir_all("/tmp/logs").unwrap();
-                let path = LogPath::from_str(path_str).unwrap();
+                let path = LogPath::parse(path_str).unwrap();
                 let json = serde_json::to_string(&path).unwrap();
                 let _: LogPath = serde_json::from_str(&json).unwrap();
             }
@@ -1030,9 +1030,9 @@ mod tests {
         let test_file = "/tmp/equality_test.txt";
         FilePathTestImpl::create_test_file(test_file).unwrap();
 
-        let path1 = InputPath::from_str(test_file).unwrap();
-        let path2 = InputPath::from_str(test_file).unwrap();
-        let path3 = InputPath::from_str("/tmp/different_file.txt");
+        let path1 = InputPath::parse(test_file).unwrap();
+        let path2 = InputPath::parse(test_file).unwrap();
+        let path3 = InputPath::parse("/tmp/different_file.txt");
 
         // Test equality
         assert_eq!(path1, path2);
@@ -1065,8 +1065,8 @@ mod tests {
         let test_file = "/tmp/hash_test.txt";
         FilePathTestImpl::create_test_file(test_file).unwrap();
 
-        let path1 = InputPath::from_str(test_file).unwrap();
-        let path2 = InputPath::from_str(test_file).unwrap();
+        let path1 = InputPath::parse(test_file).unwrap();
+        let path2 = InputPath::parse(test_file).unwrap();
 
         let mut map = HashMap::new();
         map.insert(path1.clone(), "test_value");
@@ -1099,7 +1099,7 @@ mod tests {
         let test_file = "/tmp/display_test.txt";
         FilePathTestImpl::create_test_file(test_file).unwrap();
 
-        let input_path = InputPath::from_str(test_file).unwrap();
+        let input_path = InputPath::parse(test_file).unwrap();
         let display_string = format!("{}", input_path);
         let debug_string = format!("{:?}", input_path);
 
@@ -1133,7 +1133,7 @@ mod tests {
         let test_file = "/tmp/operations_test.txt";
         FilePathTestImpl::create_test_file(test_file).unwrap();
 
-        let input_path = InputPath::from_str(test_file).unwrap();
+        let input_path = InputPath::parse(test_file).unwrap();
 
         // Test path component extraction
         assert_eq!(input_path.file_name(), Some("operations_test.txt"));
@@ -1217,18 +1217,18 @@ mod tests {
         // Valid input path (file exists)
         let valid_file = "/tmp/valid_input.txt";
         FilePathTestImpl::create_test_file(valid_file).unwrap();
-        let valid_input = InputPath::from_str(valid_file).unwrap();
+        let valid_input = InputPath::parse(valid_file).unwrap();
         assert!(valid_input.validate().is_ok());
 
         // Invalid input path (file doesn't exist)
-        let invalid_input = InputPath::from_str("/tmp/nonexistent_input.txt");
+        let invalid_input = InputPath::parse("/tmp/nonexistent_input.txt");
         if let Ok(path) = invalid_input {
             assert!(path.validate().is_err());
         }
 
         // Invalid input path (directory, not file)
         fs::create_dir_all("/tmp/test_dir").unwrap();
-        let dir_input = InputPath::from_str("/tmp/test_dir");
+        let dir_input = InputPath::parse("/tmp/test_dir");
         if let Ok(path) = dir_input {
             assert!(path.validate().is_err());
         }
@@ -1254,13 +1254,13 @@ mod tests {
 
         // Valid output path (parent directory exists)
         fs::create_dir_all("/tmp/output_test").unwrap();
-        let valid_output = OutputPath::from_str("/tmp/output_test/result.txt").unwrap();
+        let valid_output = OutputPath::parse("/tmp/output_test/result.txt").unwrap();
         assert!(valid_output.validate().is_ok());
 
         // Invalid output path (parent is not a directory)
         let file_as_parent = "/tmp/file_parent.txt";
         FilePathTestImpl::create_test_file(file_as_parent).unwrap();
-        let invalid_output = OutputPath::from_str("/tmp/file_parent.txt/result.txt");
+        let invalid_output = OutputPath::parse("/tmp/file_parent.txt/result.txt");
         if let Ok(path) = invalid_output {
             assert!(path.validate().is_err());
         }
@@ -1293,7 +1293,7 @@ mod tests {
         ];
 
         for config_path in valid_configs {
-            let path = ConfigPath::from_str(config_path).unwrap();
+            let path = ConfigPath::parse(config_path).unwrap();
             assert!(path.validate().is_ok());
             println!("   ✓ Valid config: {}", config_path);
         }
@@ -1302,7 +1302,7 @@ mod tests {
         let invalid_configs = vec!["/tmp/config.txt", "/tmp/config", "/tmp/config.exe"];
 
         for config_path in invalid_configs {
-            let result = ConfigPath::from_str(config_path);
+            let result = ConfigPath::parse(config_path);
             assert!(result.is_err(), "Should reject invalid config: {}", config_path);
             println!("   ✓ Rejected invalid config: {}", config_path);
         }
@@ -1325,7 +1325,7 @@ mod tests {
         let valid_logs = vec!["/tmp/logs/app.log", "/tmp/logs/debug.txt", "/var/log/system.log"];
 
         for log_path in valid_logs {
-            if let Ok(path) = LogPath::from_str(log_path) {
+            if let Ok(path) = LogPath::parse(log_path) {
                 // Some may fail due to directory structure, but format should be valid
                 println!("   ✓ Valid log format: {}", log_path);
             }
@@ -1335,7 +1335,7 @@ mod tests {
         let invalid_logs = vec!["/tmp/random.txt", "/home/user/document.pdf"];
 
         for log_path in invalid_logs {
-            let result = LogPath::from_str(log_path);
+            let result = LogPath::parse(log_path);
             assert!(result.is_err(), "Should reject invalid log: {}", log_path);
             println!("   ✓ Rejected invalid log: {}", log_path);
         }
@@ -1361,26 +1361,26 @@ mod tests {
         println!("🔍 Testing FilePath edge cases...");
 
         // Test empty path
-        let empty_result = InputPath::from_str("");
+        let empty_result = InputPath::parse("");
         assert!(empty_result.is_err());
 
         // Test very long path
         let long_path = format!("/tmp/{}", "a".repeat(1000));
-        let long_result = OutputPath::from_str(&long_path);
+        let long_result = OutputPath::parse(&long_path);
         if let Ok(path) = long_result {
             assert_eq!(path.to_string_lossy().len(), long_path.len());
         }
 
         // Test Unicode path
         let unicode_path = "/tmp/测试文件.txt";
-        let unicode_result = OutputPath::from_str(unicode_path);
+        let unicode_result = OutputPath::parse(unicode_path);
         if let Ok(path) = unicode_result {
             assert!(path.to_string_lossy().contains("测试文件"));
         }
 
         // Test special characters
         let special_path = "/tmp/file with spaces & symbols!@#.txt";
-        let special_result = OutputPath::from_str(special_path);
+        let special_result = OutputPath::parse(special_path);
         if let Ok(path) = special_result {
             assert!(path.to_string_lossy().contains("spaces & symbols"));
         }
@@ -1409,7 +1409,7 @@ mod tests {
         // Create many paths
         for i in 0..1000 {
             let path_str = format!("/tmp/perf_test_{}.txt", i);
-            let _output_path = OutputPath::from_str(&path_str).unwrap();
+            let _output_path = OutputPath::parse(&path_str).unwrap();
         }
 
         let duration = start.elapsed();
@@ -1432,7 +1432,7 @@ mod tests {
         let test_file = "/tmp/conversion_perf.txt";
         FilePathTestImpl::create_test_file(test_file).unwrap();
 
-        let input_path = InputPath::from_str(test_file).unwrap();
+        let input_path = InputPath::parse(test_file).unwrap();
         let start = std::time::Instant::now();
 
         // Test many conversions
@@ -1469,16 +1469,16 @@ mod tests {
         let input_file = format!("/tmp/test_input_{}.txt", timestamp);
         fs::write(&input_file, "test content").unwrap();
 
-        let input_path = InputPath::from_str(&input_file).unwrap();
+        let input_path = InputPath::parse(&input_file).unwrap();
         assert!(input_path.validate().is_ok());
         assert_eq!(input_path.category(), "input");
 
         let output_file = format!("/tmp/test_output_{}.txt", timestamp);
-        let output_path = OutputPath::from_str(&output_file).unwrap();
+        let output_path = OutputPath::parse(&output_file).unwrap();
         assert_eq!(output_path.category(), "output");
 
         let temp_file = format!("/tmp/test_temp_{}.txt", timestamp);
-        let temp_path = TempPath::from_str(&temp_file).unwrap();
+        let temp_path = TempPath::parse(&temp_file).unwrap();
         assert_eq!(temp_path.category(), "temporary");
 
         // Clean up
@@ -1498,7 +1498,7 @@ mod tests {
         // Create unique temporary file for testing to avoid conflicts
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
         let temp_file = format!("/tmp/test_temp_{}.txt", timestamp);
-        let temp_path = TempPath::from_str(&temp_file).unwrap();
+        let temp_path = TempPath::parse(&temp_file).unwrap();
 
         // Convert temp path to output path (should work)
         let output_path: OutputPath = temp_path.into_category().unwrap();
@@ -1536,13 +1536,13 @@ mod tests {
     #[test]
     fn test_config_path_validation_extended() {
         // Valid config extensions
-        assert!(ConfigPath::from_str("/etc/config.toml").is_ok());
-        assert!(ConfigPath::from_str("/etc/config.yaml").is_ok());
-        assert!(ConfigPath::from_str("/etc/config.json").is_ok());
+        assert!(ConfigPath::parse("/etc/config.toml").is_ok());
+        assert!(ConfigPath::parse("/etc/config.yaml").is_ok());
+        assert!(ConfigPath::parse("/etc/config.json").is_ok());
 
         // Invalid config extension
-        assert!(ConfigPath::from_str("/etc/config.txt").is_err());
-        assert!(ConfigPath::from_str("/etc/config").is_err()); // No extension
+        assert!(ConfigPath::parse("/etc/config.txt").is_err());
+        assert!(ConfigPath::parse("/etc/config").is_err()); // No extension
     }
 
     /// Tests extended LogPath validation scenarios.
@@ -1556,11 +1556,11 @@ mod tests {
     #[test]
     fn test_log_path_validation_extended() {
         // Valid log paths
-        assert!(LogPath::from_str("/var/log/app.log").is_ok());
-        assert!(LogPath::from_str("/logs/debug.txt").is_ok()); // In logs directory
+        assert!(LogPath::parse("/var/log/app.log").is_ok());
+        assert!(LogPath::parse("/logs/debug.txt").is_ok()); // In logs directory
 
         // Invalid log path
-        assert!(LogPath::from_str("/tmp/random.txt").is_err());
+        assert!(LogPath::parse("/tmp/random.txt").is_err());
     }
 
     /// Tests automatic cleanup functionality for temporary paths.
@@ -1604,7 +1604,7 @@ mod tests {
         let input_file = "/tmp/test_path_ops.txt";
         fs::write(input_file, "test content").unwrap();
 
-        let input_path = InputPath::from_str(input_file).unwrap();
+        let input_path = InputPath::parse(input_file).unwrap();
 
         assert_eq!(input_path.file_name(), Some("test_path_ops.txt"));
         assert_eq!(input_path.file_stem(), Some("test_path_ops"));
@@ -1634,8 +1634,8 @@ mod tests {
         let input_file = "/tmp/test_type_safety.txt";
         fs::write(input_file, "test content").unwrap();
 
-        let input_path = InputPath::from_str(input_file).unwrap();
-        let output_path = OutputPath::from_str("/tmp/test_output.txt").unwrap();
+        let input_path = InputPath::parse(input_file).unwrap();
+        let output_path = OutputPath::parse("/tmp/test_output.txt").unwrap();
 
         // This would be a compile error - cannot compare different path types
         // assert_eq!(input_path, output_path); // Compile error!

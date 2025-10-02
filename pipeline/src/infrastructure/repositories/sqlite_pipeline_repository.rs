@@ -897,8 +897,8 @@ impl SqlitePipelineRepository {
         // Load metrics (simplified for now)
         let metrics = ProcessingMetrics::new(0, 0); // TODO: Implement metrics loading
 
-        // Reconstruct pipeline using from_database constructor
-        let pipeline = Pipeline::from_database(
+        // Construct DTO and reconstruct pipeline
+        let data = pipeline_domain::entities::pipeline::PipelineData {
             id,
             name,
             archived,
@@ -907,8 +907,9 @@ impl SqlitePipelineRepository {
             stages,
             created_at,
             updated_at,
-        )
-        .unwrap();
+        };
+
+        let pipeline = Pipeline::from_database(data).unwrap();
 
         debug!("Successfully loaded pipeline: {}", pipeline.name());
         Ok(Some(pipeline))

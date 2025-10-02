@@ -239,7 +239,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
     /// immutable. Instead of mutating chunks in-place, we create new
     /// processed chunks and replace the vector. This ensures data integrity
     /// and prevents accidental mutations.
-    fn process_chunks_with_processor(&self, chunks: &mut Vec<FileChunk>, processor: &dyn ChunkProcessor) -> Result<(), PipelineError> {
+    fn process_chunks_with_processor(&self, chunks: &mut [FileChunk], processor: &dyn ChunkProcessor) -> Result<(), PipelineError> {
         // if processor.requires_sequential_processing() {
         //     // Process chunks sequentially
         //     let mut processed_chunks = Vec::with_capacity(chunks.len());

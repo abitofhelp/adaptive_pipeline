@@ -222,7 +222,7 @@ impl UserId {
     }
 
     /// Creates a user ID from a string slice
-    pub fn from_str(user_id: &str) -> Result<Self, PipelineError> {
+    pub fn parse(user_id: &str) -> Result<Self, PipelineError> {
         Self::new(user_id.to_string())
     }
 
@@ -452,7 +452,7 @@ impl std::str::FromStr for UserId {
     type Err = PipelineError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s)
+        Self::parse(s)
     }
 }
 
@@ -621,7 +621,7 @@ mod tests {
         let user_id = UserId::new("user@example.com".to_string()).unwrap();
         assert_eq!(user_id.value(), "user@example.com");
 
-        let user_id = UserId::from_str("username123").unwrap();
+        let user_id = UserId::parse("username123").unwrap();
         assert_eq!(user_id.value(), "username123");
     }
 

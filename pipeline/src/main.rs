@@ -163,7 +163,7 @@ use byte_unit::Byte;
 use clap::{Parser, Subcommand};
 use sha2::{Digest, Sha256};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, error, info, warn};
@@ -450,12 +450,15 @@ async fn main() -> Result<()> {
             chunk_size_mb,
             workers,
         } => {
-            process_file(
+            let config = ProcessFileConfig {
                 input,
                 output,
                 pipeline,
                 chunk_size_mb,
                 workers,
+            };
+            process_file(
+                config,
                 metrics_service.clone(),
                 observability_service.clone(),
                 pipeline_repository.clone(),
@@ -523,16 +526,31 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn process_file(
+/// Configuration for file processing operations.
+///
+/// Groups all file processing parameters into a single struct to improve
+/// function signatures and follow clean code principles.
+struct ProcessFileConfig {
     input: PathBuf,
     output: PathBuf,
     pipeline: String,
     chunk_size_mb: Option<usize>,
     workers: Option<usize>,
+}
+
+async fn process_file(
+    config: ProcessFileConfig,
     metrics_service: Arc<MetricsService>,
     observability_service: Arc<ObservabilityService>,
     pipeline_repository: Arc<SqlitePipelineRepository>,
 ) -> Result<()> {
+    let ProcessFileConfig {
+        input,
+        output,
+        pipeline,
+        chunk_size_mb,
+        workers,
+    } = config;
     // Ensure output file has .adapipe extension
     let output = if output.extension().is_none_or(|ext| ext != "adapipe") {
         output.with_extension("adapipe")
@@ -1046,8 +1064,10 @@ async fn create_pipeline(
             _custom => (StageType::PassThrough, "passthrough".to_string()),
         };
 
-        let mut config = StageConfiguration::default();
-        config.algorithm = algorithm;
+        let config = StageConfiguration {
+            algorithm,
+            ..Default::default()
+        };
 
         let stage = PipelineStage::new(stage_name.trim().to_string(), stage_type, config, index as u32).unwrap();
 
@@ -1129,10 +1149,10 @@ async fn show_pipeline(pipeline_name: String, pipeline_repository: Arc<SqlitePip
 
     for (index, stage) in pipeline.stages().iter().enumerate() {
         println!(
-            "  {}. {} ({})",
+            "  {}. {} ({:?})",
             index + 1,
             stage.name(),
-            format!("{:?}", stage.stage_type())
+            stage.stage_type()
         );
         println!("     Algorithm: {}", stage.configuration().algorithm);
         println!("     Enabled: {}", stage.is_enabled());
@@ -2653,8 +2673,8 @@ struct RestorationResult {
 /// - Performance: Streaming processing for large files
 /// - Validation: Automatic integrity verification
 async fn stream_restore_with_validation(
-    input_path: &PathBuf,
-    output_path: &PathBuf,
+    input_path: &Path,
+    output_path: &Path,
     restoration_pipeline: &Pipeline,
     metadata: &FileHeader,
     _footer_size: usize,
@@ -2698,8 +2718,8 @@ async fn stream_restore_with_validation(
 
     // Create processing context for restoration
     let mut processing_context = ProcessingContext::new(
-        input_path.clone(),
-        output_path.clone(),
+        input_path.to_path_buf(),
+        output_path.to_path_buf(),
         metadata.original_size,
         security_context,
     );

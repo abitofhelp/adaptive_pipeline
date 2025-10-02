@@ -50,6 +50,29 @@ use std::collections::HashMap;
 // use crate::repositories::RepositoryEntity;
 // use crate::repositories::SqliteEntity;
 
+/// Data Transfer Object for reconstituting a Pipeline from database storage.
+///
+/// This DTO represents the raw database row structure and is used by repository
+/// implementations to reconstruct Pipeline entities. It separates database
+/// representation from domain logic, following the Repository pattern.
+///
+/// # Usage
+///
+/// This DTO is typically created by repository implementations when fetching
+/// data from the database, then passed to `Pipeline::from_database()` to
+/// create a domain entity.
+#[derive(Debug, Clone)]
+pub struct PipelineData {
+    pub id: PipelineId,
+    pub name: String,
+    pub archived: bool,
+    pub configuration: HashMap<String, String>,
+    pub metrics: ProcessingMetrics,
+    pub stages: Vec<PipelineStage>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Core pipeline entity representing a configurable processing workflow.
 ///
 /// A `Pipeline` is a domain entity that orchestrates file processing through
@@ -808,38 +831,41 @@ impl Pipeline {
         Ok(())
     }
 
-    /// Creates a pipeline from database data (for repository use)
-    pub fn from_database(
-        id: PipelineId,
-        name: String,
-        archived: bool,
-        configuration: HashMap<String, String>,
-        metrics: ProcessingMetrics,
-        stages: Vec<PipelineStage>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Result<Self, PipelineError> {
-        if name.is_empty() {
+    /// Creates a pipeline from database data (for repository use).
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - A `PipelineData` DTO containing all fields from the database
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Pipeline)` if the data is valid, or `Err(PipelineError)` if validation fails.
+    ///
+    /// # Errors
+    ///
+    /// * `PipelineError::InvalidConfiguration` - If name is empty or no stages provided
+    pub fn from_database(data: PipelineData) -> Result<Self, PipelineError> {
+        if data.name.is_empty() {
             return Err(PipelineError::InvalidConfiguration(
                 "Pipeline name cannot be empty".to_string(),
             ));
         }
 
-        if stages.is_empty() {
+        if data.stages.is_empty() {
             return Err(PipelineError::InvalidConfiguration(
                 "Pipeline must have at least one stage".to_string(),
             ));
         }
 
         Ok(Pipeline {
-            id,
-            name,
-            archived,
-            configuration,
-            metrics,
-            stages,
-            created_at,
-            updated_at,
+            id: data.id,
+            name: data.name,
+            archived: data.archived,
+            configuration: data.configuration,
+            metrics: data.metrics,
+            stages: data.stages,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
         })
     }
 }
