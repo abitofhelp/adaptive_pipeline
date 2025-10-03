@@ -103,13 +103,15 @@
 //! - **Key Management**: Secure key storage and retrieval
 //! - **Audit Logging**: Security event tracking and compliance
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::services::datetime_serde;
 use crate::value_objects::EncryptionBenchmark;
 use crate::{FileChunk, PipelineError, ProcessingContext, SecurityContext};
 use zeroize::{Zeroize, ZeroizeOnDrop};
+
+// NOTE: Domain traits are synchronous. Async execution is an infrastructure concern.
+// Infrastructure can provide async adapters that wrap sync implementations.
 
 /// Encryption algorithms supported by the adaptive pipeline system
 ///
@@ -355,10 +357,29 @@ impl KeyMaterial {
 }
 
 /// Domain service interface for encryption operations
-#[async_trait]
+///
+/// This trait is **synchronous** following DDD principles. The domain layer
+/// defines *what* operations exist, not *how* they execute. Async execution
+/// is an infrastructure concern. Infrastructure adapters can wrap this trait
+/// to provide async interfaces when needed.
+///
+/// # Note on Async
+///
+/// For async contexts, use `AsyncEncryptionAdapter` from the infrastructure layer.
+///
+/// # Note on Parallel Processing
+///
+/// Parallel processing of chunks (encrypt_chunks_parallel, decrypt_chunks_parallel)
+/// is an infrastructure concern and has been removed from the domain trait.
+/// Use infrastructure adapters for batch/parallel operations.
 pub trait EncryptionService: Send + Sync {
-    /// Encrypts a file chunk
-    async fn encrypt_chunk(
+    /// Encrypts a file chunk using the specified configuration and key material
+    ///
+    /// # Note on Async
+    ///
+    /// This method is synchronous in the domain. For async contexts,
+    /// use `AsyncEncryptionAdapter` from the infrastructure layer.
+    fn encrypt_chunk(
         &self,
         chunk: FileChunk,
         config: &EncryptionConfig,
@@ -366,8 +387,13 @@ pub trait EncryptionService: Send + Sync {
         context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError>;
 
-    /// Decrypts a file chunk
-    async fn decrypt_chunk(
+    /// Decrypts a file chunk using the specified configuration and key material
+    ///
+    /// # Note on Async
+    ///
+    /// This method is synchronous in the domain. For async contexts,
+    /// use `AsyncEncryptionAdapter` from the infrastructure layer.
+    fn decrypt_chunk(
         &self,
         chunk: FileChunk,
         config: &EncryptionConfig,
@@ -375,72 +401,92 @@ pub trait EncryptionService: Send + Sync {
         context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError>;
 
-    /// Encrypts multiple chunks in parallel
-    async fn encrypt_chunks_parallel(
-        &self,
-        chunks: Vec<FileChunk>,
-        config: &EncryptionConfig,
-        key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
-    ) -> Result<Vec<FileChunk>, PipelineError>;
-
-    /// Decrypts multiple chunks in parallel
-    async fn decrypt_chunks_parallel(
-        &self,
-        chunks: Vec<FileChunk>,
-        config: &EncryptionConfig,
-        key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
-    ) -> Result<Vec<FileChunk>, PipelineError>;
-
-    /// Derives key material from password
-    async fn derive_key_material(
+    /// Derives key material from password using the specified KDF
+    ///
+    /// # Note
+    ///
+    /// This is a CPU-intensive operation. Use infrastructure adapters
+    /// to execute in blocking thread pool when called from async contexts.
+    fn derive_key_material(
         &self,
         password: &str,
         config: &EncryptionConfig,
         security_context: &SecurityContext,
     ) -> Result<KeyMaterial, PipelineError>;
 
-    /// Generates random key material
-    async fn generate_key_material(
+    /// Generates random key material for encryption operations
+    ///
+    /// # Note
+    ///
+    /// This operation uses cryptographically secure random number generation.
+    /// Execution is synchronous in domain, wrap with adapter for async contexts.
+    fn generate_key_material(
         &self,
         config: &EncryptionConfig,
         security_context: &SecurityContext,
     ) -> Result<KeyMaterial, PipelineError>;
 
-    /// Validates encryption configuration
-    async fn validate_config(&self, config: &EncryptionConfig) -> Result<(), PipelineError>;
+    /// Validates encryption configuration parameters
+    ///
+    /// Checks if the configuration is valid and supported by this implementation.
+    fn validate_config(&self, config: &EncryptionConfig) -> Result<(), PipelineError>;
 
-    /// Gets supported algorithms
+    /// Gets list of supported encryption algorithms
+    ///
+    /// Returns the algorithms that this implementation can handle.
     fn supported_algorithms(&self) -> Vec<EncryptionAlgorithm>;
 
-    /// Benchmarks encryption performance
-    async fn benchmark_algorithm(
+    /// Benchmarks encryption performance with sample data
+    ///
+    /// # Note
+    ///
+    /// This is a CPU-intensive operation. Use infrastructure adapters
+    /// for async execution in blocking thread pool.
+    fn benchmark_algorithm(
         &self,
         algorithm: &EncryptionAlgorithm,
         test_data: &[u8],
     ) -> Result<EncryptionBenchmark, PipelineError>;
 
     /// Securely wipes key material from memory
-    async fn wipe_key_material(&self, key_material: &mut KeyMaterial) -> Result<(), PipelineError>;
+    ///
+    /// Ensures sensitive key data is properly zeroized before deallocation.
+    fn wipe_key_material(&self, key_material: &mut KeyMaterial) -> Result<(), PipelineError>;
 
-    /// Stores key material securely (HSM integration)
-    async fn store_key_material(
+    /// Stores key material securely (e.g., HSM integration)
+    ///
+    /// # Note
+    ///
+    /// This may involve I/O operations. Infrastructure implementations
+    /// should use appropriate async adapters when needed.
+    fn store_key_material(
         &self,
         key_material: &KeyMaterial,
         key_id: &str,
         security_context: &SecurityContext,
     ) -> Result<(), PipelineError>;
 
-    /// Retrieves key material securely (HSM integration)
-    async fn retrieve_key_material(
+    /// Retrieves key material securely (e.g., from HSM)
+    ///
+    /// # Note
+    ///
+    /// This may involve I/O operations. Infrastructure implementations
+    /// should use appropriate async adapters when needed.
+    fn retrieve_key_material(
         &self,
         key_id: &str,
         security_context: &SecurityContext,
     ) -> Result<KeyMaterial, PipelineError>;
 
-    /// Rotates encryption keys
-    async fn rotate_keys(
+    /// Rotates encryption keys to new configuration
+    ///
+    /// Returns the new key ID for the rotated keys.
+    ///
+    /// # Note
+    ///
+    /// This may involve I/O operations. Infrastructure implementations
+    /// should use appropriate async adapters when needed.
+    fn rotate_keys(
         &self,
         old_key_id: &str,
         new_config: &EncryptionConfig,

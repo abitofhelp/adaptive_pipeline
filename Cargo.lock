@@ -1820,7 +1820,6 @@ dependencies = [
 name = "pipeline-domain"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "chrono",
  "futures",
@@ -1828,16 +1827,11 @@ dependencies = [
  "proptest",
  "rand 0.8.5",
  "regex",
- "ring",
  "serde",
  "serde_json",
- "serde_yaml",
  "sha2",
  "tempfile",
  "thiserror 1.0.69",
- "tokio",
- "toml",
- "tracing",
  "ulid",
  "uuid",
  "zeroize",

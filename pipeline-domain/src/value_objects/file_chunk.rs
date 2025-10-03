@@ -130,6 +130,7 @@ use crate::services::datetime_serde;
 use crate::{ChunkSize, PipelineError};
 use hex;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 /// Represents an immutable chunk of file data for processing
@@ -361,8 +362,10 @@ impl FileChunk {
     /// - Returns new chunk with checksum set
     /// - Original chunk remains unchanged
     pub fn with_calculated_checksum(&self) -> Result<Self, PipelineError> {
-        let digest = ring::digest::digest(&ring::digest::SHA256, &self.data);
-        let checksum = hex::encode(digest.as_ref());
+        let mut hasher = Sha256::new();
+        hasher.update(&self.data);
+        let digest = hasher.finalize();
+        let checksum = hex::encode(digest);
         Ok(self.with_checksum(checksum))
     }
 
@@ -417,8 +420,10 @@ impl FileChunk {
     /// - Consider verification before expensive operations like encryption
     pub fn verify_integrity(&self) -> Result<bool, PipelineError> {
         if let Some(stored_checksum) = &self.checksum {
-            let digest = ring::digest::digest(&ring::digest::SHA256, &self.data);
-            let calculated_checksum = hex::encode(digest.as_ref());
+            let mut hasher = Sha256::new();
+            hasher.update(&self.data);
+            let digest = hasher.finalize();
+            let calculated_checksum = hex::encode(digest);
             Ok(calculated_checksum == *stored_checksum)
         } else {
             Err(PipelineError::InvalidChunk(
@@ -434,8 +439,10 @@ impl FileChunk {
     /// - Use when you need the checksum but don't want to create a new chunk
     /// - For creating a chunk with checksum, use `with_calculated_checksum()`
     pub fn calculate_checksum(&self) -> Result<String, PipelineError> {
-        let digest = ring::digest::digest(&ring::digest::SHA256, &self.data);
-        Ok(hex::encode(digest.as_ref()))
+        let mut hasher = Sha256::new();
+        hasher.update(&self.data);
+        let digest = hasher.finalize();
+        Ok(hex::encode(digest))
     }
 }
 

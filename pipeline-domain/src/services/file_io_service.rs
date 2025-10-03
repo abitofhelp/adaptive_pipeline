@@ -133,6 +133,39 @@
 //! - **Encryption**: Transparent encryption/decryption during I/O
 //! - **Network Storage**: Support for network-based storage systems
 //! - **Caching**: Intelligent caching layer for frequently accessed files
+//!
+//! ## Architecture Note - Infrastructure Port
+//!
+//! **Important:** This service trait is **async** and represents an
+//! **infrastructure port**, not a pure domain service. This is an intentional
+//! exception to the "domain traits should be sync" principle.
+//!
+//! ### Why FileIOService is Async
+//!
+//! File I/O operations are inherently I/O-bound, not CPU-bound:
+//! - **I/O-Bound Operations**: File operations involve waiting for disk I/O
+//! - **Non-Blocking Benefits**: Async I/O prevents blocking the runtime
+//! - **tokio Integration**: Async file operations integrate naturally with tokio
+//! - **Performance**: Async I/O provides better concurrency for I/O operations
+//!
+//! ### Architectural Classification
+//!
+//! This trait is classified as an **infrastructure port** rather than a domain
+//! service:
+//! - **Domain Services**: CPU-bound business logic (compression, encryption, checksums)
+//! - **Infrastructure Ports**: I/O-bound operations (file I/O, network, database)
+//!
+//! ### Design Trade-offs
+//!
+//! We considered making this sync (using std::fs) but chose async because:
+//! 1. Most of the application uses tokio async runtime
+//! 2. File operations benefit from non-blocking I/O
+//! 3. Alternative would be to use blocking thread pool, adding complexity
+//! 4. The trait is already an infrastructure concern (port/interface)
+//!
+//! ### References
+//!
+//! See REFACTORING_STATUS.md Phase 1, item 2 for full discussion.
 
 use crate::{FileChunk, PipelineError};
 use async_trait::async_trait;

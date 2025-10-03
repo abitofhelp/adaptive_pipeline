@@ -409,7 +409,6 @@ impl BasicStageExecutor {
         };
         self.compression_service
             .compress_chunk(chunk, &compression_config, context)
-            .await
     }
 
     async fn process_encryption_stage(
@@ -446,7 +445,6 @@ impl BasicStageExecutor {
         };
         self.encryption_service
             .encrypt_chunk(chunk, &encryption_config, &key_material, context)
-            .await
     }
 
     async fn process_passthrough_stage(

@@ -52,6 +52,15 @@ pub mod chunk_processor_adapters;
 /// Compression service adapter
 pub mod compression_service_adapter;
 
+/// Async compression adapter (wraps sync domain trait for async contexts)
+pub mod async_compression_adapter;
+
+/// Async encryption adapter (wraps sync domain trait for async contexts)
+pub mod async_encryption_adapter;
+
+/// Async checksum adapter (wraps sync domain trait for async contexts)
+pub mod async_checksum_adapter;
+
 /// Encryption service adapter
 pub mod encryption_service_adapter;
 
@@ -62,5 +71,8 @@ pub mod file_io_service_adapter;
 pub mod repositories;
 
 // Re-export for easy access
+pub use async_checksum_adapter::*;
+pub use async_compression_adapter::*;
+pub use async_encryption_adapter::*;
 pub use compression_service_adapter::*;
 pub use encryption_service_adapter::*;

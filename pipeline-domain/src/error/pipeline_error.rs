@@ -289,14 +289,18 @@ impl From<serde_json::Error> for PipelineError {
     }
 }
 
-impl From<toml::de::Error> for PipelineError {
-    fn from(err: toml::de::Error) -> Self {
-        PipelineError::SerializationError(err.to_string())
-    }
-}
+// NOTE: TOML and YAML error conversions removed - serialization format is infrastructure concern
+// If infrastructure needs these conversions, implement them in the infrastructure layer
+// The domain only needs JSON serialization for configuration parameters
 
-impl From<serde_yaml::Error> for PipelineError {
-    fn from(err: serde_yaml::Error) -> Self {
-        PipelineError::SerializationError(err.to_string())
-    }
-}
+// impl From<toml::de::Error> for PipelineError {
+//     fn from(err: toml::de::Error) -> Self {
+//         PipelineError::SerializationError(err.to_string())
+//     }
+// }
+
+// impl From<serde_yaml::Error> for PipelineError {
+//     fn from(err: serde_yaml::Error) -> Self {
+//         PipelineError::SerializationError(err.to_string())
+//     }
+// }

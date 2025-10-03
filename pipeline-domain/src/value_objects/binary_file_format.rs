@@ -187,6 +187,7 @@
 //! - **Performance Optimizations**: Further performance improvements
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
 use crate::PipelineError;
@@ -666,8 +667,10 @@ impl FileHeader {
         }
 
         // Calculate checksum of entire file
-        let digest = ring::digest::digest(&ring::digest::SHA256, file_data);
-        let calculated_checksum = hex::encode(digest.as_ref());
+        let mut hasher = Sha256::new();
+        hasher.update(file_data);
+        let digest = hasher.finalize();
+        let calculated_checksum = hex::encode(digest);
 
         Ok(calculated_checksum == self.output_checksum)
     }
@@ -723,8 +726,10 @@ impl FileHeader {
         }
 
         // Check checksum
-        let digest = ring::digest::digest(&ring::digest::SHA256, restored_data);
-        let calculated_checksum = hex::encode(digest.as_ref());
+        let mut hasher = Sha256::new();
+        hasher.update(restored_data);
+        let digest = hasher.finalize();
+        let calculated_checksum = hex::encode(digest);
 
         Ok(calculated_checksum == self.original_checksum)
     }

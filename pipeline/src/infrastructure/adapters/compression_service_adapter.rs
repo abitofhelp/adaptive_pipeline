@@ -85,19 +85,19 @@
 //! - **Metrics Collection**: Performance monitoring and statistics
 //! - **Configuration Management**: Dynamic configuration updates
 
-use async_trait::async_trait;
 use brotli::Decompressor;
 use flate2::read::{GzDecoder, GzEncoder};
 use flate2::Compression;
 use std::io::{Read, Write};
-
-use rayon::prelude::*;
 
 use pipeline_domain::services::{
     CompressionAlgorithm, CompressionBenchmark, CompressionConfig, CompressionLevel, CompressionPriority,
     CompressionService,
 };
 use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
+
+// NOTE: Domain traits are now synchronous. This implementation is sync and CPU-bound.
+// For async contexts, wrap this implementation with AsyncCompressionAdapter.
 
 /// Concrete implementation of the compression service for the adaptive pipeline
 /// system
@@ -244,9 +244,8 @@ impl CompressionServiceImpl {
     }
 }
 
-#[async_trait]
 impl CompressionService for CompressionServiceImpl {
-    async fn compress_chunk(
+    fn compress_chunk(
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
@@ -282,7 +281,7 @@ impl CompressionService for CompressionServiceImpl {
         Ok(chunk)
     }
 
-    async fn decompress_chunk(
+    fn decompress_chunk(
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
@@ -315,76 +314,7 @@ impl CompressionService for CompressionServiceImpl {
         Ok(chunk)
     }
 
-    async fn compress_chunks_parallel(
-        &self,
-        chunks: Vec<FileChunk>,
-        config: &CompressionConfig,
-        context: &mut ProcessingContext,
-    ) -> Result<Vec<FileChunk>, PipelineError> {
-        if !config.parallel_processing {
-            // Process sequentially
-            let mut results = Vec::new();
-            for chunk in chunks {
-                results.push(self.compress_chunk(chunk, config, context).await.unwrap());
-            }
-            return Ok(results);
-        }
-
-        // Process in parallel using rayon
-        let results: Result<Vec<_>, _> = chunks
-            .into_par_iter()
-            .map(|chunk| {
-                // Create a local copy of config for thread safety
-                let local_config = config.clone();
-
-                // Note: We can't pass the mutable context to parallel operations
-                // In a real implementation, we'd need to collect metrics separately
-                tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        let mut local_context = context.clone();
-                        self.compress_chunk(chunk, &local_config, &mut local_context).await
-                    })
-                })
-            })
-            .collect();
-
-        results.map_err(|e| PipelineError::CompressionError(format!("Parallel compression failed: {}", e)))
-    }
-
-    async fn decompress_chunks_parallel(
-        &self,
-        chunks: Vec<FileChunk>,
-        config: &CompressionConfig,
-        context: &mut ProcessingContext,
-    ) -> Result<Vec<FileChunk>, PipelineError> {
-        if !config.parallel_processing {
-            // Process sequentially
-            let mut results = Vec::new();
-            for chunk in chunks {
-                results.push(self.decompress_chunk(chunk, config, context).await.unwrap());
-            }
-            return Ok(results);
-        }
-
-        // Process in parallel using rayon
-        let results: Result<Vec<_>, _> = chunks
-            .into_par_iter()
-            .map(|chunk| {
-                let local_config = config.clone();
-
-                tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        let mut local_context = context.clone();
-                        self.decompress_chunk(chunk, &local_config, &mut local_context).await
-                    })
-                })
-            })
-            .collect();
-
-        results.map_err(|e| PipelineError::CompressionError(format!("Parallel decompression failed: {}", e)))
-    }
-
-    async fn estimate_compression_ratio(
+    fn estimate_compression_ratio(
         &self,
         data_sample: &[u8],
         algorithm: &CompressionAlgorithm,
@@ -399,10 +329,10 @@ impl CompressionService for CompressionServiceImpl {
         self.estimate_ratio_from_sample(sample, algorithm)
     }
 
-    async fn get_optimal_config(
+    fn get_optimal_config(
         &self,
         file_extension: &str,
-        data_sample: &[u8],
+        _data_sample: &[u8],
         performance_priority: CompressionPriority,
     ) -> Result<CompressionConfig, PipelineError> {
         let algorithm = match file_extension.to_lowercase().as_str() {
@@ -426,7 +356,7 @@ impl CompressionService for CompressionServiceImpl {
         })
     }
 
-    async fn validate_config(&self, config: &CompressionConfig) -> Result<(), PipelineError> {
+    fn validate_config(&self, config: &CompressionConfig) -> Result<(), PipelineError> {
         match &config.algorithm {
             CompressionAlgorithm::Brotli => {
                 let level = config.level.to_numeric(&config.algorithm);
@@ -473,7 +403,7 @@ impl CompressionService for CompressionServiceImpl {
         ]
     }
 
-    async fn benchmark_algorithm(
+    fn benchmark_algorithm(
         &self,
         algorithm: &CompressionAlgorithm,
         test_data: &[u8],

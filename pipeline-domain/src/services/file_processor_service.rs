@@ -146,6 +146,10 @@ use std::path::Path;
 // Note: FileIOService imports moved to infrastructure layer to maintain Clean
 // Architecture
 
+// NOTE: FileProcessorService is async (infrastructure port - involves I/O operations).
+// ChunkProcessor is synchronous (domain service - CPU-bound processing).
+// See file_io_service.rs for explanation of I/O-bound vs CPU-bound async decisions.
+
 /// Configuration for file processing operations
 ///
 /// This struct encapsulates all configuration parameters for file processing
@@ -280,8 +284,16 @@ pub trait FileProcessorService: Send + Sync {
 /// Instead of mutating chunks, processors return new chunk instances.
 /// This ensures data integrity and prevents accidental mutations.
 ///
+/// ## Architecture Note - Synchronous Domain Service
+///
+/// This trait is **synchronous** following DDD principles. Chunk processing
+/// is CPU-bound (compression, encryption, checksums), not I/O-bound.
+/// The domain layer defines *what* operations exist, not *how* they execute.
+///
+/// For async contexts, infrastructure adapters can wrap chunk processors
+/// using `tokio::spawn_blocking` or similar mechanisms.
+///
 /// ### Usage Pattern:
-#[async_trait]
 pub trait ChunkProcessor: Send + Sync {
     /// Processes a single chunk of data and returns a new processed chunk
     ///
@@ -296,22 +308,12 @@ pub trait ChunkProcessor: Send + Sync {
     /// - Input chunk is never modified (immutability)
     /// - Return new chunk with changes applied
     /// - Use chunk.with_data() or chunk.with_checksum() for modifications
-    async fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError>;
-
-    /// Called before processing starts
-    async fn before_processing(
-        &self,
-        file_info: &crate::services::file_io_service::FileInfo,
-    ) -> Result<(), PipelineError> {
-        let _ = file_info;
-        Ok(())
-    }
-
-    /// Called after processing completes
-    async fn after_processing(&self, result: &FileProcessingResult) -> Result<(), PipelineError> {
-        let _ = result;
-        Ok(())
-    }
+    ///
+    /// # Note on Async
+    ///
+    /// This method is synchronous (CPU-bound operations). For async contexts,
+    /// use infrastructure adapters that wrap this in `tokio::spawn_blocking`.
+    fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError>;
 
     /// Returns the processor name for logging/debugging
     fn name(&self) -> &str;
@@ -350,31 +352,13 @@ pub struct ChainProcessor {
     pub processors: Vec<Box<dyn ChunkProcessor>>,
 }
 
-#[async_trait]
 impl ChunkProcessor for ChainProcessor {
-    async fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
+    fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
         let mut current_chunk = chunk.clone();
         for processor in &self.processors {
-            current_chunk = processor.process_chunk(&current_chunk).await.unwrap();
+            current_chunk = processor.process_chunk(&current_chunk)?;
         }
         Ok(current_chunk)
-    }
-
-    async fn before_processing(
-        &self,
-        file_info: &crate::services::file_io_service::FileInfo,
-    ) -> Result<(), PipelineError> {
-        for processor in &self.processors {
-            // processor.before_processing(file_info).unwrap();
-        }
-        Ok(())
-    }
-
-    async fn after_processing(&self, result: &FileProcessingResult) -> Result<(), PipelineError> {
-        for processor in &self.processors {
-            // processor.after_processing(result).unwrap();
-        }
-        Ok(())
     }
 
     fn name(&self) -> &str {

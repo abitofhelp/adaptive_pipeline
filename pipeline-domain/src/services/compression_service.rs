@@ -79,7 +79,9 @@
 //! - **Error Reporting**: Comprehensive error tracking and reporting
 
 use crate::{FileChunk, PipelineError, ProcessingContext};
-use async_trait::async_trait;
+
+// NOTE: Domain traits are synchronous. Async execution is an infrastructure concern.
+// Infrastructure can provide async adapters that wrap sync implementations.
 
 /// Compression algorithms supported by the adaptive pipeline system
 ///
@@ -230,7 +232,12 @@ pub struct CompressionConfig {
 ///
 /// # Usage Examples
 ///
-#[async_trait]
+/// # Architecture Note
+///
+/// This trait is **synchronous** following DDD principles. The domain layer
+/// defines *what* operations exist, not *how* they execute. Async execution
+/// is an infrastructure concern. Infrastructure adapters can wrap this trait
+/// to provide async interfaces when needed.
 pub trait CompressionService: Send + Sync {
     /// Compresses a file chunk using the specified configuration
     ///
@@ -257,9 +264,11 @@ pub trait CompressionService: Send + Sync {
     /// - `MemoryError`: Insufficient memory for compression operation
     /// - `DataError`: Invalid or corrupted input data
     ///
-    /// # Examples
+    /// # Note on Async
     ///
-    async fn compress_chunk(
+    /// This method is synchronous in the domain. For async contexts,
+    /// use `AsyncCompressionAdapter` from the infrastructure layer.
+    fn compress_chunk(
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
@@ -291,40 +300,33 @@ pub trait CompressionService: Send + Sync {
     /// - `MemoryError`: Insufficient memory for decompression operation
     /// - `DataCorruptionError`: Corrupted or invalid compressed data
     ///
-    /// # Examples
+    /// # Note on Async
     ///
-    async fn decompress_chunk(
+    /// This method is synchronous in the domain. For async contexts,
+    /// use `AsyncCompressionAdapter` from the infrastructure layer.
+    fn decompress_chunk(
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
         context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError>;
 
-    /// Compresses multiple chunks in parallel
-    async fn compress_chunks_parallel(
-        &self,
-        chunks: Vec<FileChunk>,
-        config: &CompressionConfig,
-        context: &mut ProcessingContext,
-    ) -> Result<Vec<FileChunk>, PipelineError>;
-
-    /// Decompresses multiple chunks in parallel
-    async fn decompress_chunks_parallel(
-        &self,
-        chunks: Vec<FileChunk>,
-        config: &CompressionConfig,
-        context: &mut ProcessingContext,
-    ) -> Result<Vec<FileChunk>, PipelineError>;
-
     /// Estimates compression ratio for given data
-    async fn estimate_compression_ratio(
+    ///
+    /// # Note
+    ///
+    /// Parallel processing of chunks is an infrastructure concern.
+    /// Use infrastructure adapters for batch/parallel operations.
+    fn estimate_compression_ratio(
         &self,
         data_sample: &[u8],
         algorithm: &CompressionAlgorithm,
     ) -> Result<f64, PipelineError>;
 
     /// Gets optimal compression configuration for file type
-    async fn get_optimal_config(
+    ///
+    /// Analyzes file characteristics and recommends configuration.
+    fn get_optimal_config(
         &self,
         file_extension: &str,
         data_sample: &[u8],
@@ -332,13 +334,19 @@ pub trait CompressionService: Send + Sync {
     ) -> Result<CompressionConfig, PipelineError>;
 
     /// Validates compression configuration
-    async fn validate_config(&self, config: &CompressionConfig) -> Result<(), PipelineError>;
+    ///
+    /// Checks if the configuration is valid and supported.
+    fn validate_config(&self, config: &CompressionConfig) -> Result<(), PipelineError>;
 
     /// Gets supported algorithms
+    ///
+    /// Returns list of compression algorithms supported by this implementation.
     fn supported_algorithms(&self) -> Vec<CompressionAlgorithm>;
 
     /// Benchmarks compression performance
-    async fn benchmark_algorithm(
+    ///
+    /// Tests compression performance with sample data.
+    fn benchmark_algorithm(
         &self,
         algorithm: &CompressionAlgorithm,
         test_data: &[u8],
@@ -362,6 +370,19 @@ pub struct CompressionBenchmark {
     pub decompression_speed_mbps: f64,
     pub memory_usage_mb: f64,
     pub cpu_usage_percent: f64,
+}
+
+impl Default for CompressionBenchmark {
+    fn default() -> Self {
+        Self {
+            algorithm: CompressionAlgorithm::Brotli,
+            compression_ratio: 0.5,
+            compression_speed_mbps: 100.0,
+            decompression_speed_mbps: 200.0,
+            memory_usage_mb: 64.0,
+            cpu_usage_percent: 50.0,
+        }
+    }
 }
 
 impl Default for CompressionConfig {

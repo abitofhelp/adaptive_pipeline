@@ -185,7 +185,9 @@ pub mod pipeline_stage;
 pub mod processing_context;
 pub mod processing_metrics;
 pub mod security_context;
-pub mod transactional_chunk_writer;
+// TODO: Move TransactionalChunkWriter to application layer (it's an application service, not a domain entity)
+// It uses tokio directly which violates domain purity. Should be in pipeline/src/application/services/
+// pub mod transactional_chunk_writer;
 
 // Re-export all entity types for convenient access
 pub use pipeline::Pipeline;
@@ -193,3 +195,4 @@ pub use pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 pub use processing_context::ProcessingContext;
 pub use processing_metrics::ProcessingMetrics;
 pub use security_context::{SecurityContext, SecurityLevel};
+// pub use transactional_chunk_writer::TransactionalChunkWriter;

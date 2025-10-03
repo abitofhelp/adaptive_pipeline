@@ -94,8 +94,10 @@
 use crate::entities::ProcessingContext;
 use crate::value_objects::FileChunk;
 use crate::PipelineError;
-use async_trait::async_trait;
 use sha2::{Digest, Sha256};
+
+// NOTE: Domain traits are synchronous. Async execution is an infrastructure concern.
+// Infrastructure can provide async adapters that wrap sync implementations.
 
 /// Domain service interface for checksum calculation and data integrity
 /// verification.
@@ -151,10 +153,24 @@ use sha2::{Digest, Sha256};
 /// - Minimize memory allocations during processing
 /// - Optimize for streaming large files
 /// - Support parallel chunk processing where possible
-#[async_trait]
+///
+/// ## Architecture Note
+///
+/// This trait is **synchronous** following DDD principles. The domain layer
+/// defines *what* operations exist, not *how* they execute. Async execution
+/// is an infrastructure concern. Infrastructure adapters can wrap this trait
+/// to provide async interfaces when needed.
+///
+/// Checksum calculation is CPU-bound and doesn't benefit from async I/O.
+/// For async contexts, use `AsyncChecksumAdapter` from the infrastructure layer.
 pub trait ChecksumService: Send + Sync {
     /// Process a chunk and update the running checksum
-    async fn process_chunk(
+    ///
+    /// # Note on Async
+    ///
+    /// This method is synchronous in the domain. For async contexts,
+    /// use `AsyncChecksumAdapter` from the infrastructure layer.
+    fn process_chunk(
         &self,
         chunk: FileChunk,
         context: &mut ProcessingContext,
@@ -273,9 +289,8 @@ impl ChecksumProcessor {
     }
 }
 
-#[async_trait]
 impl ChecksumService for ChecksumProcessor {
-    async fn process_chunk(
+    fn process_chunk(
         &self,
         chunk: FileChunk,
         _context: &mut ProcessingContext,
@@ -304,7 +319,6 @@ impl ChecksumService for ChecksumProcessor {
 // Import ChunkProcessor trait
 use crate::services::file_processor_service::ChunkProcessor;
 
-#[async_trait]
 impl ChunkProcessor for ChecksumProcessor {
     /// Processes chunk with checksum calculation/verification
     ///
@@ -313,7 +327,7 @@ impl ChunkProcessor for ChecksumProcessor {
     /// - Always ensures chunk has a checksum (calculates if missing)
     /// - Returns new chunk with checksum set
     /// - Original chunk remains unchanged (immutability)
-    async fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
+    fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
         // Step 1: Verify existing checksum if requested
         if self.verify_existing
             && chunk.checksum().is_some() {

@@ -187,9 +187,8 @@ impl<T: ?Sized> ServiceChunkAdapter<T> {
 /// Compression service adapter implementing ChunkProcessor
 pub type CompressionChunkAdapter = ServiceChunkAdapter<dyn CompressionService>;
 
-#[async_trait]
 impl ChunkProcessor for CompressionChunkAdapter {
-    async fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
+    fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
         // Create a default compression config - in real usage this would be
         // configurable
         let compression_config = CompressionConfig {
@@ -212,12 +211,10 @@ impl ChunkProcessor for CompressionChunkAdapter {
             security_context,
         );
 
-        // Use the compression service to compress the chunk
+        // Use the compression service to compress the chunk (now sync)
         let compressed_chunk = self
             .service
-            .compress_chunk(chunk.clone(), &compression_config, &mut processing_context)
-            .await
-            .unwrap();
+            .compress_chunk(chunk.clone(), &compression_config, &mut processing_context)?;
 
         // Return the compressed chunk (already processed by the service)
         Ok(compressed_chunk)
@@ -232,12 +229,11 @@ impl ChunkProcessor for CompressionChunkAdapter {
     }
 }
 
-/// Encryption service adapter implementing ChunkProcessor  
+/// Encryption service adapter implementing ChunkProcessor
 pub type EncryptionChunkAdapter = ServiceChunkAdapter<dyn EncryptionService>;
 
-#[async_trait]
 impl ChunkProcessor for EncryptionChunkAdapter {
-    async fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
+    fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
         // Create a default encryption config - in real usage this would be configurable
         let encryption_config = EncryptionConfig {
             algorithm: EncryptionAlgorithm::Aes256Gcm,
@@ -273,7 +269,7 @@ impl ChunkProcessor for EncryptionChunkAdapter {
             expires_at: None,
         };
 
-        // Use the encryption service to encrypt the chunk
+        // Use the encryption service to encrypt the chunk (now sync)
         let encrypted_chunk = self
             .service
             .encrypt_chunk(
@@ -281,9 +277,7 @@ impl ChunkProcessor for EncryptionChunkAdapter {
                 &encryption_config,
                 &key_material,
                 &mut processing_context,
-            )
-            .await
-            .unwrap();
+            )?;
 
         // Return the encrypted chunk (already processed by the service)
         Ok(encrypted_chunk)

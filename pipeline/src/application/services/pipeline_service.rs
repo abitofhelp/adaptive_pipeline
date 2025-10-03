@@ -264,7 +264,7 @@ impl PipelineServiceImpl {
             StageType::Compression => {
                 // Extract compression configuration from stage
                 let compression_config = self.extract_compression_config(stage).unwrap();
-                self.compression_service.compress_chunk(chunk, &compression_config, context).await
+                self.compression_service.compress_chunk(chunk, &compression_config, context)
             }
             StageType::Encryption => {
                 let encryption_config = self.extract_encryption_config(stage).unwrap();
@@ -283,7 +283,7 @@ impl PipelineServiceImpl {
                     &encryption_config,
                     &key_material,
                     context
-                ).await
+                )
             }
 
             StageType::Checksum => {
@@ -1224,80 +1224,21 @@ impl PipelineChunkProcessor {
     }
 }
 
-#[async_trait]
-impl ChunkProcessor for PipelineChunkProcessor {
-    async fn before_processing(
-        &self,
-        _file_info: &pipeline_domain::services::file_io_service::FileInfo
-    ) -> Result<(), PipelineError> {
-        info!("Starting pipeline processing with {} stages", self.pipeline.stages().len());
-        Ok(())
-    }
+// NOTE: PipelineChunkProcessor cannot implement the sync ChunkProcessor trait
+// because it coordinates async operations (stage_executor.execute is async).
+// This is an application-level service that orchestrates multiple async operations,
+// not a CPU-bound chunk processor.
+//
+// The ChunkProcessor trait is for sync, CPU-bound processing (compression, encryption, etc.)
+// Pipeline orchestration involves async I/O and should use application-level patterns instead.
+//
+// TODO: If needed, create a separate async pipeline processing interface in the application layer.
 
-    async fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
-        // Create a minimal processing context for this chunk
-        let security_context = SecurityContext::new(
-            None,
-            pipeline_domain::entities::security_context::SecurityLevel::Internal
-        );
-        let mut context = ProcessingContext::new(
-            std::path::PathBuf::from("/tmp/streaming"),
-            std::path::PathBuf::from("/tmp/streaming_out"),
-            chunk.data().len() as u64,
-            security_context
-        );
-
-        // Process the chunk through each stage in the pipeline
-        let mut current_chunk = chunk.clone();
-        for stage in self.pipeline.stages() {
-            debug!(
-                "Processing chunk {} through stage: {}",
-                current_chunk.sequence_number(),
-                stage.name()
-            );
-
-            current_chunk = self.stage_executor
-                .execute(stage, current_chunk, &mut context).await
-                .unwrap();
-        }
-
-        Ok(current_chunk)
-    }
-
-    async fn after_processing(&self, result: &FileProcessingResult) -> Result<(), PipelineError> {
-        info!(
-            "Pipeline processing completed: {} chunks, {} bytes",
-            result.chunks_processed,
-            result.bytes_processed
-        );
-        Ok(())
-    }
-
-    fn requires_sequential_processing(&self) -> bool {
-        // Check if any stage requires sequential processing
-        self.pipeline
-            .stages()
-            .iter()
-            .any(|stage| {
-                // For now, assume checksum stages require sequential processing
-                stage.name().contains("checksum")
-            })
-    }
-
-    fn modifies_data(&self) -> bool {
-        // Pipeline modifies data if it has compression or encryption stages
-        self.pipeline
-            .stages()
-            .iter()
-            .any(|stage|
-                matches!(stage.stage_type(), StageType::Compression | StageType::Encryption)
-            )
-    }
-
-    fn name(&self) -> &str {
-        "PipelineChunkProcessor"
-    }
-}
+// Removed ChunkProcessor implementation - architectural mismatch
+// impl ChunkProcessor for PipelineChunkProcessor {
+//     ...
+// }
+// Orphaned methods removed (were part of ChunkProcessor trait implementation)
 
 #[cfg(test)]
 mod tests {

@@ -110,9 +110,7 @@
 use aes_gcm::{AeadInPlace, Aes256Gcm, Key, KeyInit, Nonce};
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
-use async_trait::async_trait;
 use chacha20poly1305::{ChaCha20Poly1305, Key as ChaChaKey, Nonce as ChaChaNonce};
-use rayon::prelude::*;
 use ring::rand::{SecureRandom, SystemRandom};
 use scrypt::password_hash::SaltString as ScryptSalt;
 use scrypt::Scrypt;
@@ -125,6 +123,9 @@ use pipeline_domain::services::{
 };
 use pipeline_domain::value_objects::{EncryptionBenchmark, FileChunk};
 use pipeline_domain::PipelineError;
+
+// NOTE: Domain traits are now synchronous. This implementation is sync and CPU-bound.
+// For async contexts, wrap this implementation with AsyncEncryptionAdapter.
 
 /// Secure key material that automatically zeros sensitive data on drop
 ///
@@ -372,9 +373,8 @@ impl EncryptionServiceImpl {
     }
 }
 
-#[async_trait]
 impl EncryptionService for EncryptionServiceImpl {
-    async fn encrypt_chunk(
+    fn encrypt_chunk(
         &self,
         chunk: FileChunk,
         config: &EncryptionConfig,
@@ -437,7 +437,7 @@ impl EncryptionService for EncryptionServiceImpl {
         Ok(chunk)
     }
 
-    async fn decrypt_chunk(
+    fn decrypt_chunk(
         &self,
         chunk: FileChunk,
         config: &EncryptionConfig,
@@ -491,59 +491,7 @@ impl EncryptionService for EncryptionServiceImpl {
         Ok(chunk)
     }
 
-    async fn encrypt_chunks_parallel(
-        &self,
-        chunks: Vec<FileChunk>,
-        config: &EncryptionConfig,
-        key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
-    ) -> Result<Vec<FileChunk>, PipelineError> {
-        // Process in parallel using rayon
-        let results: Result<Vec<_>, _> = chunks
-            .into_par_iter()
-            .map(|chunk| {
-                let local_config = config.clone();
-
-                tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        let mut local_context = context.clone();
-                        self.encrypt_chunk(chunk, &local_config, key_material, &mut local_context)
-                            .await
-                    })
-                })
-            })
-            .collect();
-
-        results.map_err(|e| PipelineError::EncryptionError(format!("Parallel encryption failed: {}", e)))
-    }
-
-    async fn decrypt_chunks_parallel(
-        &self,
-        chunks: Vec<FileChunk>,
-        config: &EncryptionConfig,
-        key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
-    ) -> Result<Vec<FileChunk>, PipelineError> {
-        // Process in parallel using rayon
-        let results: Result<Vec<_>, _> = chunks
-            .into_par_iter()
-            .map(|chunk| {
-                let local_config = config.clone();
-
-                tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        let mut local_context = context.clone();
-                        self.decrypt_chunk(chunk, &local_config, key_material, &mut local_context)
-                            .await
-                    })
-                })
-            })
-            .collect();
-
-        results.map_err(|e| PipelineError::EncryptionError(format!("Parallel decryption failed: {}", e)))
-    }
-
-    async fn derive_key_material(
+    fn derive_key_material(
         &self,
         password: &str,
         config: &EncryptionConfig,
@@ -581,7 +529,7 @@ impl EncryptionService for EncryptionServiceImpl {
         Ok(KeyMaterial::new(key_bytes, nonce, salt, config.algorithm.clone()))
     }
 
-    async fn generate_key_material(
+    fn generate_key_material(
         &self,
         config: &EncryptionConfig,
         security_context: &SecurityContext,
@@ -601,7 +549,7 @@ impl EncryptionService for EncryptionServiceImpl {
         Ok(KeyMaterial::new(key, nonce, salt, config.algorithm.clone()))
     }
 
-    async fn validate_config(&self, config: &EncryptionConfig) -> Result<(), PipelineError> {
+    fn validate_config(&self, config: &EncryptionConfig) -> Result<(), PipelineError> {
         // Validate algorithm
         match &config.algorithm {
             EncryptionAlgorithm::Aes128Gcm
@@ -635,7 +583,7 @@ impl EncryptionService for EncryptionServiceImpl {
         Ok(())
     }
 
-    async fn benchmark_algorithm(
+    fn benchmark_algorithm(
         &self,
         algorithm: &EncryptionAlgorithm,
         test_data: &[u8],
@@ -693,13 +641,13 @@ impl EncryptionService for EncryptionServiceImpl {
         ))
     }
 
-    async fn wipe_key_material(&self, key_material: &mut KeyMaterial) -> Result<(), PipelineError> {
+    fn wipe_key_material(&self, key_material: &mut KeyMaterial) -> Result<(), PipelineError> {
         // Zero out the key material
         key_material.zeroize();
         Ok(())
     }
 
-    async fn store_key_material(
+    fn store_key_material(
         &self,
         key_material: &KeyMaterial,
         key_id: &str,
@@ -721,7 +669,7 @@ impl EncryptionService for EncryptionServiceImpl {
         Ok(())
     }
 
-    async fn retrieve_key_material(
+    fn retrieve_key_material(
         &self,
         key_id: &str,
         security_context: &SecurityContext,
@@ -732,7 +680,7 @@ impl EncryptionService for EncryptionServiceImpl {
         ))
     }
 
-    async fn rotate_keys(
+    fn rotate_keys(
         &self,
         old_key_id: &str,
         new_config: &EncryptionConfig,
