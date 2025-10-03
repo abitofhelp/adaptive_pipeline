@@ -12,11 +12,13 @@
 //! collection and monitoring capabilities following the Hexagonal Architecture
 //! pattern.
 
+pub mod concurrency_metrics;
 pub mod generic_metrics_collector;
 pub mod metrics_endpoint;
 pub mod metrics_observer;
 pub mod metrics_service;
 
+pub use concurrency_metrics::*;
 pub use generic_metrics_collector::*;
 pub use metrics_endpoint::*;
 pub use metrics_observer::*;

@@ -261,6 +261,41 @@ struct Cli {
     /// Configuration file path
     #[arg(short, long)]
     config: Option<PathBuf>,
+
+    // === Resource Configuration Flags ===
+    // Educational: These flags control the GlobalResourceManager's token allocation
+    // for CPU-bound and I/O-bound operations.
+
+    /// Override CPU worker thread count
+    ///
+    /// Controls the number of concurrent CPU-bound operations (compression, encryption).
+    /// Default: num_cpus - 1 (reserves 1 core for I/O and coordination)
+    ///
+    /// Educational: Setting this too high causes thrashing, too low wastes cores.
+    /// Monitor CPU saturation metrics to tune appropriately.
+    #[arg(long)]
+    cpu_threads: Option<usize>,
+
+    /// Override I/O worker thread count
+    ///
+    /// Controls the number of concurrent I/O operations (file reads/writes).
+    /// Default: Device-specific (NVMe: 24, SSD: 12, HDD: 4)
+    ///
+    /// Educational: This should match your storage device's queue depth for optimal
+    /// throughput. Check --storage-type if auto-detection is incorrect.
+    #[arg(long)]
+    io_threads: Option<usize>,
+
+    /// Specify storage device type for I/O optimization
+    ///
+    /// Affects default I/O thread count if --io-threads not specified.
+    /// Values: nvme (queue depth 24), ssd (12), hdd (4)
+    /// Default: auto-detect based on filesystem characteristics
+    ///
+    /// Educational: Different storage devices have different optimal queue depths.
+    /// NVMe handles more concurrent I/O than SSD, which handles more than HDD.
+    #[arg(long, value_parser = parse_storage_type)]
+    storage_type: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -391,9 +426,53 @@ enum Commands {
     },
 }
 
+/// Parse and validate storage type from CLI argument
+///
+/// Educational: Custom value parser for clap that validates
+/// storage type strings and provides helpful error messages.
+fn parse_storage_type(s: &str) -> Result<String, String> {
+    match s.to_lowercase().as_str() {
+        "nvme" | "ssd" | "hdd" => Ok(s.to_lowercase()),
+        _ => Err(format!(
+            "Invalid storage type '{}'. Valid values: nvme, ssd, hdd",
+            s
+        )),
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    // === Initialize Global Resource Manager ===
+    // Educational: This must happen BEFORE any code uses RESOURCE_MANAGER
+    // We configure it from CLI flags, falling back to intelligent defaults.
+    use crate::infrastructure::runtime::{init_resource_manager, ResourceConfig, StorageType};
+
+    let resource_config = ResourceConfig {
+        cpu_tokens: cli.cpu_threads,
+        io_tokens: cli.io_threads,
+        storage_type: cli.storage_type.as_ref().map(|s| match s.as_str() {
+            "nvme" => StorageType::NVMe,
+            "ssd" => StorageType::SSD,
+            "hdd" => StorageType::HDD,
+            _ => StorageType::Auto, // Shouldn't happen due to parse_storage_type validation
+        }).unwrap_or(StorageType::Auto),
+        memory_limit: None, // Use system detection
+    };
+
+    init_resource_manager(resource_config).map_err(|e| {
+        anyhow::anyhow!("Failed to initialize resource manager: {}", e)
+    })?;
+
+    // Educational: Log the resource configuration for observability
+    let rm = crate::infrastructure::runtime::resource_manager();
+    println!(
+        "Resource Manager initialized: {} CPU tokens, {} I/O tokens, {} memory capacity",
+        rm.cpu_tokens_total(),
+        rm.io_tokens_total(),
+        rm.memory_capacity()
+    );
 
     // Initialize tracing
     let subscriber = tracing_subscriber::FmtSubscriber::builder()

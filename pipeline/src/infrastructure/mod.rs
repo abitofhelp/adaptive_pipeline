@@ -169,6 +169,7 @@ pub mod config;
 pub mod logging;
 pub mod metrics;
 pub mod repositories;
+pub mod runtime;
 pub mod services;
 
 // Re-export concrete implementations for dependency injection

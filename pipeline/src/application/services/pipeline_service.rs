@@ -728,11 +728,38 @@ impl PipelineService for PipelineServiceImpl {
             // tokio::spawn creates a new async task that runs concurrently
             // The 'move' keyword transfers ownership of cloned variables into the task
             let task = tokio::spawn(async move {
-                // STEP 6a: Acquire a semaphore permit (wait for available worker slot)
-                // This blocks if all worker slots are busy, preventing resource exhaustion
-                // The underscore prefix (_permit) means we don't use the permit directly,
-                // but keeping it in scope maintains the semaphore lock
-                let _permit = semaphore_clone.acquire().await.unwrap();
+                // STEP 6a: Two-Level Resource Governance (Educational Pattern)
+                //
+                // We acquire TWO permits before doing work:
+                // 1. LOCAL (per-file) permit - limits concurrency for THIS file
+                // 2. GLOBAL (system-wide) CPU permit - prevents TOTAL oversubscription
+                //
+                // Why both?
+                // - Local limit: Prevents one file from using all workers
+                // - Global limit: Prevents multiple files from overwhelming the system
+                //
+                // Example: 10 files × 8 workers/file = 80 tasks
+                // Global CPU limit (e.g., 7) caps total at 7 concurrent tasks
+
+                // Acquire per-file permit first (local governance)
+                let _local_permit = semaphore_clone.acquire().await.unwrap();
+
+                // Acquire global CPU permit (global governance)
+                use crate::infrastructure::runtime::RESOURCE_MANAGER;
+                use crate::infrastructure::metrics::CONCURRENCY_METRICS;
+
+                let cpu_wait_start = std::time::Instant::now();
+                let _cpu_permit = RESOURCE_MANAGER.acquire_cpu().await.unwrap();
+                let cpu_wait_duration = cpu_wait_start.elapsed();
+
+                // Educational: Record metrics for observability
+                CONCURRENCY_METRICS.record_cpu_wait(cpu_wait_duration);
+                CONCURRENCY_METRICS.worker_started();
+
+                // Update metrics with current token availability
+                CONCURRENCY_METRICS.update_cpu_tokens_available(
+                    RESOURCE_MANAGER.cpu_tokens_available()
+                );
 
                 // STEP 6b: Create tracing span for this chunk's processing
                 // Using span! instead of entered() to avoid Send issues
@@ -864,6 +891,9 @@ impl PipelineService for PipelineServiceImpl {
                     };
                     obs.on_progress_update(current_bytes, total_bytes, throughput).await;
                 }
+
+                // Educational: Mark worker as completed for metrics
+                CONCURRENCY_METRICS.worker_completed();
 
                 Ok::<(), PipelineError>(())
             });
