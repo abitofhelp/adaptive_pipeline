@@ -32,7 +32,7 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
-use crate::config::{AppConfig, LogLevel};
+use crate::config::AppConfig;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
