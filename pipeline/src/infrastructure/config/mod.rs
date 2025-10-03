@@ -116,3 +116,4 @@
 
 pub mod config_service;
 pub mod generic_config_manager;
+pub mod rayon_config;

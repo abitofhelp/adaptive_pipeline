@@ -76,3 +76,4 @@ plantuml.jar
 **/random_100MB_file.txt
 **/large_test_3gb.txt
 **/test_10MB_file.txt
+Cargo.lock

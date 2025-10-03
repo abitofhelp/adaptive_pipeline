@@ -295,6 +295,35 @@ impl ChecksumProcessor {
     pub fn finalize_hash(&self, hasher: Sha256) -> String {
         format!("{:x}", hasher.finalize())
     }
+
+    /// Processes multiple chunks in parallel using Rayon
+    ///
+    /// This method provides parallel checksum calculation for batches of chunks,
+    /// significantly improving performance for large file processing.
+    ///
+    /// # Performance
+    /// - Expected 2-4x speedup on multi-core systems
+    /// - SHA-256 is CPU-bound and highly parallelizable
+    /// - No contention between chunks (independent operations)
+    ///
+    /// # Arguments
+    /// * `chunks` - Slice of chunks to process
+    ///
+    /// # Returns
+    /// Vector of processed chunks with checksums calculated
+    ///
+    /// # Note
+    /// This is a sync method that uses Rayon. For async contexts, wrap in
+    /// `tokio::task::spawn_blocking`.
+    pub fn process_chunks_parallel(&self, chunks: &[FileChunk]) -> Result<Vec<FileChunk>, PipelineError> {
+        use rayon::prelude::*;
+        use crate::services::file_processor_service::ChunkProcessor;
+
+        chunks
+            .par_iter()
+            .map(|chunk| ChunkProcessor::process_chunk(self, chunk))
+            .collect()
+    }
 }
 
 impl ChecksumService for ChecksumProcessor {
