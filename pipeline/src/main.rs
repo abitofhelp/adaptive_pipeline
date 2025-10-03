@@ -296,6 +296,19 @@ struct Cli {
     /// NVMe handles more concurrent I/O than SSD, which handles more than HDD.
     #[arg(long, value_parser = parse_storage_type)]
     storage_type: Option<String>,
+
+    /// Channel depth for pipeline stages (Reader → Workers → Writer)
+    ///
+    /// Controls backpressure in the three-stage pipeline architecture.
+    /// Default: 4
+    ///
+    /// Educational: Lower values reduce memory usage but may cause stalls.
+    /// Higher values increase buffering but consume more memory.
+    /// Optimal value depends on chunk processing time and I/O latency.
+    ///
+    /// Example: If chunk processing = 2ms and I/O = 1ms, depth=4 keeps pipeline full.
+    #[arg(long, default_value = "4")]
+    channel_depth: usize,
 }
 
 #[derive(Subcommand)]

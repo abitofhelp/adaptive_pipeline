@@ -221,6 +221,90 @@ use crate::infrastructure::services::progress_indicator_service::ProgressIndicat
 ///
 /// # Examples
 ///
+
+// ============================================================================
+// WEEK 2: Channel-Based Pipeline Architecture
+// ============================================================================
+// Educational: This section implements the three-stage execution pipeline
+// (Reader → CPU Workers → Writer) using channels for communication.
+//
+// See: docs/EXECUTION_VS_PROCESSING_PIPELINES.md for architectural overview
+
+/// Message sent from Reader task to CPU Worker tasks
+///
+/// ## Educational: Channel Message Design
+///
+/// This represents a unit of work flowing through the execution pipeline.
+/// The reader sends these messages to workers, who process them and forward
+/// results to the writer.
+///
+/// ## Design Rationale:
+/// - `chunk_index`: Required for ordered writes (future enhancement)
+/// - `data`: Owned Vec<u8> for zero-copy channel transfer
+/// - `is_final`: Allows writer to finalize file on last chunk
+#[derive(Debug)]
+struct ChunkMessage {
+    /// Index of this chunk in the file (0-based)
+    chunk_index: usize,
+
+    /// Raw chunk data (owned for channel transfer)
+    data: Vec<u8>,
+
+    /// True if this is the last chunk in the file
+    is_final: bool,
+
+    /// Original file chunk with metadata
+    file_chunk: FileChunk,
+}
+
+/// Message sent from CPU Worker tasks to Writer task
+///
+/// ## Educational: Processing Result
+///
+/// After CPU workers execute all processing stages (compression, encryption, etc.),
+/// they send this message to the writer for persistence.
+///
+/// ## Design Rationale:
+/// - `chunk_index`: Enables ordered writes (if needed)
+/// - `processed_data`: Result of all processing stages
+/// - `is_final`: Signals writer to finalize file
+#[derive(Debug)]
+struct ProcessedChunkMessage {
+    /// Index of this chunk in the file (0-based)
+    chunk_index: usize,
+
+    /// Processed data (after all pipeline stages)
+    processed_data: Vec<u8>,
+
+    /// True if this is the last chunk in the file
+    is_final: bool,
+}
+
+/// Statistics from the reader task
+#[derive(Debug)]
+struct ReaderStats {
+    chunks_read: usize,
+    bytes_read: u64,
+}
+
+/// Statistics from a CPU worker task
+#[derive(Debug)]
+struct WorkerStats {
+    worker_id: usize,
+    chunks_processed: usize,
+}
+
+/// Statistics from the writer task
+#[derive(Debug)]
+struct WriterStats {
+    chunks_written: usize,
+    bytes_written: u64,
+}
+
+// ============================================================================
+// Public Implementation
+// ============================================================================
+
 pub struct PipelineServiceImpl {
     compression_service: Arc<dyn CompressionService>,
     encryption_service: Arc<dyn EncryptionService>,
