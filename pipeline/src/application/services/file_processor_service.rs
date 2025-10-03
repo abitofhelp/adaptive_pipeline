@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # File Processor Service Implementation
 //!
 //! This module provides the concrete implementation of the file processor

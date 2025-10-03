@@ -1,3 +1,10 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
 //! # Secure Command-Line Argument Parsing
 //!
 //! Security-first argument parsing with comprehensive validation.
@@ -199,7 +206,18 @@ impl SecureArgParser {
     /// Returns `ParseError` if path fails validation
     pub fn validate_path(path: &str) -> Result<PathBuf, ParseError> {
         // Basic validation
-        Self::validate_argument(path)?;
+        Self::validate_argument(path).map_err(|e| match e {
+            ParseError::ArgumentTooLong(_) => {
+                ParseError::InvalidPath(format!("Path too long: {}", path))
+            }
+            ParseError::DangerousPattern { pattern, .. } => {
+                ParseError::InvalidPath(format!(
+                    "Path contains dangerous pattern '{}': {}",
+                    pattern, path
+                ))
+            }
+            other => other,
+        })?;
 
         // Path object creation
         let path_obj = Path::new(path);
@@ -239,14 +257,14 @@ impl SecureArgParser {
     }
 
     /// Validate a number argument
-    pub fn validate_number<T: std::str::FromStr>(
+    pub fn validate_number<T>(
         arg_name: &str,
         value: &str,
         min: Option<T>,
         max: Option<T>,
     ) -> Result<T, ParseError>
     where
-        T: PartialOrd + std::fmt::Display,
+        T: std::str::FromStr + PartialOrd + std::fmt::Display,
     {
         // Basic validation
         Self::validate_argument(value)?;
@@ -284,81 +302,93 @@ impl SecureArgParser {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_validate_argument_valid() {
-        assert!(SecureArgParser::validate_argument("safe-arg").is_ok());
-        assert!(SecureArgParser::validate_argument("file.txt").is_ok());
-        assert!(SecureArgParser::validate_argument("path/to/file").is_ok());
-    }
+    mod argument_validation {
+        use super::*;
 
-    #[test]
-    fn test_validate_argument_too_long() {
-        let long_arg = "a".repeat(MAX_ARG_LENGTH + 1);
-        assert!(matches!(
-            SecureArgParser::validate_argument(&long_arg),
-            Err(ParseError::ArgumentTooLong(_))
-        ));
-    }
+        #[test]
+        fn accepts_safe_arguments() {
+            assert!(SecureArgParser::validate_argument("safe-arg").is_ok());
+            assert!(SecureArgParser::validate_argument("file.txt").is_ok());
+            assert!(SecureArgParser::validate_argument("path/to/file").is_ok());
+        }
 
-    #[test]
-    fn test_validate_argument_dangerous_patterns() {
-        let dangerous = vec![
-            "../etc/passwd",
-            "~/.ssh/id_rsa",
-            "$(whoami)",
-            "`ls`",
-            "file;rm -rf /",
-            "file&background",
-            "file|pipe",
-            "file>output",
-            "file<input",
-            "file\nwith\nnewlines",
-        ];
+        #[test]
+        fn rejects_too_long_arguments() {
+            let long_arg = "a".repeat(MAX_ARG_LENGTH + 1);
+            assert!(matches!(
+                SecureArgParser::validate_argument(&long_arg),
+                Err(ParseError::ArgumentTooLong(_))
+            ));
+        }
 
-        for arg in dangerous {
-            assert!(
-                matches!(
-                    SecureArgParser::validate_argument(arg),
-                    Err(ParseError::DangerousPattern { .. })
-                ),
-                "Failed to detect dangerous pattern in: {}",
-                arg
-            );
+        #[test]
+        fn detects_dangerous_patterns() {
+            let dangerous = vec![
+                "../etc/passwd",
+                "~/.ssh/id_rsa",
+                "$(whoami)",
+                "`ls`",
+                "file;rm -rf /",
+                "file&background",
+                "file|pipe",
+                "file>output",
+                "file<input",
+                "file\nwith\nnewlines",
+            ];
+
+            for arg in dangerous {
+                assert!(
+                    matches!(
+                        SecureArgParser::validate_argument(arg),
+                        Err(ParseError::DangerousPattern { .. })
+                    ),
+                    "Failed to detect dangerous pattern in: {}",
+                    arg
+                );
+            }
         }
     }
 
-    #[test]
-    fn test_validate_number_valid() {
-        let result = SecureArgParser::validate_number::<u32>("threads", "8", Some(1), Some(16));
-        assert_eq!(result.unwrap(), 8);
+    mod number_validation {
+        use super::*;
+
+        #[test]
+        fn validates_valid_numbers() {
+            let result = SecureArgParser::validate_number::<u32>("threads", "8", Some(1), Some(16));
+            assert_eq!(result.unwrap(), 8);
+        }
+
+        #[test]
+        fn rejects_invalid_numbers() {
+            let result = SecureArgParser::validate_number::<u32>("threads", "abc", None, None);
+            assert!(matches!(result, Err(ParseError::InvalidValue { .. })));
+        }
+
+        #[test]
+        fn enforces_range_constraints() {
+            let result = SecureArgParser::validate_number::<u32>("threads", "100", Some(1), Some(16));
+            assert!(matches!(result, Err(ParseError::InvalidValue { .. })));
+
+            let result = SecureArgParser::validate_number::<u32>("threads", "0", Some(1), Some(16));
+            assert!(matches!(result, Err(ParseError::InvalidValue { .. })));
+        }
     }
 
-    #[test]
-    fn test_validate_number_invalid() {
-        let result = SecureArgParser::validate_number::<u32>("threads", "abc", None, None);
-        assert!(matches!(result, Err(ParseError::InvalidValue { .. })));
-    }
+    mod parsing {
+        use super::*;
 
-    #[test]
-    fn test_validate_number_out_of_range() {
-        let result = SecureArgParser::validate_number::<u32>("threads", "100", Some(1), Some(16));
-        assert!(matches!(result, Err(ParseError::InvalidValue { .. })));
+        #[test]
+        fn parses_basic_arguments() {
+            let args = vec!["program".to_string()];
+            let result = SecureArgParser::parse(&args);
+            assert!(result.is_ok());
+        }
 
-        let result = SecureArgParser::validate_number::<u32>("threads", "0", Some(1), Some(16));
-        assert!(matches!(result, Err(ParseError::InvalidValue { .. })));
-    }
-
-    #[test]
-    fn test_parse_basic() {
-        let args = vec!["program".to_string()];
-        let result = SecureArgParser::parse(&args);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_parse_too_many_args() {
-        let args = vec!["arg".to_string(); MAX_ARG_COUNT + 1];
-        let result = SecureArgParser::parse(&args);
-        assert!(matches!(result, Err(ParseError::TooManyArguments)));
+        #[test]
+        fn rejects_too_many_arguments() {
+            let args = vec!["arg".to_string(); MAX_ARG_COUNT + 1];
+            let result = SecureArgParser::parse(&args);
+            assert!(matches!(result, Err(ParseError::TooManyArguments)));
+        }
     }
 }

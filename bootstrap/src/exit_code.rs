@@ -1,3 +1,10 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
 //! # Exit Code Management
 //!
 //! Provides standardized Unix exit codes following BSD `sysexits.h` conventions.
@@ -35,10 +42,11 @@
 use std::fmt;
 
 /// Exit codes following Unix conventions (BSD sysexits.h)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(i32)]
 pub enum ExitCode {
     /// Successful termination (0)
+    #[default]
     Success = 0,
 
     /// General error (1)
@@ -217,12 +225,6 @@ impl ExitCode {
     /// Check if this represents a signal interruption
     pub fn is_signal(self) -> bool {
         matches!(self, ExitCode::Interrupted | ExitCode::Terminated)
-    }
-}
-
-impl Default for ExitCode {
-    fn default() -> Self {
-        ExitCode::Success
     }
 }
 

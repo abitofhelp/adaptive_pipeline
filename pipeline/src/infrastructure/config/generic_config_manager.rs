@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # Generic Configuration Manager
 //!
 //! This module provides a generic, reusable configuration management system

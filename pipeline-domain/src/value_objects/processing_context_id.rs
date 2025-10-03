@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # Processing Context Identifier Value Object - Request Tracing Infrastructure
 //!
 //! This module provides a comprehensive processing context identifier value

@@ -1,3 +1,10 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
 //! # Application Configuration
 //!
 //! Bootstrap-phase configuration structure.
@@ -35,24 +42,19 @@
 use std::path::PathBuf;
 
 /// Log level configuration
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LogLevel {
     /// Error messages only
     Error,
     /// Warnings and errors
     Warn,
     /// Info, warnings, and errors (default)
+    #[default]
     Info,
     /// All messages including debug
     Debug,
     /// All messages including trace
     Trace,
-}
-
-impl Default for LogLevel {
-    fn default() -> Self {
-        LogLevel::Info
-    }
 }
 
 impl LogLevel {
@@ -229,108 +231,120 @@ impl AppConfigBuilder {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_config_builder_minimal() {
-        let config = AppConfig::builder().app_name("test-app").build();
+    mod builder {
+        use super::*;
 
-        assert_eq!(config.app_name(), "test-app");
-        assert_eq!(config.log_level(), LogLevel::Info); // default
-        assert!(config.input_path().is_none());
-        assert!(config.output_path().is_none());
-        assert!(config.worker_threads().is_none());
-        assert!(!config.is_verbose());
-        assert!(!config.is_dry_run());
+        #[test]
+        fn builds_minimal_config() {
+            let config = AppConfig::builder().app_name("test-app").build();
+
+            assert_eq!(config.app_name(), "test-app");
+            assert_eq!(config.log_level(), LogLevel::Info); // default
+            assert!(config.input_path().is_none());
+            assert!(config.output_path().is_none());
+            assert!(config.worker_threads().is_none());
+            assert!(!config.is_verbose());
+            assert!(!config.is_dry_run());
+        }
+
+        #[test]
+        fn builds_full_config() {
+            let config = AppConfig::builder()
+                .app_name("full-app")
+                .log_level(LogLevel::Debug)
+                .input_path("/input")
+                .output_path("/output")
+                .worker_threads(8)
+                .verbose(true)
+                .dry_run(true)
+                .build();
+
+            assert_eq!(config.app_name(), "full-app");
+            assert_eq!(config.log_level(), LogLevel::Debug);
+            assert_eq!(
+                config.input_path(),
+                Some(&PathBuf::from("/input"))
+            );
+            assert_eq!(
+                config.output_path(),
+                Some(&PathBuf::from("/output"))
+            );
+            assert_eq!(config.worker_threads(), Some(8));
+            assert!(config.is_verbose());
+            assert!(config.is_dry_run());
+        }
+
+        #[test]
+        #[should_panic(expected = "app_name is required")]
+        fn panics_on_missing_app_name() {
+            AppConfig::builder().build();
+        }
+
+        #[test]
+        fn try_build_succeeds_with_required_fields() {
+            let result = AppConfig::builder()
+                .app_name("test")
+                .try_build();
+
+            assert!(result.is_ok());
+        }
+
+        #[test]
+        fn try_build_fails_on_missing_required_fields() {
+            let result = AppConfig::builder().try_build();
+
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err(), "app_name is required");
+        }
     }
 
-    #[test]
-    fn test_config_builder_full() {
-        let config = AppConfig::builder()
-            .app_name("full-app")
-            .log_level(LogLevel::Debug)
-            .input_path("/input")
-            .output_path("/output")
-            .worker_threads(8)
-            .verbose(true)
-            .dry_run(true)
-            .build();
+    mod log_level {
+        use super::*;
 
-        assert_eq!(config.app_name(), "full-app");
-        assert_eq!(config.log_level(), LogLevel::Debug);
-        assert_eq!(
-            config.input_path(),
-            Some(&PathBuf::from("/input"))
-        );
-        assert_eq!(
-            config.output_path(),
-            Some(&PathBuf::from("/output"))
-        );
-        assert_eq!(config.worker_threads(), Some(8));
-        assert!(config.is_verbose());
-        assert!(config.is_dry_run());
+        #[test]
+        fn defaults_to_info() {
+            assert_eq!(LogLevel::default(), LogLevel::Info);
+        }
+
+        #[test]
+        fn converts_to_tracing_levels() {
+            assert_eq!(
+                LogLevel::Error.to_tracing_level(),
+                tracing::Level::ERROR
+            );
+            assert_eq!(
+                LogLevel::Warn.to_tracing_level(),
+                tracing::Level::WARN
+            );
+            assert_eq!(
+                LogLevel::Info.to_tracing_level(),
+                tracing::Level::INFO
+            );
+            assert_eq!(
+                LogLevel::Debug.to_tracing_level(),
+                tracing::Level::DEBUG
+            );
+            assert_eq!(
+                LogLevel::Trace.to_tracing_level(),
+                tracing::Level::TRACE
+            );
+        }
     }
 
-    #[test]
-    #[should_panic(expected = "app_name is required")]
-    fn test_config_builder_missing_app_name() {
-        AppConfig::builder().build();
-    }
+    mod app_config {
+        use super::*;
 
-    #[test]
-    fn test_config_try_build_success() {
-        let result = AppConfig::builder()
-            .app_name("test")
-            .try_build();
+        #[test]
+        fn clones_correctly() {
+            let config1 = AppConfig::builder()
+                .app_name("clone-test")
+                .log_level(LogLevel::Debug)
+                .build();
 
-        assert!(result.is_ok());
-    }
+            let config2 = config1.clone();
 
-    #[test]
-    fn test_config_try_build_failure() {
-        let result = AppConfig::builder().try_build();
-
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "app_name is required");
-    }
-
-    #[test]
-    fn test_log_level_default() {
-        assert_eq!(LogLevel::default(), LogLevel::Info);
-    }
-
-    #[test]
-    fn test_log_level_to_tracing() {
-        assert_eq!(
-            LogLevel::Error.to_tracing_level(),
-            tracing::Level::ERROR
-        );
-        assert_eq!(
-            LogLevel::Warn.to_tracing_level(),
-            tracing::Level::WARN
-        );
-        assert_eq!(
-            LogLevel::Info.to_tracing_level(),
-            tracing::Level::INFO
-        );
-        assert_eq!(
-            LogLevel::Debug.to_tracing_level(),
-            tracing::Level::DEBUG
-        );
-        assert_eq!(
-            LogLevel::Trace.to_tracing_level(),
-            tracing::Level::TRACE
-        );
-    }
-
-    #[test]
-    fn test_config_clone() {
-        let config1 = AppConfig::builder()
-            .app_name("clone-test")
-            .log_level(LogLevel::Debug)
-            .build();
-
-        let config2 = config1.clone();
-
-        assert_eq!(config1.app_name(), config2.app_name());
-        assert_eq!(config1.log_level(), config2.log_level());
+            assert_eq!(config1.app_name(), config2.app_name());
+            assert_eq!(config1.log_level(), config2.log_level());
+        }
     }
 }

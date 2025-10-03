@@ -1,3 +1,10 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
 //! # Shutdown Coordination
 //!
 //! Manages graceful shutdown across application components.
@@ -49,9 +56,39 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Notify;
 
+/// Default grace period for graceful shutdown (in seconds)
+pub const DEFAULT_GRACE_PERIOD_SECS: u64 = 5;
+
 /// Cancellation token for signaling shutdown
 ///
 /// Lightweight clone-able token that can be passed to async tasks.
+///
+/// # Examples
+///
+/// ```
+/// use bootstrap::shutdown::ShutdownCoordinator;
+/// use std::time::Duration;
+///
+/// # async fn example() {
+/// let coordinator = ShutdownCoordinator::new(Duration::from_secs(5));
+/// let token = coordinator.token();
+///
+/// // Pass token to async task
+/// tokio::spawn(async move {
+///     tokio::select! {
+///         _ = token.cancelled() => {
+///             println!("Task received shutdown signal");
+///         }
+///         _ = async { /* do work */ } => {
+///             println!("Task completed normally");
+///         }
+///     }
+/// });
+///
+/// // Later, initiate shutdown
+/// coordinator.initiate_shutdown();
+/// # }
+/// ```
 #[derive(Clone)]
 pub struct CancellationToken {
     /// Shared cancellation flag
@@ -155,6 +192,29 @@ impl ShutdownCoordinator {
     ///
     /// Returns `true` if shutdown completed within grace period,
     /// `false` if timeout occurred.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bootstrap::shutdown::ShutdownCoordinator;
+    /// use std::time::Duration;
+    ///
+    /// # async fn example() {
+    /// let coordinator = ShutdownCoordinator::new(Duration::from_secs(5));
+    ///
+    /// // In main application loop
+    /// coordinator.initiate_shutdown();
+    ///
+    /// // Wait for all tasks to complete
+    /// if coordinator.wait_for_shutdown().await {
+    ///     println!("Shutdown completed gracefully");
+    /// } else {
+    ///     println!("Shutdown timed out, forcing exit");
+    /// }
+    ///
+    /// coordinator.complete_shutdown();
+    /// # }
+    /// ```
     pub async fn wait_for_shutdown(&self) -> bool {
         if !self.is_shutting_down() {
             tracing::warn!("wait_for_shutdown called but shutdown not initiated");
@@ -196,7 +256,7 @@ impl ShutdownCoordinator {
 
 impl Default for ShutdownCoordinator {
     fn default() -> Self {
-        Self::new(Duration::from_secs(5))
+        Self::new(Duration::from_secs(DEFAULT_GRACE_PERIOD_SECS))
     }
 }
 

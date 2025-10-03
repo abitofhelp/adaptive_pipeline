@@ -1,3 +1,10 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
 //! # Unix Platform Implementation
 //!
 //! POSIX-compliant implementation for Linux and macOS.
@@ -73,11 +80,16 @@ impl UnixPlatform {
     fn get_memory_info_macos() -> Result<(u64, u64), PlatformError> {
         use std::mem;
 
+        // SAFETY: sysctlbyname is safe when:
+        // 1. The name string is a valid C string (guaranteed by c"" literal)
+        // 2. The output buffer is properly sized (we pass size of u64)
+        // 3. The oldp pointer is valid and properly aligned (we use &mut u64)
+        // Returns non-zero on error, which we check and handle appropriately.
         unsafe {
             // Get total memory
             let mut total: u64 = 0;
             let mut size = mem::size_of::<u64>();
-            let name = b"hw.memsize\0".as_ptr() as *const i8;
+            let name = c"hw.memsize".as_ptr();
 
             if libc::sysctlbyname(
                 name,
@@ -96,7 +108,7 @@ impl UnixPlatform {
             // Note: This is an approximation. For exact VM stats, would need mach APIs
             let mut available: u64 = 0;
             let mut avail_size = mem::size_of::<u64>();
-            let avail_name = b"vm.page_free_count\0".as_ptr() as *const i8;
+            let avail_name = c"vm.page_free_count".as_ptr();
 
             if libc::sysctlbyname(
                 avail_name,
@@ -121,6 +133,8 @@ impl UnixPlatform {
 
     /// Internal implementation of page_size
     fn page_size_impl() -> u64 {
+        // SAFETY: sysconf(_SC_PAGESIZE) is always safe to call on Unix systems.
+        // It returns -1 on error, which we check and handle with a fallback value.
         unsafe {
             let size = libc::sysconf(libc::_SC_PAGESIZE);
             if size > 0 {
@@ -145,6 +159,8 @@ impl Platform for UnixPlatform {
     }
 
     fn cpu_count(&self) -> usize {
+        // SAFETY: sysconf(_SC_NPROCESSORS_ONLN) is always safe to call on Unix systems.
+        // It returns -1 on error, which we check and handle with a fallback value.
         unsafe {
             let count = libc::sysconf(libc::_SC_NPROCESSORS_ONLN);
             if count > 0 {
@@ -217,6 +233,8 @@ impl Platform for UnixPlatform {
     }
 
     fn is_elevated(&self) -> bool {
+        // SAFETY: geteuid() is always safe to call on Unix systems.
+        // It simply returns the effective user ID of the calling process.
         unsafe { libc::geteuid() == 0 }
     }
 

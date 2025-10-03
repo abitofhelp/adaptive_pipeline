@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Optimized Adaptive Pipeline RS
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # Optimized Adaptive Pipeline
 //!
 //! A high-performance, secure file processing pipeline system built with Rust.
@@ -294,7 +302,7 @@
 //!
 //! ## License
 //!
-//! This project is licensed under the MIT License - see LICENSE file for
+//! This project is licensed under the BSD 3-Clause License - see LICENSE file for
 //! details.
 
 pub mod application;

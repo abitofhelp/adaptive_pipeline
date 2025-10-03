@@ -541,7 +541,7 @@ We welcome contributions! Please follow these guidelines:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the BSD 3-Clause License - see the LICENSE file for details.
 
 ## Acknowledgments
 
