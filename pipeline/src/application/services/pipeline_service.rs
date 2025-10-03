@@ -159,6 +159,7 @@
 
 use async_trait::async_trait;
 use byte_unit::Byte;
+use futures::future;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{ debug, info, warn, Instrument };
@@ -450,26 +451,24 @@ impl PipelineService for PipelineServiceImpl {
 
         // Load pipeline from repository using the provided PipelineId
         let pipeline = self.pipeline_repository
-            .find_by_id(pipeline_id.clone()).await
-            .unwrap()
-            .ok_or_else(|| PipelineError::PipelineNotFound(pipeline_id.to_string()))
-            .unwrap();
+            .find_by_id(pipeline_id.clone()).await?
+            .ok_or_else(|| PipelineError::PipelineNotFound(pipeline_id.to_string()))?;
 
         // Validate pipeline before execution
-        self.validate_pipeline(&pipeline).await.unwrap();
+        self.validate_pipeline(&pipeline).await?;
 
-        // Read input file metadata
-        let input_metadata = tokio::fs
-            ::metadata(input_path).await
-            .map_err(|e| PipelineError::IoError(e.to_string()))
-            .unwrap();
+        // Read input file metadata and data in parallel
+        let (input_metadata, input_data) = tokio::join!(
+            tokio::fs::metadata(input_path),
+            tokio::fs::read(input_path)
+        );
+
+        let input_metadata = input_metadata
+            .map_err(|e| PipelineError::IoError(e.to_string()))?;
         let input_size = input_metadata.len();
 
-        // Calculate original file checksum
-        let input_data = tokio::fs
-            ::read(input_path).await
-            .map_err(|e| PipelineError::IoError(e.to_string()))
-            .unwrap();
+        let input_data = input_data
+            .map_err(|e| PipelineError::IoError(e.to_string()))?;
         let original_checksum = {
             use ring::digest;
             let digest = ring::digest::digest(&ring::digest::SHA256, &input_data);
@@ -616,8 +615,7 @@ impl PipelineService for PipelineServiceImpl {
 
         // Use injected dependencies (proper DIP)
         let binary_writer = self.binary_format_service
-            .create_writer(output_path, header.clone())
-            .unwrap();
+            .create_writer(output_path, header.clone())?;
         let writer_shared = Arc::new(tokio::sync::Mutex::new(binary_writer));
 
         // Create progress indicator for this operation
@@ -890,13 +888,12 @@ impl PipelineService for PipelineServiceImpl {
                 PipelineError::InternalError(
                     "Failed to extract binary writer from shared reference".to_string()
                 )
-            })
-            .unwrap();
+            })?;
 
         // Finalize the binary writer - this writes the footer with metadata and magic
         // bytes
         let binary_writer = binary_writer.into_inner();
-        let _total_bytes_written = binary_writer.finalize(header).await.unwrap();
+        let _total_bytes_written = binary_writer.finalize(header).await?;
 
         // Show completion summary to user
         let total_duration = start_time.elapsed();
@@ -905,8 +902,8 @@ impl PipelineService for PipelineServiceImpl {
         progress_indicator.show_completion(total_bytes_processed, throughput, total_duration).await;
 
         // Get the final file size for metrics
-        let total_output_bytes = std::fs
-            ::metadata(output_path)
+        let total_output_bytes = tokio::fs::metadata(output_path)
+            .await
             .map_err(|e| PipelineError::io_error(format!("Failed to get output file size: {}", e)))?
             .len();
 
@@ -977,16 +974,20 @@ impl PipelineService for PipelineServiceImpl {
             info!("Processing through stage: {}", stage.name());
             let stage_start = std::time::Instant::now();
 
-            let mut stage_results = Vec::new();
+            // Process chunks in parallel within this stage
+            // Note: Each chunk gets a cloned context since we're processing in parallel
+            let futures: Vec<_> = processed_chunks
+                .into_iter()
+                .map(|chunk| {
+                    let mut ctx = context.clone();
+                    async move {
+                        self.process_chunk_through_stage(chunk, stage, &mut ctx).await
+                    }
+                })
+                .collect();
 
-            for chunk in processed_chunks {
-                let processed_chunk = self
-                    .process_chunk_through_stage(chunk, stage, context).await
-                    .unwrap();
-                stage_results.push(processed_chunk);
-            }
+            processed_chunks = future::try_join_all(futures).await?;
 
-            processed_chunks = stage_results;
             let stage_duration = stage_start.elapsed();
             self.update_metrics(context, stage.name(), stage_duration);
 

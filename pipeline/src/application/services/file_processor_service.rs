@@ -298,7 +298,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
         let start_time = std::time::Instant::now();
 
         // Validate file size
-        let file_info = self.file_io_service.get_file_info(input_path).await.unwrap();
+        let file_info = self.file_io_service.get_file_info(input_path).await?;
         let (max_file_size, verify_integrity, processing_chunk_size, use_memory_mapping) = {
             let config = self.config.read();
             (
@@ -318,7 +318,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
 
         // Validate file integrity if required
         let integrity_verified = if verify_integrity {
-            self.validate_file_before_processing(input_path).await.unwrap()
+            self.validate_file_before_processing(input_path).await?
         } else {
             false
         };
@@ -334,12 +334,11 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
             ..Default::default()
         };
 
-        let mut read_result = self.file_io_service.read_file_chunks(input_path, read_options).await.unwrap();
+        let mut read_result = self.file_io_service.read_file_chunks(input_path, read_options).await?;
         let used_memory_mapping = read_result.file_info.is_memory_mapped;
 
         // Process chunks
-        self.process_chunks_with_processor(&mut read_result.chunks, processor.as_ref())
-            .unwrap();
+        self.process_chunks_with_processor(&mut read_result.chunks, processor.as_ref())?;
 
         // Write processed chunks if output path is specified
         let final_output_path = if let Some(output_path) = output_path {
@@ -538,7 +537,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
 
         // Validate file integrity if required
         let integrity_verified = if verify_integrity {
-            self.validate_file_before_processing(input_path).await.unwrap()
+            self.validate_file_before_processing(input_path).await?
         } else {
             false
         };
