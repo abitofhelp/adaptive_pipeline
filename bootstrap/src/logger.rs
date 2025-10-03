@@ -29,6 +29,7 @@
 //! logger.debug("Parsing command line arguments");
 //! ```
 
+#[cfg(test)]
 use std::fmt;
 
 /// Bootstrap logging abstraction
