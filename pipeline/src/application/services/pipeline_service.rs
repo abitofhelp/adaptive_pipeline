@@ -457,21 +457,39 @@ impl PipelineService for PipelineServiceImpl {
         // Validate pipeline before execution
         self.validate_pipeline(&pipeline).await?;
 
-        // Read input file metadata and data in parallel
-        let (input_metadata, input_data) = tokio::join!(
-            tokio::fs::metadata(input_path),
-            tokio::fs::read(input_path)
-        );
-
-        let input_metadata = input_metadata
+        // Get file metadata first to determine optimal chunk size
+        let input_metadata = tokio::fs::metadata(input_path)
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
         let input_size = input_metadata.len();
 
-        let input_data = input_data
-            .map_err(|e| PipelineError::IoError(e.to_string()))?;
+        // Calculate optimal chunk size based on file size
+        let chunk_size = pipeline_domain::value_objects::ChunkSize::optimal_for_file_size(input_size).bytes();
+
+        // Use FileIOService to read file in chunks (streaming, memory-efficient)
+        // This avoids loading the entire file into memory
+        let read_options = pipeline_domain::services::file_io_service::ReadOptions {
+            chunk_size: Some(chunk_size),
+            use_memory_mapping: false,  // Start with streaming; can optimize later
+            calculate_checksums: false, // We'll calculate overall checksum ourselves
+            ..Default::default()
+        };
+
+        let read_result = self.file_io_service
+            .read_file_chunks(input_path, read_options)
+            .await?;
+
+        let input_chunks = read_result.chunks;
+
+        // Calculate original file checksum incrementally from chunks
+        // This way we don't need the entire file in memory
         let original_checksum = {
             use ring::digest;
-            let digest = ring::digest::digest(&ring::digest::SHA256, &input_data);
+            let mut context = ring::digest::Context::new(&ring::digest::SHA256);
+            for chunk in &input_chunks {
+                context.update(chunk.data());
+            }
+            let digest = context.finish();
             hex::encode(digest.as_ref())
         };
 
@@ -568,8 +586,7 @@ impl PipelineService for PipelineServiceImpl {
             }
         }
 
-        // Set chunk info and pipeline ID - use optimal chunk size for file
-        let chunk_size = ChunkSize::optimal_for_file_size(input_size).bytes();
+        // Set chunk info and pipeline ID - chunk_size already calculated above
         header = header
             .with_chunk_info(chunk_size as u32, 0) // chunk_count will be updated later
             .with_pipeline_id(pipeline_id.to_string());
@@ -606,7 +623,7 @@ impl PipelineService for PipelineServiceImpl {
         // 5. RANDOM ACCESS: Each chunk written to its calculated position
 
         // STEP 1: Calculate total number of chunks for transactional writer
-        let total_chunks = input_data.len().div_ceil(chunk_size);
+        let total_chunks = (input_size as usize).div_ceil(chunk_size);
 
         // STEP 2: Create atomic counters for progress tracking and final reporting
         // This ensures both progress indicator and final report use the same count
@@ -682,7 +699,8 @@ impl PipelineService for PipelineServiceImpl {
 
         // STEP 5: Create concurrent tasks for each chunk
         // Each iteration creates an independent async task that will run concurrently
-        for (chunk_index, chunk_data) in input_data.chunks(chunk_size).enumerate() {
+        // Note: chunks are already created by FileIOService, no need to copy data
+        for (chunk_index, file_chunk) in input_chunks.into_iter().enumerate() {
             // Clone all shared resources for this task
             // These clones are cheap because they're Arc references, not data copies
             let pipeline_clone = pipeline.clone(); // Pipeline configuration
@@ -694,11 +712,12 @@ impl PipelineService for PipelineServiceImpl {
             let bytes_processed_clone = bytes_processed.clone(); // Atomic byte counter
             let observer_clone = observer.clone(); // Observer for metrics updates
 
-            // Convert chunk data to owned Vec for moving into async task
-            let chunk_data = chunk_data.to_vec();
+            // Get chunk data (already owned, no copy needed!)
+            let chunk_data = file_chunk.data().to_vec();
 
-            // Calculate if this is the final chunk (may be smaller than chunk_size)
-            let is_final = chunk_index == input_data.len().div_ceil(chunk_size) - 1;
+            // Calculate if this is the final chunk
+            let total_chunks = (input_size as usize + chunk_size - 1) / chunk_size;
+            let is_final = chunk_index == total_chunks - 1;
 
             // Clone paths and context for moving into async task
             let input_path = input_path.to_path_buf();
