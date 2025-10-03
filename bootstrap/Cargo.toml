@@ -1,0 +1,39 @@
+[package]
+name = "bootstrap"
+version = "0.1.0"
+edition = "2021"
+authors = ["Michael Gardner <michael@abitofhelp.com>"]
+description = "Bootstrap module for adaptive pipeline - handles entry point, DI, signals, and platform abstraction"
+license = "MIT"
+
+[dependencies]
+# Async runtime
+tokio = { workspace = true, features = ["full"] }
+
+# Async trait support
+async-trait = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# CLI argument parsing
+clap = { version = "4.4", features = ["derive", "cargo"] }
+
+# Logging
+tracing = { workspace = true }
+
+# Platform-specific dependencies
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["sysinfoapi", "memoryapi", "winbase"] }
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"
+
+[lib]
+name = "bootstrap"
+path = "src/lib.rs"

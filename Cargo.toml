@@ -1,5 +1,5 @@
 [workspace]
-members = ["pipeline-domain", "pipeline"]
+members = ["pipeline-domain", "pipeline", "bootstrap"]
 resolver = "2"
 
 # Suppress specific warnings that are intentional design choices
