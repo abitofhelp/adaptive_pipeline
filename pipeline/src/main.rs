@@ -666,6 +666,7 @@ async fn process_file(
     let compression_service = Arc::new(CompressionServiceImpl::new());
     let encryption_service = Arc::new(EncryptionServiceImpl::new());
     let file_io_service = Arc::new(FileIOServiceImpl::new(Default::default()));
+    let binary_format_service = Arc::new(BinaryFormatServiceImpl::new());
 
     // Create pipeline service with proper dependency injection
     let pipeline_service = PipelineServiceImpl::new(
@@ -674,6 +675,7 @@ async fn process_file(
         file_io_service,
         pipeline_repository,
         Arc::new(BasicStageExecutor::new(compression_service, encryption_service)),
+        binary_format_service,
     );
 
     // Get actual input file size for accurate reporting

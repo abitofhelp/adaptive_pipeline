@@ -27,7 +27,6 @@
 //! - `ProcessingContext`: Runtime execution context
 //! - `SecurityContext`: Security and permission management
 //! - `ProcessingMetrics`: Performance and operational metrics
-//! - `TransactionalChunkWriter`: Transactional file writing
 //!
 //!
 //!

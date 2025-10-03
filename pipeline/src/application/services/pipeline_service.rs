@@ -181,11 +181,7 @@ use pipeline_domain::services::{
 use pipeline_domain::value_objects::{ ChunkSize, FileChunk, PipelineId, WorkerCount };
 use pipeline_domain::PipelineError;
 
-// TODO: ARCHITECTURE VIOLATION - Remove these infrastructure imports
-// These should be injected as dependencies following the hybrid architecture
-// For now, keeping them to maintain functionality, but they MUST be refactored
 use crate::infrastructure::services::binary_format_service::BinaryFormatService;
-use crate::infrastructure::services::BinaryFormatServiceImpl;
 use crate::infrastructure::services::progress_indicator_service::ProgressIndicatorService;
 
 /// Concrete implementation of the pipeline service
@@ -222,6 +218,7 @@ pub struct PipelineServiceImpl {
     file_io_service: Arc<dyn FileIOService>,
     pipeline_repository: Arc<dyn PipelineRepository>,
     stage_executor: Arc<dyn StageExecutor>,
+    binary_format_service: Arc<dyn BinaryFormatService>,
     active_pipelines: Arc<RwLock<std::collections::HashMap<String, PipelineAggregate>>>,
 }
 
@@ -234,12 +231,14 @@ impl PipelineServiceImpl {
     /// * `file_io_service` - Service for file I/O operations
     /// * `pipeline_repository` - Repository for pipeline persistence
     /// * `stage_executor` - Executor for pipeline stages
+    /// * `binary_format_service` - Service for binary format operations
     pub fn new(
         compression_service: Arc<dyn CompressionService>,
         encryption_service: Arc<dyn EncryptionService>,
         file_io_service: Arc<dyn FileIOService>,
         pipeline_repository: Arc<dyn PipelineRepository>,
         stage_executor: Arc<dyn StageExecutor>,
+        binary_format_service: Arc<dyn BinaryFormatService>,
     ) -> Self {
         Self {
             compression_service,
@@ -247,6 +246,7 @@ impl PipelineServiceImpl {
             file_io_service,
             pipeline_repository,
             stage_executor,
+            binary_format_service,
             active_pipelines: Arc::new(RwLock::new(std::collections::HashMap::new())),
         }
     }
@@ -606,13 +606,14 @@ impl PipelineService for PipelineServiceImpl {
         let chunks_completed = Arc::new(std::sync::atomic::AtomicU64::new(0));
         let bytes_processed = Arc::new(std::sync::atomic::AtomicU64::new(0));
 
-        // TODO: ARCHITECTURE VIOLATION - These should be injected dependencies, not instantiated here
-        let binary_format_service = BinaryFormatServiceImpl::new();
-        let binary_writer = binary_format_service
+        // Use injected dependencies (proper DIP)
+        let binary_writer = self.binary_format_service
             .create_writer(output_path, header.clone())
             .unwrap();
         let writer_shared = Arc::new(tokio::sync::Mutex::new(binary_writer));
 
+        // Create progress indicator for this operation
+        // (ProgressIndicatorService is stateful and operation-specific, so created fresh)
         let progress_indicator = Arc::new(ProgressIndicatorService::new(total_chunks as u64));
 
         // STEP 3: Determine worker count (user override with validation, or adaptive)

@@ -58,8 +58,8 @@ use tokio::io::{AsyncSeekExt, AsyncWriteExt, SeekFrom};
 use tokio::sync::Mutex;
 use tracing::{debug, warn};
 
-use crate::value_objects::ChunkFormat;
-use crate::PipelineError;
+use pipeline_domain::value_objects::ChunkFormat;
+use pipeline_domain::PipelineError;
 
 /// Transactional chunk writer entity providing ACID guarantees for concurrent
 /// chunk operations.
