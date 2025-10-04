@@ -7,158 +7,11 @@
 
 //! # Generic Metrics Collector
 //!
-//! This module provides a generic, reusable metrics collection system for the
-//! adaptive pipeline system. It supports type-safe metrics collection,
-//! aggregation, and reporting with comprehensive performance tracking
-//! capabilities.
+//! Generic, reusable metrics collection system with type-safe metrics,
+//! automatic aggregation, and comprehensive performance tracking.
 //!
-//! ## Overview
-//!
-//! The generic metrics collector provides:
-//!
-//! - **Type-Safe Metrics**: Generic metrics collection for any metric type
-//! - **Aggregation**: Automatic aggregation and summarization of metrics
-//! - **Performance Tracking**: Detailed timing and performance measurements
-//! - **Thread Safety**: Safe concurrent metrics collection
-//! - **Extensibility**: Pluggable metrics types and collection strategies
-//!
-//! ## Architecture
-//!
-//! The metrics collector follows generic design patterns:
-//!
-//! - **Generic Design**: Works with any metrics type implementing required
-//!   traits
-//! - **Collection Framework**: Pluggable collection strategies and aggregation
-//! - **Storage System**: Efficient storage and retrieval of metrics data
-//! - **Reporting System**: Comprehensive reporting and export capabilities
-//!
-//! ## Key Features
-//!
-//! ### Metrics Collection
-//!
-//! - **Real-time Collection**: Collect metrics in real-time during processing
-//! - **Batched Collection**: Batch metrics collection for better performance
-//! - **Automatic Aggregation**: Automatic aggregation of collected metrics
-//! - **Custom Metrics**: Support for custom metric types and measurements
-//!
-//! ### Performance Tracking
-//!
-//! - **Timing Measurements**: Precise timing measurements with nanosecond
-//!   precision
-//! - **Throughput Tracking**: Track processing throughput and rates
-//! - **Resource Usage**: Monitor memory, CPU, and other resource usage
-//! - **Statistical Analysis**: Statistical analysis of collected metrics
-//!
-//! ### Reporting and Export
-//!
-//! - **Summary Reports**: Generate summary reports of collected metrics
-//! - **Export Formats**: Export metrics in various formats (JSON, CSV, etc.)
-//! - **Real-time Monitoring**: Real-time metrics monitoring and alerting
-//! - **Historical Analysis**: Historical metrics analysis and trending
-//!
-//! ## Usage Examples
-//!
-//! ### Basic Metrics Collection
-
-//!
-//! ### Performance Timing
-
-//!
-//! ### Custom Metrics with Observers
-
-//!
-//! ## Metrics Types
-//!
-//! ### Built-in Metrics
-//!
-//! The system provides several built-in metrics types:
-//!
-//! - **TimingMetrics**: Timing measurements and performance tracking
-//! - **ThroughputMetrics**: Throughput and rate measurements
-//! - **ResourceMetrics**: Memory, CPU, and resource usage tracking
-//! - **ErrorMetrics**: Error counting and categorization
-//!
-//! ### Custom Metrics
-//!
-//! Create custom metrics by implementing the `CollectibleMetrics` trait:
-//!
-//! - **Reset Logic**: Define how metrics are reset to initial state
-//! - **Merge Logic**: Define how metrics from different sources are combined
-//! - **Summary Generation**: Define how metrics are summarized for reporting
-//! - **Validation**: Define validation rules for metric consistency
-//!
-//! ## Aggregation Strategies
-//!
-//! ### Automatic Aggregation
-//!
-//! - **Time-based Aggregation**: Aggregate metrics over time windows
-//! - **Count-based Aggregation**: Aggregate metrics after N collections
-//! - **Threshold-based Aggregation**: Aggregate when thresholds are reached
-//! - **Manual Aggregation**: Trigger aggregation manually when needed
-//!
-//! ### Statistical Analysis
-//!
-//! - **Average Calculations**: Calculate averages of collected metrics
-//! - **Percentile Analysis**: Calculate percentiles for timing metrics
-//! - **Trend Analysis**: Analyze trends in collected metrics
-//! - **Outlier Detection**: Detect and handle metric outliers
-//!
-//! ## Performance Considerations
-//!
-//! ### Collection Overhead
-//!
-//! - **Minimal Overhead**: Designed for minimal performance impact
-//! - **Batched Operations**: Batch metrics operations for efficiency
-//! - **Lock-Free Operations**: Use lock-free operations where possible
-//! - **Memory Efficiency**: Efficient memory usage for metrics storage
-//!
-//! ### Scalability
-//!
-//! - **Concurrent Collection**: Support for concurrent metrics collection
-//! - **Memory Management**: Efficient memory management for large datasets
-//! - **Storage Optimization**: Optimized storage for frequently accessed
-//!   metrics
-//!
-//! ## Error Handling
-//!
-//! ### Collection Errors
-//!
-//! - **Validation Errors**: Handle metrics validation failures
-//! - **Storage Errors**: Handle metrics storage failures
-//! - **Aggregation Errors**: Handle aggregation failures gracefully
-//! - **Observer Errors**: Handle observer notification failures
-//!
-//! ### Recovery Strategies
-//!
-//! - **Graceful Degradation**: Continue operation with reduced metrics
-//! - **Error Isolation**: Isolate errors to prevent system failure
-//! - **Automatic Recovery**: Automatic recovery from transient failures
-//!
-//! ## Integration
-//!
-//! The metrics collector integrates with:
-//!
-//! - **Processing Pipeline**: Collect metrics during pipeline execution
-//! - **Monitoring Systems**: Export metrics to external monitoring systems
-//! - **Alerting Systems**: Trigger alerts based on metric thresholds
-//! - **Reporting Systems**: Generate reports from collected metrics
-//!
-//! ## Thread Safety
-//!
-//! The metrics collector is fully thread-safe:
-//!
-//! - **Concurrent Collection**: Safe concurrent metrics collection
-//! - **Atomic Operations**: Use atomic operations for counters
-//! - **Lock-Free Reads**: Lock-free reads for better performance
-//!
-//! ## Future Enhancements
-//!
-//! Planned enhancements include:
-//!
-//! - **Distributed Metrics**: Support for distributed metrics collection
-//! - **Machine Learning**: ML-based anomaly detection in metrics
-//! - **Real-time Dashboards**: Real-time metrics visualization
-//! - **Advanced Analytics**: Advanced statistical analysis capabilities
+//! Provides thread-safe collection, storage, and reporting of operation metrics
+//! for any type implementing `CollectibleMetrics`.
 
 use async_trait::async_trait;
 use pipeline_domain::error::PipelineError;
@@ -616,38 +469,7 @@ mod tests {
         }
     }
 
-    /// Tests generic metrics collector creation and initialization.
-    ///
-    /// This test validates that the generic metrics collector can be
-    /// created with a name and that it initializes with proper default
-    /// state including zero active operations.
-    ///
-    /// # Test Coverage
-    ///
-    /// - Metrics collector creation with name
-    /// - Name storage and retrieval
-    /// - Initial active operations count
-    /// - Default state validation
-    /// - Basic functionality verification
-    ///
-    /// # Test Scenario
-    ///
-    /// Creates a new metrics collector with a test name and verifies
-    /// the name is stored correctly and active operations start at zero.
-    ///
-    /// # Domain Concerns
-    ///
-    /// - Service initialization and configuration
-    /// - Default state management
-    /// - Name-based service identification
-    /// - Operation tracking initialization
-    ///
-    /// # Assertions
-    ///
-    /// - Collector name matches input
-    /// - Active operations count starts at zero
-    /// - Service is properly initialized
-    /// - Basic functionality is operational
+    /// Tests metrics collector creation with proper initialization state.
     #[test]
     fn test_metrics_collector_creation() {
         let collector = GenericMetricsCollector::<TestMetrics>::new("test_collector".to_string());
@@ -655,39 +477,7 @@ mod tests {
         assert_eq!(collector.active_operations_count().unwrap(), 0);
     }
 
-    /// Tests operation tracking lifecycle and state management.
-    ///
-    /// This test validates that the metrics collector can properly
-    /// track operations through their lifecycle from start to completion,
-    /// maintaining accurate active operation counts and storing results.
-    ///
-    /// # Test Coverage
-    ///
-    /// - Operation start tracking
-    /// - Active operation count management
-    /// - Operation completion with metrics
-    /// - Operation state transitions
-    /// - Metrics storage and retrieval
-    ///
-    /// # Test Scenario
-    ///
-    /// Starts an operation, verifies active count increases, completes
-    /// the operation with metrics, and verifies the results are stored
-    /// correctly with active count returning to zero.
-    ///
-    /// # Domain Concerns
-    ///
-    /// - Operation lifecycle management
-    /// - State tracking and transitions
-    /// - Metrics collection and storage
-    /// - Operation identification and correlation
-    ///
-    /// # Assertions
-    ///
-    /// - Active operations count increases on start
-    /// - Active operations count decreases on completion
-    /// - Operation metrics are stored correctly
-    /// - Operation details are preserved
+    /// Tests operation lifecycle tracking from start through completion.
     #[test]
     fn test_operation_tracking() {
         let collector = GenericMetricsCollector::<TestMetrics>::new("test_collector".to_string());
@@ -715,39 +505,7 @@ mod tests {
         assert_eq!(entries[0].metrics.bytes_processed, 1024);
     }
 
-    /// Tests metrics aggregation across multiple operations.
-    ///
-    /// This test validates that the metrics collector can aggregate
-    /// metrics from multiple completed operations, providing accurate
-    /// totals and summaries across all collected data.
-    ///
-    /// # Test Coverage
-    ///
-    /// - Multiple operation completion
-    /// - Metrics aggregation across operations
-    /// - Total calculation accuracy
-    /// - Error count aggregation
-    /// - Cross-operation data consistency
-    ///
-    /// # Test Scenario
-    ///
-    /// Completes multiple operations with different metrics and
-    /// verifies the aggregated totals are calculated correctly
-    /// across all operations.
-    ///
-    /// # Domain Concerns
-    ///
-    /// - Cross-operation metrics aggregation
-    /// - Total calculation and accuracy
-    /// - Error tracking and reporting
-    /// - Performance metrics collection
-    ///
-    /// # Assertions
-    ///
-    /// - Bytes processed totals are correct
-    /// - Operations count totals are correct
-    /// - Error count totals are correct
-    /// - Aggregation calculations are accurate
+    /// Tests metrics aggregation across multiple completed operations.
     #[test]
     fn test_metrics_aggregation() {
         let collector = GenericMetricsCollector::<TestMetrics>::new("test_collector".to_string());
@@ -777,38 +535,7 @@ mod tests {
         assert_eq!(aggregated.errors_count, 1);
     }
 
-    /// Tests summary generation and reporting functionality.
-    ///
-    /// This test validates that the metrics collector can generate
-    /// comprehensive summaries of collected metrics with proper
-    /// formatting and key-value structure for reporting.
-    ///
-    /// # Test Coverage
-    ///
-    /// - Summary generation from collected metrics
-    /// - Key-value summary structure
-    /// - Collector identification in summary
-    /// - Success/failure operation counts
-    /// - Metrics inclusion in summary
-    ///
-    /// # Test Scenario
-    ///
-    /// Completes an operation with metrics and generates a summary,
-    /// verifying all expected fields are present with correct values.
-    ///
-    /// # Domain Concerns
-    ///
-    /// - Metrics reporting and visualization
-    /// - Summary generation for monitoring
-    /// - Key performance indicator extraction
-    /// - Operational status reporting
-    ///
-    /// # Assertions
-    ///
-    /// - Summary contains collector name
-    /// - Summary contains total entries count
-    /// - Summary contains success/failure counts
-    /// - Summary includes metrics data
+    /// Tests summary generation with key-value structure for reporting.
     #[test]
     fn test_summary_generation() {
         let collector = GenericMetricsCollector::<TestMetrics>::new("test_collector".to_string());
@@ -831,38 +558,7 @@ mod tests {
         assert!(summary.contains_key("bytes_processed"));
     }
 
-    /// Tests failure recording and error handling.
-    ///
-    /// This test validates that the metrics collector can properly
-    /// record operation failures with error information and maintain
-    /// accurate failure tracking and reporting.
-    ///
-    /// # Test Coverage
-    ///
-    /// - Operation failure recording
-    /// - Error message capture and storage
-    /// - Failure state tracking
-    /// - Error information preservation
-    /// - Failure operation lifecycle
-    ///
-    /// # Test Scenario
-    ///
-    /// Starts an operation, records a failure with error information,
-    /// and verifies the failure is properly recorded with error details.
-    ///
-    /// # Domain Concerns
-    ///
-    /// - Error handling and reporting
-    /// - Failure tracking and analysis
-    /// - Error message preservation
-    /// - Operation failure lifecycle
-    ///
-    /// # Assertions
-    ///
-    /// - Failure entry is created
-    /// - Success flag is set to false
-    /// - Error message is captured
-    /// - Failure details are preserved
+    /// Tests failure recording with error message capture and storage.
     #[test]
     fn test_failure_recording() {
         let collector = GenericMetricsCollector::<TestMetrics>::new("test_collector".to_string());
@@ -882,38 +578,7 @@ mod tests {
         assert!(entries[0].error_message.is_some());
     }
 
-    /// Tests macro-based collector creation convenience.
-    ///
-    /// This test validates that the metrics collector can be created
-    /// using the convenience macro, providing a simpler interface
-    /// for common use cases.
-    ///
-    /// # Test Coverage
-    ///
-    /// - Macro-based collector creation
-    /// - Macro parameter handling
-    /// - Convenience interface functionality
-    /// - Macro expansion correctness
-    /// - Simplified creation patterns
-    ///
-    /// # Test Scenario
-    ///
-    /// Creates a metrics collector using the convenience macro and
-    /// verifies it functions identically to manual creation.
-    ///
-    /// # Domain Concerns
-    ///
-    /// - Developer experience and convenience
-    /// - Code simplification and readability
-    /// - Macro-based service creation
-    /// - API consistency and usability
-    ///
-    /// # Assertions
-    ///
-    /// - Macro creates collector successfully
-    /// - Collector name is set correctly
-    /// - Macro functionality matches manual creation
-    /// - Convenience interface works as expected
+    /// Tests macro-based collector creation for simplified usage.
     #[test]
     fn test_macro_usage() {
         let collector = metrics_collector!(TestMetrics, "test");
