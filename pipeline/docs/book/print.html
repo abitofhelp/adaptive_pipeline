@@ -1481,22 +1481,480 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <li><a href="architecture/patterns.html">Design Patterns</a> - Patterns used throughout the codebase</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="layered-architecture-1"><a class="header" href="#layered-architecture-1">Layered Architecture</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
 <strong>License File:</strong> See the LICENSE file in the project root.
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>Understanding the layered architecture.</p>
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
+<h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
+<p>The pipeline system is organized into four distinct layers, each with specific responsibilities and clear boundaries. This layered architecture provides separation of concerns, testability, and maintainability.</p>
+<p><img src="architecture/../diagrams/layered-architecture.svg" alt="Layered Architecture" /></p>
+<h2 id="the-four-layers"><a class="header" href="#the-four-layers">The Four Layers</a></h2>
+<pre><code class="language-text">┌─────────────────────────────────────────┐
+│         Presentation Layer              │  ← User interface (CLI)
+│  - CLI commands                         │
+│  - User interaction                     │
+└─────────────────┬───────────────────────┘
+                  │ depends on
+┌─────────────────▼───────────────────────┐
+│         Application Layer               │  ← Use cases, orchestration
+│  - Use cases                            │
+│  - Application services                 │
+│  - Commands/Queries                     │
+└─────────────────┬───────────────────────┘
+                  │ depends on
+┌─────────────────▼───────────────────────┐
+│           Domain Layer                  │  ← Core business logic
+│  - Entities                             │
+│  - Value objects                        │
+│  - Domain services (interfaces)         │
+│  - Business rules                       │
+└─────────────────△───────────────────────┘
+                  │ implements interfaces
+┌─────────────────┴───────────────────────┐
+│        Infrastructure Layer             │  ← External dependencies
+│  - Database repositories                │
+│  - File I/O                             │
+│  - External services                    │
+│  - Encryption/Compression               │
+└─────────────────────────────────────────┘
+</code></pre>
+<h2 id="dependency-rule"><a class="header" href="#dependency-rule">Dependency Rule</a></h2>
+<p>The <strong>dependency rule</strong> is the most important principle in layered architecture:</p>
+<blockquote>
+<p><strong>Dependencies flow inward toward the domain layer.</strong></p>
+</blockquote>
+<ul>
+<li>Presentation depends on Application</li>
+<li>Application depends on Domain</li>
+<li>Infrastructure depends on Domain (via interfaces)</li>
+<li><strong>Domain depends on nothing</strong> (pure business logic)</li>
+</ul>
+<p>This means:</p>
+<ul>
+<li>✅ Application can use Domain types</li>
+<li>✅ Infrastructure implements Domain interfaces</li>
+<li>❌ Domain cannot use Application types</li>
+<li>❌ Domain cannot use Infrastructure types</li>
+</ul>
 <h2 id="domain-layer"><a class="header" href="#domain-layer">Domain Layer</a></h2>
-<p>TODO: Explain domain layer</p>
+<h3 id="purpose"><a class="header" href="#purpose">Purpose</a></h3>
+<p>The domain layer contains the <strong>core business logic</strong> and is the heart of the application. It's completely independent of external concerns like databases, user interfaces, or frameworks.</p>
+<h3 id="responsibilities"><a class="header" href="#responsibilities">Responsibilities</a></h3>
+<ul>
+<li>Define business entities and value objects</li>
+<li>Enforce business rules and invariants</li>
+<li>Provide domain service interfaces</li>
+<li>Emit domain events</li>
+<li>Define repository interfaces</li>
+</ul>
+<h3 id="structure"><a class="header" href="#structure">Structure</a></h3>
+<pre><code>pipeline-domain/
+├── entities/
+│   ├── pipeline.rs           # Pipeline entity
+│   ├── pipeline_stage.rs     # Stage entity
+│   ├── processing_context.rs # Processing state
+│   └── security_context.rs   # Security management
+├── value_objects/
+│   ├── algorithm.rs          # Algorithm value object
+│   ├── chunk_size.rs         # Chunk size validation
+│   ├── file_path.rs          # Type-safe paths
+│   └── pipeline_id.rs        # Type-safe IDs
+├── services/
+│   ├── compression_service.rs    # Compression interface
+│   ├── encryption_service.rs     # Encryption interface
+│   └── checksum_service.rs       # Checksum interface
+├── repositories/
+│   └── pipeline_repository.rs    # Repository interface
+├── events/
+│   └── domain_events.rs      # Business events
+└── error/
+    └── pipeline_error.rs     # Domain errors
+</code></pre>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Domain layer - pure business logic
+pub struct Pipeline {
+    id: PipelineId,
+    name: String,
+    stages: Vec&lt;PipelineStage&gt;,
+    // ... no database or UI dependencies
+}
+
+impl Pipeline {
+    pub fn new(name: String, stages: Vec&lt;PipelineStage&gt;) -&gt; Result&lt;Self, PipelineError&gt; {
+        // Business rule: must have at least one stage
+        if stages.is_empty() {
+            return Err(PipelineError::InvalidConfiguration(
+                "Pipeline must have at least one stage".to_string()
+            ));
+        }
+
+        // Create pipeline with validated business rules
+        Ok(Self {
+            id: PipelineId::new(),
+            name,
+            stages,
+            // ...
+        })
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="key-characteristics"><a class="header" href="#key-characteristics">Key Characteristics</a></h3>
+<ul>
+<li><strong>No external dependencies</strong> - Only standard library and domain types</li>
+<li><strong>Highly testable</strong> - Can test without databases or files</li>
+<li><strong>Portable</strong> - Can be used in any context (web, CLI, embedded)</li>
+<li><strong>Stable</strong> - Rarely changes except for business requirement changes</li>
+</ul>
 <h2 id="application-layer"><a class="header" href="#application-layer">Application Layer</a></h2>
-<p>TODO: Explain application layer</p>
+<h3 id="purpose-1"><a class="header" href="#purpose-1">Purpose</a></h3>
+<p>The application layer orchestrates the execution of business use cases. It coordinates domain objects and delegates to domain services to accomplish specific tasks.</p>
+<h3 id="responsibilities-1"><a class="header" href="#responsibilities-1">Responsibilities</a></h3>
+<ul>
+<li>Implement use cases (user actions)</li>
+<li>Coordinate domain objects</li>
+<li>Manage transactions</li>
+<li>Handle application-specific workflows</li>
+<li>Emit application events</li>
+</ul>
+<h3 id="structure-1"><a class="header" href="#structure-1">Structure</a></h3>
+<pre><code>pipeline/src/application/
+├── use_cases/
+│   ├── process_file.rs       # File processing use case
+│   ├── restore_file.rs       # File restoration use case
+│   └── create_pipeline.rs    # Pipeline creation
+├── services/
+│   ├── pipeline_service.rs   # Pipeline orchestration
+│   ├── file_processor_service.rs  # File processing
+│   └── transactional_chunk_writer.rs  # Chunk writing
+├── commands/
+│   └── commands.rs           # CQRS commands
+└── utilities/
+    └── generic_service_base.rs  # Service helpers
+</code></pre>
+<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Application layer - orchestrates domain objects
+pub struct FileProcessorService {
+    pipeline_repo: Arc&lt;dyn PipelineRepository&gt;,
+    compression: Arc&lt;dyn CompressionService&gt;,
+    encryption: Arc&lt;dyn EncryptionService&gt;,
+}
+
+impl FileProcessorService {
+    pub async fn process_file(
+        &amp;self,
+        pipeline_id: &amp;PipelineId,
+        input_path: &amp;FilePath,
+        output_path: &amp;FilePath,
+    ) -&gt; Result&lt;ProcessingMetrics, PipelineError&gt; {
+        // 1. Fetch pipeline from repository
+        let pipeline = self.pipeline_repo
+            .find_by_id(pipeline_id)
+            .await?
+            .ok_or(PipelineError::NotFound)?;
+
+        // 2. Create processing context
+        let context = ProcessingContext::new(
+            pipeline.id().clone(),
+            input_path.clone(),
+            output_path.clone(),
+        );
+
+        // 3. Process each stage
+        for stage in pipeline.stages() {
+            match stage.stage_type() {
+                StageType::Compression =&gt; {
+                    self.compression.compress(/* ... */).await?;
+                }
+                StageType::Encryption =&gt; {
+                    self.encryption.encrypt(/* ... */).await?;
+                }
+                // ... more stages
+            }
+        }
+
+        // 4. Return metrics
+        Ok(context.metrics().clone())
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="key-characteristics-1"><a class="header" href="#key-characteristics-1">Key Characteristics</a></h3>
+<ul>
+<li><strong>Thin layer</strong> - Delegates to domain for business logic</li>
+<li><strong>Workflow coordination</strong> - Orchestrates multiple domain operations</li>
+<li><strong>Transaction management</strong> - Ensures atomic operations</li>
+<li><strong>No business logic</strong> - Business rules belong in domain layer</li>
+</ul>
 <h2 id="infrastructure-layer"><a class="header" href="#infrastructure-layer">Infrastructure Layer</a></h2>
-<p>TODO: Explain infrastructure layer</p>
+<h3 id="purpose-2"><a class="header" href="#purpose-2">Purpose</a></h3>
+<p>The infrastructure layer provides concrete implementations of interfaces defined in the domain layer. It handles all external concerns like databases, file systems, and third-party services.</p>
+<h3 id="responsibilities-2"><a class="header" href="#responsibilities-2">Responsibilities</a></h3>
+<ul>
+<li>Implement repository interfaces</li>
+<li>Provide database access</li>
+<li>Handle file I/O operations</li>
+<li>Implement compression/encryption services</li>
+<li>Integrate with external systems</li>
+<li>Provide logging and metrics</li>
+</ul>
+<h3 id="structure-2"><a class="header" href="#structure-2">Structure</a></h3>
+<pre><code>pipeline/src/infrastructure/
+├── repositories/
+│   ├── sqlite_pipeline_repository.rs  # SQLite implementation
+│   └── stage_executor.rs              # Stage execution
+├── adapters/
+│   ├── compression_service_adapter.rs # Compression implementation
+│   ├── encryption_service_adapter.rs  # Encryption implementation
+│   └── repositories/
+│       └── sqlite_repository_adapter.rs  # Repository adapter
+├── services/
+│   └── binary_format_service.rs       # File format handling
+├── metrics/
+│   ├── metrics_service.rs             # Prometheus metrics
+│   └── metrics_observer.rs            # Metrics collection
+├── logging/
+│   └── observability_service.rs       # Logging setup
+└── config/
+    └── config_service.rs              # Configuration management
+</code></pre>
+<h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Infrastructure layer - implements domain interfaces
+pub struct SQLitePipelineRepository {
+    pool: SqlitePool,
+}
+
+#[async_trait]
+impl PipelineRepository for SQLitePipelineRepository {
+    async fn find_by_id(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;Option&lt;Pipeline&gt;, PipelineError&gt; {
+        // Database-specific code
+        let row = sqlx::query_as::&lt;_, PipelineRow&gt;(
+            "SELECT * FROM pipelines WHERE id = ?"
+        )
+        .bind(id.to_string())
+        .fetch_optional(&amp;self.pool)
+        .await
+        .map_err(|e| PipelineError::RepositoryError(e.to_string()))?;
+
+        // Map database row to domain entity
+        row.map(|r| self.to_domain_entity(r)).transpose()
+    }
+
+    async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;(), PipelineError&gt; {
+        // Convert domain entity to database row
+        let row = self.to_persistence_model(pipeline);
+
+        // Insert into database
+        sqlx::query(
+            "INSERT INTO pipelines (id, name, ...) VALUES (?, ?, ...)"
+        )
+        .bind(&amp;row.id)
+        .bind(&amp;row.name)
+        .execute(&amp;self.pool)
+        .await
+        .map_err(|e| PipelineError::RepositoryError(e.to_string()))?;
+
+        Ok(())
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="key-characteristics-2"><a class="header" href="#key-characteristics-2">Key Characteristics</a></h3>
+<ul>
+<li><strong>Implements domain interfaces</strong> - Provides concrete implementations</li>
+<li><strong>Database access</strong> - Handles all persistence operations</li>
+<li><strong>External integrations</strong> - Communicates with external systems</li>
+<li><strong>Technology-specific</strong> - Uses specific libraries and frameworks</li>
+<li><strong>Replaceable</strong> - Can swap implementations without changing domain</li>
+</ul>
 <h2 id="presentation-layer"><a class="header" href="#presentation-layer">Presentation Layer</a></h2>
-<p>TODO: Explain presentation layer</p>
+<h3 id="purpose-3"><a class="header" href="#purpose-3">Purpose</a></h3>
+<p>The presentation layer handles user interaction and input/output. It translates user commands into application use cases and presents results back to the user.</p>
+<h3 id="responsibilities-3"><a class="header" href="#responsibilities-3">Responsibilities</a></h3>
+<ul>
+<li>Parse and validate user input</li>
+<li>Execute application use cases</li>
+<li>Format and display output</li>
+<li>Handle user interaction</li>
+<li>Map errors to user-friendly messages</li>
+</ul>
+<h3 id="structure-3"><a class="header" href="#structure-3">Structure</a></h3>
+<pre><code>pipeline/src/presentation/
+├── mod.rs                    # Presentation module
+└── (CLI is in main.rs)
+</code></pre>
+<h3 id="example-3"><a class="header" href="#example-3">Example</a></h3>
+<pre><pre class="playground"><code class="language-rust">// Presentation layer - CLI interaction
+#[tokio::main]
+async fn main() -&gt; std::process::ExitCode {
+    // 1. Parse CLI arguments
+    let cli = bootstrap::bootstrap_cli()
+        .unwrap_or_else(|e| {
+            eprintln!("Error: {}", e);
+            std::process::exit(65);
+        });
+
+    // 2. Set up dependencies (infrastructure)
+    let db_pool = create_database_pool().await?;
+    let pipeline_repo = Arc::new(SQLitePipelineRepository::new(db_pool));
+    let compression = Arc::new(CompressionServiceAdapter::new());
+    let file_processor = FileProcessorService::new(pipeline_repo, compression);
+
+    // 3. Execute use case based on command
+    let result = match cli.command {
+        Commands::Process { input, output, pipeline } =&gt; {
+            // Call application service
+            file_processor.process_file(&amp;pipeline, &amp;input, &amp;output).await
+        }
+        Commands::Create { name, stages } =&gt; {
+            // Call application service
+            create_pipeline_service.create(&amp;name, stages).await
+        }
+        // ... more commands
+    };
+
+    // 4. Handle result and display to user
+    match result {
+        Ok(_) =&gt; {
+            println!("✓ Processing completed successfully");
+            ExitCode::SUCCESS
+        }
+        Err(e) =&gt; {
+            eprintln!("✗ Error: {}", e);
+            ExitCode::FAILURE
+        }
+    }
+}</code></pre></pre>
+<h3 id="key-characteristics-3"><a class="header" href="#key-characteristics-3">Key Characteristics</a></h3>
+<ul>
+<li><strong>Thin layer</strong> - Minimal logic, delegates to application</li>
+<li><strong>User-facing</strong> - Handles all user interaction</li>
+<li><strong>Input validation</strong> - Validates user input before processing</li>
+<li><strong>Error formatting</strong> - Converts technical errors to user-friendly messages</li>
+</ul>
+<h2 id="layer-interactions"><a class="header" href="#layer-interactions">Layer Interactions</a></h2>
+<h3 id="example-processing-a-file"><a class="header" href="#example-processing-a-file">Example: Processing a File</a></h3>
+<p>Here's how the layers work together to process a file:</p>
+<pre><code class="language-text">1. Presentation Layer (CLI)
+   ↓ User runs: pipeline process --input file.txt --output file.bin --pipeline my-pipeline
+   ├─ Parse command-line arguments
+   ├─ Validate input parameters
+   └─ Call Application Service
+
+2. Application Layer (FileProcessorService)
+   ↓ process_file(pipeline_id, input_path, output_path)
+   ├─ Fetch Pipeline from Repository (Infrastructure)
+   ├─ Create ProcessingContext (Domain)
+   ├─ For each stage:
+   │  ├─ Call CompressionService (Infrastructure)
+   │  ├─ Call EncryptionService (Infrastructure)
+   │  └─ Update metrics (Domain)
+   └─ Return ProcessingMetrics (Domain)
+
+3. Domain Layer (Pipeline, ProcessingContext)
+   ↓ Enforce business rules
+   ├─ Validate stage compatibility
+   ├─ Enforce chunk sequencing
+   └─ Calculate metrics
+
+4. Infrastructure Layer (Repositories, Services)
+   ↓ Handle external operations
+   ├─ Query SQLite database
+   ├─ Read/write files
+   ├─ Compress data (brotli, zstd, etc.)
+   └─ Encrypt data (AES, ChaCha20)
+</code></pre>
+<h2 id="benefits-of-layered-architecture"><a class="header" href="#benefits-of-layered-architecture">Benefits of Layered Architecture</a></h2>
+<h3 id="separation-of-concerns"><a class="header" href="#separation-of-concerns">Separation of Concerns</a></h3>
+<p>Each layer has a single, well-defined responsibility. This makes the code easier to understand and maintain.</p>
+<h3 id="testability-1"><a class="header" href="#testability-1">Testability</a></h3>
+<ul>
+<li><strong>Domain Layer</strong>: Test business logic without any infrastructure</li>
+<li><strong>Application Layer</strong>: Test workflows with mock repositories</li>
+<li><strong>Infrastructure Layer</strong>: Test database operations independently</li>
+<li><strong>Presentation Layer</strong>: Test user interaction separately</li>
+</ul>
+<h3 id="flexibility"><a class="header" href="#flexibility">Flexibility</a></h3>
+<p>You can change infrastructure (e.g., swap SQLite for PostgreSQL) without touching domain or application layers.</p>
+<h3 id="maintainability"><a class="header" href="#maintainability">Maintainability</a></h3>
+<p>Changes in one layer typically don't affect other layers, reducing the risk of breaking existing functionality.</p>
+<h3 id="parallel-development"><a class="header" href="#parallel-development">Parallel Development</a></h3>
+<p>Teams can work on different layers simultaneously without conflicts.</p>
+<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
+<h3 id="-breaking-the-dependency-rule"><a class="header" href="#-breaking-the-dependency-rule">❌ Breaking the Dependency Rule</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// WRONG: Domain depending on infrastructure
+pub struct Pipeline {
+    id: PipelineId,
+    db_connection: SqlitePool,  // ❌ Database dependency in domain!
+}
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// CORRECT: Domain independent of infrastructure
+pub struct Pipeline {
+    id: PipelineId,
+    name: String,
+    stages: Vec&lt;PipelineStage&gt;,  // ✅ Pure domain types
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="-business-logic-in-application-layer"><a class="header" href="#-business-logic-in-application-layer">❌ Business Logic in Application Layer</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// WRONG: Business logic in application
+impl FileProcessorService {
+    pub async fn process_file(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;(), Error&gt; {
+        // ❌ Business rule in application layer!
+        if pipeline.stages().is_empty() {
+            return Err(Error::InvalidPipeline);
+        }
+        // ...
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// CORRECT: Business logic in domain
+impl Pipeline {
+    pub fn new(name: String, stages: Vec&lt;PipelineStage&gt;) -&gt; Result&lt;Self, PipelineError&gt; {
+        // ✅ Business rule in domain layer
+        if stages.is_empty() {
+            return Err(PipelineError::InvalidConfiguration(
+                "Pipeline must have at least one stage".to_string()
+            ));
+        }
+        Ok(Self { /* ... */ })
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="-direct-infrastructure-access-from-presentation"><a class="header" href="#-direct-infrastructure-access-from-presentation">❌ Direct Infrastructure Access from Presentation</a></h3>
+<pre><pre class="playground"><code class="language-rust">// WRONG: Presentation accessing infrastructure directly
+async fn main() {
+    let db_pool = create_database_pool().await?;
+    // ❌ CLI directly using repository!
+    let pipeline = db_pool.query("SELECT * FROM pipelines").await?;
+}</code></pre></pre>
+<pre><pre class="playground"><code class="language-rust">// CORRECT: Presentation using application services
+async fn main() {
+    let file_processor = create_file_processor().await?;
+    // ✅ CLI using application service
+    let result = file_processor.process_file(&amp;pipeline_id, &amp;input, &amp;output).await?;
+}</code></pre></pre>
+<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<p>Now that you understand the layered architecture:</p>
+<ul>
+<li><a href="architecture/adapter-pattern.html">Hexagonal Architecture</a> - Ports and adapters pattern</li>
+<li><a href="architecture/dependencies.html">Dependency Inversion</a> - Managing dependencies</li>
+<li><a href="architecture/domain-model.html">Domain Model</a> - Deep dive into the domain layer</li>
+<li><a href="architecture/repository-pattern.html">Repository Pattern</a> - Data persistence abstraction</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="dependency-flow"><a class="header" href="#dependency-flow">Dependency Flow</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
@@ -1506,28 +1964,475 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <strong>Authors:</strong> Michael Gardner
 <strong>Status:</strong> Draft</p>
 <p>Understanding dependency direction and inversion.</p>
-<h2 id="dependency-rule"><a class="header" href="#dependency-rule">Dependency Rule</a></h2>
+<h2 id="dependency-rule-1"><a class="header" href="#dependency-rule-1">Dependency Rule</a></h2>
 <p>TODO: Explain dependency direction</p>
 <h2 id="dependency-inversion"><a class="header" href="#dependency-inversion">Dependency Inversion</a></h2>
 <p>TODO: Explain DIP application</p>
 <h2 id="trait-abstractions"><a class="header" href="#trait-abstractions">Trait Abstractions</a></h2>
 <p>TODO: Explain trait usage</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="domain-model-1"><a class="header" href="#domain-model-1">Domain Model</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
 <strong>License File:</strong> See the LICENSE file in the project root.
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>The domain model and its components.</p>
-<h2 id="domain-driven-design"><a class="header" href="#domain-driven-design">Domain-Driven Design</a></h2>
-<p>TODO: Explain DDD concepts</p>
-<h2 id="core-domain"><a class="header" href="#core-domain">Core Domain</a></h2>
-<p>TODO: Explain core domain</p>
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
+<h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
+<p>The domain model is the heart of the pipeline system. It captures the core business concepts, rules, and behaviors using Domain-Driven Design (DDD) principles. This chapter explains how the domain model is structured and why it's designed this way.</p>
+<p><img src="architecture/../diagrams/domain-model.svg" alt="Domain Model" /></p>
+<h2 id="domain-driven-design-principles"><a class="header" href="#domain-driven-design-principles">Domain-Driven Design Principles</a></h2>
+<p>Domain-Driven Design (DDD) is a software development approach that emphasizes:</p>
+<ol>
+<li><strong>Focus on the core domain</strong> - The business logic is the most important part</li>
+<li><strong>Model-driven design</strong> - The domain model drives the software design</li>
+<li><strong>Ubiquitous language</strong> - Shared vocabulary between developers and domain experts</li>
+<li><strong>Bounded contexts</strong> - Clear boundaries between different parts of the system</li>
+</ol>
+<h3 id="why-ddd"><a class="header" href="#why-ddd">Why DDD?</a></h3>
+<p>For a pipeline processing system, DDD provides:</p>
+<ul>
+<li><strong>Clear separation</strong> between business logic and infrastructure</li>
+<li><strong>Testable code</strong> - Domain logic can be tested without databases or files</li>
+<li><strong>Flexibility</strong> - Easy to change infrastructure without touching business rules</li>
+<li><strong>Maintainability</strong> - Business rules are explicit and well-organized</li>
+</ul>
+<h2 id="core-domain-concepts"><a class="header" href="#core-domain-concepts">Core Domain Concepts</a></h2>
+<h3 id="entities-1"><a class="header" href="#entities-1">Entities</a></h3>
+<p><strong>Entities</strong> are objects with a unique identity that persists through time. Two entities are equal if they have the same ID, even if all their other attributes differ.</p>
+<h4 id="pipeline-entity"><a class="header" href="#pipeline-entity">Pipeline Entity</a></h4>
+<p>The central entity representing a file processing workflow.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Pipeline {
+    id: PipelineId,                    // Unique identity
+    name: String,                      // Human-readable name
+    stages: Vec&lt;PipelineStage&gt;,        // Ordered processing stages
+    configuration: HashMap&lt;String, String&gt;,  // Custom settings
+    metrics: ProcessingMetrics,        // Performance data
+    archived: bool,                    // Lifecycle state
+    created_at: DateTime&lt;Utc&gt;,         // Creation timestamp
+    updated_at: DateTime&lt;Utc&gt;,         // Last modification
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Key characteristics:</strong></p>
+<ul>
+<li>Has unique <code>PipelineId</code></li>
+<li>Can be modified while maintaining identity</li>
+<li>Enforces business rules (e.g., must have at least one stage)</li>
+<li>Automatically adds integrity verification stages</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pipeline_domain::Pipeline;
+
+// Two pipelines with same ID are equal, even if names differ
+let pipeline1 = Pipeline::new("Original Name", stages.clone())?;
+let pipeline2 = pipeline1.clone();
+pipeline2.set_name("Different Name");
+
+assert_eq!(pipeline1.id(), pipeline2.id());  // Same identity
+<span class="boring">}</span></code></pre></pre>
+<h4 id="pipelinestage-entity"><a class="header" href="#pipelinestage-entity">PipelineStage Entity</a></h4>
+<p>Represents a single processing operation within a pipeline.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PipelineStage {
+    id: StageId,                       // Unique identity
+    name: String,                      // Stage name
+    stage_type: StageType,             // Compression, Encryption, etc.
+    configuration: StageConfiguration, // Algorithm and parameters
+    order: usize,                      // Execution order
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Stage Types:</strong></p>
+<ul>
+<li><code>Compression</code> - Data compression</li>
+<li><code>Encryption</code> - Data encryption</li>
+<li><code>Integrity</code> - Checksum verification</li>
+<li><code>Custom</code> - User-defined operations</li>
+</ul>
+<h4 id="processingcontext-entity"><a class="header" href="#processingcontext-entity">ProcessingContext Entity</a></h4>
+<p>Manages the runtime execution state of a pipeline.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ProcessingContext {
+    id: ProcessingContextId,           // Unique identity
+    pipeline_id: PipelineId,           // Associated pipeline
+    input_path: FilePath,              // Input file
+    output_path: FilePath,             // Output file
+    current_stage: usize,              // Current stage index
+    status: ProcessingStatus,          // Running, Completed, Failed
+    metrics: ProcessingMetrics,        // Runtime metrics
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="securitycontext-entity"><a class="header" href="#securitycontext-entity">SecurityContext Entity</a></h4>
+<p>Manages security and permissions for pipeline operations.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SecurityContext {
+    id: SecurityContextId,             // Unique identity
+    user_id: UserId,                   // User performing operation
+    security_level: SecurityLevel,     // Required security level
+    permissions: Vec&lt;Permission&gt;,      // Granted permissions
+    encryption_key_id: Option&lt;EncryptionKeyId&gt;,  // Key for encryption
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="value-objects-1"><a class="header" href="#value-objects-1">Value Objects</a></h3>
+<p><strong>Value Objects</strong> are immutable objects defined by their attributes. Two value objects with the same attributes are considered equal.</p>
+<h4 id="algorithm-value-object"><a class="header" href="#algorithm-value-object">Algorithm Value Object</a></h4>
+<p>Type-safe representation of processing algorithms.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Algorithm(String);
+
+impl Algorithm {
+    // Predefined compression algorithms
+    pub fn brotli() -&gt; Self { /* ... */ }
+    pub fn gzip() -&gt; Self { /* ... */ }
+    pub fn zstd() -&gt; Self { /* ... */ }
+    pub fn lz4() -&gt; Self { /* ... */ }
+
+    // Predefined encryption algorithms
+    pub fn aes_256_gcm() -&gt; Self { /* ... */ }
+    pub fn chacha20_poly1305() -&gt; Self { /* ... */ }
+
+    // Predefined hashing algorithms
+    pub fn sha256() -&gt; Self { /* ... */ }
+    pub fn blake3() -&gt; Self { /* ... */ }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Key characteristics:</strong></p>
+<ul>
+<li>Immutable after creation</li>
+<li>Self-validating (enforces format rules)</li>
+<li>Category detection (is_compression(), is_encryption())</li>
+<li>Type-safe (can't accidentally use wrong algorithm)</li>
+</ul>
+<h4 id="chunksize-value-object"><a class="header" href="#chunksize-value-object">ChunkSize Value Object</a></h4>
+<p>Represents validated chunk sizes for file processing.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ChunkSize(usize);
+
+impl ChunkSize {
+    pub fn new(bytes: usize) -&gt; Result&lt;Self, PipelineError&gt; {
+        // Validates size is within acceptable range
+        if bytes &lt; MIN_CHUNK_SIZE || bytes &gt; MAX_CHUNK_SIZE {
+            return Err(PipelineError::InvalidConfiguration(/* ... */));
+        }
+        Ok(Self(bytes))
+    }
+
+    pub fn from_megabytes(mb: usize) -&gt; Result&lt;Self, PipelineError&gt; {
+        Self::new(mb * 1024 * 1024)
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="filechunk-value-object"><a class="header" href="#filechunk-value-object">FileChunk Value Object</a></h4>
+<p>Immutable representation of a piece of file data.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct FileChunk {
+    id: FileChunkId,                   // Unique chunk identifier
+    sequence: usize,                   // Position in file
+    data: Vec&lt;u8&gt;,                     // Chunk data
+    is_final: bool,                    // Last chunk flag
+    checksum: Option&lt;String&gt;,          // Integrity verification
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="filepath-value-object"><a class="header" href="#filepath-value-object">FilePath Value Object</a></h4>
+<p>Type-safe, validated file paths.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct FilePath(PathBuf);
+
+impl FilePath {
+    pub fn new(path: impl Into&lt;PathBuf&gt;) -&gt; Result&lt;Self, PipelineError&gt; {
+        let path = path.into();
+        // Validation:
+        // - Path traversal prevention
+        // - Null byte checks
+        // - Length limits
+        // - Encoding validation
+        Ok(Self(path))
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="pipelineid-stageid-userid-type-safe-ids"><a class="header" href="#pipelineid-stageid-userid-type-safe-ids">PipelineId, StageId, UserId (Type-Safe IDs)</a></h4>
+<p>All identifiers are wrapped in newtype value objects for type safety:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PipelineId(Ulid);  // Can't accidentally use StageId as PipelineId
+pub struct StageId(Ulid);
+pub struct UserId(Ulid);
+pub struct ProcessingContextId(Ulid);
+pub struct SecurityContextId(Ulid);
+<span class="boring">}</span></code></pre></pre>
+<p>This prevents common bugs like passing the wrong ID to a function.</p>
+<h3 id="domain-services"><a class="header" href="#domain-services">Domain Services</a></h3>
+<p><strong>Domain Services</strong> contain business logic that doesn't naturally fit in an entity or value object. They are stateless and operate on domain objects.</p>
+<p>Domain services in our system are defined as traits (interfaces) in the domain layer and implemented in the infrastructure layer.</p>
+<h4 id="compressionservice"><a class="header" href="#compressionservice">CompressionService</a></h4>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[async_trait]
+pub trait CompressionService: Send + Sync {
+    async fn compress(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt;;
+
+    async fn decompress(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="encryptionservice"><a class="header" href="#encryptionservice">EncryptionService</a></h4>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[async_trait]
+pub trait EncryptionService: Send + Sync {
+    async fn encrypt(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+        key: &amp;EncryptionKey,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt;;
+
+    async fn decrypt(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+        key: &amp;EncryptionKey,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="checksumservice"><a class="header" href="#checksumservice">ChecksumService</a></h4>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub trait ChecksumService: Send + Sync {
+    fn calculate(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+    ) -&gt; Result&lt;String, PipelineError&gt;;
+
+    fn verify(
+        &amp;self,
+        data: &amp;[u8],
+        expected: &amp;str,
+        algorithm: &amp;Algorithm,
+    ) -&gt; Result&lt;bool, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="repositories"><a class="header" href="#repositories">Repositories</a></h3>
+<p><strong>Repositories</strong> abstract data persistence, allowing the domain to work with collections without knowing about storage details.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[async_trait]
+pub trait PipelineRepository: Send + Sync {
+    async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;(), PipelineError&gt;;
+    async fn find_by_id(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;Option&lt;Pipeline&gt;, PipelineError&gt;;
+    async fn find_by_name(&amp;self, name: &amp;str) -&gt; Result&lt;Option&lt;Pipeline&gt;, PipelineError&gt;;
+    async fn update(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;(), PipelineError&gt;;
+    async fn delete(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;(), PipelineError&gt;;
+    async fn list_all(&amp;self) -&gt; Result&lt;Vec&lt;Pipeline&gt;, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The repository interface is defined in the domain layer, but implementations live in the infrastructure layer. This follows the Dependency Inversion Principle.</p>
+<h3 id="domain-events"><a class="header" href="#domain-events">Domain Events</a></h3>
+<p><strong>Domain Events</strong> represent significant business occurrences that other parts of the system might care about.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum DomainEvent {
+    PipelineCreated {
+        pipeline_id: PipelineId,
+        name: String,
+        created_at: DateTime&lt;Utc&gt;,
+    },
+    ProcessingStarted {
+        pipeline_id: PipelineId,
+        context_id: ProcessingContextId,
+        input_path: FilePath,
+    },
+    ProcessingCompleted {
+        pipeline_id: PipelineId,
+        context_id: ProcessingContextId,
+        metrics: ProcessingMetrics,
+    },
+    ProcessingFailed {
+        pipeline_id: PipelineId,
+        context_id: ProcessingContextId,
+        error: String,
+    },
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Events enable:</p>
+<ul>
+<li><strong>Loose coupling</strong> - Components don't need direct references</li>
+<li><strong>Audit trails</strong> - Track all significant operations</li>
+<li><strong>Integration</strong> - External systems can react to events</li>
+<li><strong>Event sourcing</strong> - Reconstruct state from event history</li>
+</ul>
+<h2 id="business-rules-and-invariants"><a class="header" href="#business-rules-and-invariants">Business Rules and Invariants</a></h2>
+<p>The domain model enforces critical business rules:</p>
+<h3 id="pipeline-rules"><a class="header" href="#pipeline-rules">Pipeline Rules</a></h3>
+<ol>
+<li>
+<p><strong>Pipelines must have at least one user-defined stage</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if user_stages.is_empty() {
+    return Err(PipelineError::InvalidConfiguration(
+        "Pipeline must have at least one stage".to_string()
+    ));
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Stage order must be sequential and valid</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Stages are automatically reordered: 0, 1, 2, 3...
+// Input checksum = 0
+// User stages = 1, 2, 3...
+// Output checksum = final
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Pipeline names must be unique</strong> (enforced by repository)</p>
+</li>
+</ol>
+<h3 id="chunk-processing-rules"><a class="header" href="#chunk-processing-rules">Chunk Processing Rules</a></h3>
+<ol>
+<li>
+<p><strong>Chunks must have non-zero size</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if size == 0 {
+    return Err(PipelineError::InvalidChunkSize);
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Chunk sequence numbers must be sequential</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Chunks are numbered 0, 1, 2, 3...
+// Missing sequences cause processing to fail
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Final chunks must be properly marked</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if chunk.is_final() {
+    // No more chunks should follow
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+</ol>
+<h3 id="security-rules"><a class="header" href="#security-rules">Security Rules</a></h3>
+<ol>
+<li>
+<p><strong>Security contexts must be validated</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>security_context.validate()?;
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Encryption keys must meet strength requirements</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if key.len() &lt; MIN_KEY_LENGTH {
+    return Err(PipelineError::WeakEncryptionKey);
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Access permissions must be checked</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if !security_context.has_permission(Permission::ProcessFile) {
+    return Err(PipelineError::PermissionDenied);
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+</ol>
 <h2 id="ubiquitous-language"><a class="header" href="#ubiquitous-language">Ubiquitous Language</a></h2>
-<p>TODO: Explain ubiquitous language</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="entities-1"><a class="header" href="#entities-1">Entities</a></h1>
+<p>The domain model uses consistent terminology shared between developers and domain experts:</p>
+<div class="table-wrapper"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><strong>Pipeline</strong></td><td>An ordered sequence of processing stages</td></tr>
+<tr><td><strong>Stage</strong></td><td>A single processing operation (compress, encrypt, etc.)</td></tr>
+<tr><td><strong>Chunk</strong></td><td>A piece of a file processed in parallel</td></tr>
+<tr><td><strong>Algorithm</strong></td><td>A specific processing method (zstd, aes-256-gcm, etc.)</td></tr>
+<tr><td><strong>Repository</strong></td><td>Storage abstraction for domain objects</td></tr>
+<tr><td><strong>Context</strong></td><td>Runtime execution state</td></tr>
+<tr><td><strong>Metrics</strong></td><td>Performance and operational measurements</td></tr>
+<tr><td><strong>Integrity</strong></td><td>Data verification through checksums</td></tr>
+<tr><td><strong>Security Level</strong></td><td>Required protection level (Public, Confidential, Secret)</td></tr>
+</tbody></table>
+</div>
+<h2 id="testing-domain-logic"><a class="header" href="#testing-domain-logic">Testing Domain Logic</a></h2>
+<p>Domain objects are designed for easy testing:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pipeline_enforces_minimum_stages() {
+        // Domain logic can be tested without any infrastructure
+        let result = Pipeline::new("test".to_string(), vec![]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn algorithm_validates_format() {
+        // Value objects self-validate
+        let result = Algorithm::new("INVALID-NAME".to_string());
+        assert!(result.is_err());
+
+        let result = Algorithm::new("valid-name".to_string());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn chunk_size_enforces_limits() {
+        // Business rules are explicit and testable
+        let too_small = ChunkSize::new(1);
+        assert!(too_small.is_err());
+
+        let valid = ChunkSize::from_megabytes(10);
+        assert!(valid.is_ok());
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="benefits-of-this-domain-model"><a class="header" href="#benefits-of-this-domain-model">Benefits of This Domain Model</a></h2>
+<ol>
+<li><strong>Pure Business Logic</strong> - No infrastructure dependencies</li>
+<li><strong>Highly Testable</strong> - Can test without databases, files, or networks</li>
+<li><strong>Type Safety</strong> - Strong typing prevents many bugs at compile time</li>
+<li><strong>Self-Documenting</strong> - Code structure reflects business concepts</li>
+<li><strong>Flexible</strong> - Easy to change infrastructure without touching domain</li>
+<li><strong>Maintainable</strong> - Business rules are explicit and centralized</li>
+</ol>
+<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
+<p>Now that you understand the domain model:</p>
+<ul>
+<li><a href="architecture/layered-architecture.html">Layered Architecture</a> - How the domain fits into the overall architecture</li>
+<li><a href="architecture/hexagonal-architecture.html">Hexagonal Architecture</a> - Ports and adapters pattern</li>
+<li><a href="architecture/repository-pattern.html">Repository Pattern</a> - Data persistence abstraction</li>
+<li><a href="architecture/event-driven.html">Domain Events</a> - Event-driven communication</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="entities-2"><a class="header" href="#entities-2">Entities</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
@@ -1538,11 +2443,11 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>Understanding entities in the domain model.</p>
 <h2 id="what-are-entities"><a class="header" href="#what-are-entities">What are Entities?</a></h2>
 <p>TODO: Define entities</p>
-<h2 id="pipeline-entity"><a class="header" href="#pipeline-entity">Pipeline Entity</a></h2>
+<h2 id="pipeline-entity-1"><a class="header" href="#pipeline-entity-1">Pipeline Entity</a></h2>
 <p>TODO: Extract from entities/pipeline.rs</p>
 <h2 id="stage-entity"><a class="header" href="#stage-entity">Stage Entity</a></h2>
 <p>TODO: Extract from entities/pipeline_stage.rs</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="value-objects-1"><a class="header" href="#value-objects-1">Value Objects</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="value-objects-2"><a class="header" href="#value-objects-2">Value Objects</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
@@ -1827,7 +2732,7 @@ impl PipelineService {
 <li><code>pipeline/domain/src/repositories/file_chunk_repository.rs</code> (trait)</li>
 <li><code>pipeline/src/infrastructure/repositories/sqlite_file_chunk_repository.rs</code> (impl)</li>
 </ul>
-<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
 <p>Continue to:</p>
 <ul>
 <li><a href="architecture/service-pattern.html">Service Pattern</a> - Business logic organization</li>

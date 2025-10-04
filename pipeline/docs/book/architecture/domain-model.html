@@ -176,20 +176,467 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="domain-model"><a class="header" href="#domain-model">Domain Model</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
 <strong>License File:</strong> See the LICENSE file in the project root.
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>The domain model and its components.</p>
-<h2 id="domain-driven-design"><a class="header" href="#domain-driven-design">Domain-Driven Design</a></h2>
-<p>TODO: Explain DDD concepts</p>
-<h2 id="core-domain"><a class="header" href="#core-domain">Core Domain</a></h2>
-<p>TODO: Explain core domain</p>
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The domain model is the heart of the pipeline system. It captures the core business concepts, rules, and behaviors using Domain-Driven Design (DDD) principles. This chapter explains how the domain model is structured and why it's designed this way.</p>
+<p><img src="../diagrams/domain-model.svg" alt="Domain Model" /></p>
+<h2 id="domain-driven-design-principles"><a class="header" href="#domain-driven-design-principles">Domain-Driven Design Principles</a></h2>
+<p>Domain-Driven Design (DDD) is a software development approach that emphasizes:</p>
+<ol>
+<li><strong>Focus on the core domain</strong> - The business logic is the most important part</li>
+<li><strong>Model-driven design</strong> - The domain model drives the software design</li>
+<li><strong>Ubiquitous language</strong> - Shared vocabulary between developers and domain experts</li>
+<li><strong>Bounded contexts</strong> - Clear boundaries between different parts of the system</li>
+</ol>
+<h3 id="why-ddd"><a class="header" href="#why-ddd">Why DDD?</a></h3>
+<p>For a pipeline processing system, DDD provides:</p>
+<ul>
+<li><strong>Clear separation</strong> between business logic and infrastructure</li>
+<li><strong>Testable code</strong> - Domain logic can be tested without databases or files</li>
+<li><strong>Flexibility</strong> - Easy to change infrastructure without touching business rules</li>
+<li><strong>Maintainability</strong> - Business rules are explicit and well-organized</li>
+</ul>
+<h2 id="core-domain-concepts"><a class="header" href="#core-domain-concepts">Core Domain Concepts</a></h2>
+<h3 id="entities"><a class="header" href="#entities">Entities</a></h3>
+<p><strong>Entities</strong> are objects with a unique identity that persists through time. Two entities are equal if they have the same ID, even if all their other attributes differ.</p>
+<h4 id="pipeline-entity"><a class="header" href="#pipeline-entity">Pipeline Entity</a></h4>
+<p>The central entity representing a file processing workflow.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Pipeline {
+    id: PipelineId,                    // Unique identity
+    name: String,                      // Human-readable name
+    stages: Vec&lt;PipelineStage&gt;,        // Ordered processing stages
+    configuration: HashMap&lt;String, String&gt;,  // Custom settings
+    metrics: ProcessingMetrics,        // Performance data
+    archived: bool,                    // Lifecycle state
+    created_at: DateTime&lt;Utc&gt;,         // Creation timestamp
+    updated_at: DateTime&lt;Utc&gt;,         // Last modification
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Key characteristics:</strong></p>
+<ul>
+<li>Has unique <code>PipelineId</code></li>
+<li>Can be modified while maintaining identity</li>
+<li>Enforces business rules (e.g., must have at least one stage)</li>
+<li>Automatically adds integrity verification stages</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pipeline_domain::Pipeline;
+
+// Two pipelines with same ID are equal, even if names differ
+let pipeline1 = Pipeline::new("Original Name", stages.clone())?;
+let pipeline2 = pipeline1.clone();
+pipeline2.set_name("Different Name");
+
+assert_eq!(pipeline1.id(), pipeline2.id());  // Same identity
+<span class="boring">}</span></code></pre></pre>
+<h4 id="pipelinestage-entity"><a class="header" href="#pipelinestage-entity">PipelineStage Entity</a></h4>
+<p>Represents a single processing operation within a pipeline.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PipelineStage {
+    id: StageId,                       // Unique identity
+    name: String,                      // Stage name
+    stage_type: StageType,             // Compression, Encryption, etc.
+    configuration: StageConfiguration, // Algorithm and parameters
+    order: usize,                      // Execution order
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Stage Types:</strong></p>
+<ul>
+<li><code>Compression</code> - Data compression</li>
+<li><code>Encryption</code> - Data encryption</li>
+<li><code>Integrity</code> - Checksum verification</li>
+<li><code>Custom</code> - User-defined operations</li>
+</ul>
+<h4 id="processingcontext-entity"><a class="header" href="#processingcontext-entity">ProcessingContext Entity</a></h4>
+<p>Manages the runtime execution state of a pipeline.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ProcessingContext {
+    id: ProcessingContextId,           // Unique identity
+    pipeline_id: PipelineId,           // Associated pipeline
+    input_path: FilePath,              // Input file
+    output_path: FilePath,             // Output file
+    current_stage: usize,              // Current stage index
+    status: ProcessingStatus,          // Running, Completed, Failed
+    metrics: ProcessingMetrics,        // Runtime metrics
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="securitycontext-entity"><a class="header" href="#securitycontext-entity">SecurityContext Entity</a></h4>
+<p>Manages security and permissions for pipeline operations.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SecurityContext {
+    id: SecurityContextId,             // Unique identity
+    user_id: UserId,                   // User performing operation
+    security_level: SecurityLevel,     // Required security level
+    permissions: Vec&lt;Permission&gt;,      // Granted permissions
+    encryption_key_id: Option&lt;EncryptionKeyId&gt;,  // Key for encryption
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="value-objects"><a class="header" href="#value-objects">Value Objects</a></h3>
+<p><strong>Value Objects</strong> are immutable objects defined by their attributes. Two value objects with the same attributes are considered equal.</p>
+<h4 id="algorithm-value-object"><a class="header" href="#algorithm-value-object">Algorithm Value Object</a></h4>
+<p>Type-safe representation of processing algorithms.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Algorithm(String);
+
+impl Algorithm {
+    // Predefined compression algorithms
+    pub fn brotli() -&gt; Self { /* ... */ }
+    pub fn gzip() -&gt; Self { /* ... */ }
+    pub fn zstd() -&gt; Self { /* ... */ }
+    pub fn lz4() -&gt; Self { /* ... */ }
+
+    // Predefined encryption algorithms
+    pub fn aes_256_gcm() -&gt; Self { /* ... */ }
+    pub fn chacha20_poly1305() -&gt; Self { /* ... */ }
+
+    // Predefined hashing algorithms
+    pub fn sha256() -&gt; Self { /* ... */ }
+    pub fn blake3() -&gt; Self { /* ... */ }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Key characteristics:</strong></p>
+<ul>
+<li>Immutable after creation</li>
+<li>Self-validating (enforces format rules)</li>
+<li>Category detection (is_compression(), is_encryption())</li>
+<li>Type-safe (can't accidentally use wrong algorithm)</li>
+</ul>
+<h4 id="chunksize-value-object"><a class="header" href="#chunksize-value-object">ChunkSize Value Object</a></h4>
+<p>Represents validated chunk sizes for file processing.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ChunkSize(usize);
+
+impl ChunkSize {
+    pub fn new(bytes: usize) -&gt; Result&lt;Self, PipelineError&gt; {
+        // Validates size is within acceptable range
+        if bytes &lt; MIN_CHUNK_SIZE || bytes &gt; MAX_CHUNK_SIZE {
+            return Err(PipelineError::InvalidConfiguration(/* ... */));
+        }
+        Ok(Self(bytes))
+    }
+
+    pub fn from_megabytes(mb: usize) -&gt; Result&lt;Self, PipelineError&gt; {
+        Self::new(mb * 1024 * 1024)
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="filechunk-value-object"><a class="header" href="#filechunk-value-object">FileChunk Value Object</a></h4>
+<p>Immutable representation of a piece of file data.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct FileChunk {
+    id: FileChunkId,                   // Unique chunk identifier
+    sequence: usize,                   // Position in file
+    data: Vec&lt;u8&gt;,                     // Chunk data
+    is_final: bool,                    // Last chunk flag
+    checksum: Option&lt;String&gt;,          // Integrity verification
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="filepath-value-object"><a class="header" href="#filepath-value-object">FilePath Value Object</a></h4>
+<p>Type-safe, validated file paths.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct FilePath(PathBuf);
+
+impl FilePath {
+    pub fn new(path: impl Into&lt;PathBuf&gt;) -&gt; Result&lt;Self, PipelineError&gt; {
+        let path = path.into();
+        // Validation:
+        // - Path traversal prevention
+        // - Null byte checks
+        // - Length limits
+        // - Encoding validation
+        Ok(Self(path))
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="pipelineid-stageid-userid-type-safe-ids"><a class="header" href="#pipelineid-stageid-userid-type-safe-ids">PipelineId, StageId, UserId (Type-Safe IDs)</a></h4>
+<p>All identifiers are wrapped in newtype value objects for type safety:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PipelineId(Ulid);  // Can't accidentally use StageId as PipelineId
+pub struct StageId(Ulid);
+pub struct UserId(Ulid);
+pub struct ProcessingContextId(Ulid);
+pub struct SecurityContextId(Ulid);
+<span class="boring">}</span></code></pre></pre>
+<p>This prevents common bugs like passing the wrong ID to a function.</p>
+<h3 id="domain-services"><a class="header" href="#domain-services">Domain Services</a></h3>
+<p><strong>Domain Services</strong> contain business logic that doesn't naturally fit in an entity or value object. They are stateless and operate on domain objects.</p>
+<p>Domain services in our system are defined as traits (interfaces) in the domain layer and implemented in the infrastructure layer.</p>
+<h4 id="compressionservice"><a class="header" href="#compressionservice">CompressionService</a></h4>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[async_trait]
+pub trait CompressionService: Send + Sync {
+    async fn compress(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt;;
+
+    async fn decompress(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="encryptionservice"><a class="header" href="#encryptionservice">EncryptionService</a></h4>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[async_trait]
+pub trait EncryptionService: Send + Sync {
+    async fn encrypt(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+        key: &amp;EncryptionKey,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt;;
+
+    async fn decrypt(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+        key: &amp;EncryptionKey,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="checksumservice"><a class="header" href="#checksumservice">ChecksumService</a></h4>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub trait ChecksumService: Send + Sync {
+    fn calculate(
+        &amp;self,
+        data: &amp;[u8],
+        algorithm: &amp;Algorithm,
+    ) -&gt; Result&lt;String, PipelineError&gt;;
+
+    fn verify(
+        &amp;self,
+        data: &amp;[u8],
+        expected: &amp;str,
+        algorithm: &amp;Algorithm,
+    ) -&gt; Result&lt;bool, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="repositories"><a class="header" href="#repositories">Repositories</a></h3>
+<p><strong>Repositories</strong> abstract data persistence, allowing the domain to work with collections without knowing about storage details.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[async_trait]
+pub trait PipelineRepository: Send + Sync {
+    async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;(), PipelineError&gt;;
+    async fn find_by_id(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;Option&lt;Pipeline&gt;, PipelineError&gt;;
+    async fn find_by_name(&amp;self, name: &amp;str) -&gt; Result&lt;Option&lt;Pipeline&gt;, PipelineError&gt;;
+    async fn update(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;(), PipelineError&gt;;
+    async fn delete(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;(), PipelineError&gt;;
+    async fn list_all(&amp;self) -&gt; Result&lt;Vec&lt;Pipeline&gt;, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The repository interface is defined in the domain layer, but implementations live in the infrastructure layer. This follows the Dependency Inversion Principle.</p>
+<h3 id="domain-events"><a class="header" href="#domain-events">Domain Events</a></h3>
+<p><strong>Domain Events</strong> represent significant business occurrences that other parts of the system might care about.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum DomainEvent {
+    PipelineCreated {
+        pipeline_id: PipelineId,
+        name: String,
+        created_at: DateTime&lt;Utc&gt;,
+    },
+    ProcessingStarted {
+        pipeline_id: PipelineId,
+        context_id: ProcessingContextId,
+        input_path: FilePath,
+    },
+    ProcessingCompleted {
+        pipeline_id: PipelineId,
+        context_id: ProcessingContextId,
+        metrics: ProcessingMetrics,
+    },
+    ProcessingFailed {
+        pipeline_id: PipelineId,
+        context_id: ProcessingContextId,
+        error: String,
+    },
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Events enable:</p>
+<ul>
+<li><strong>Loose coupling</strong> - Components don't need direct references</li>
+<li><strong>Audit trails</strong> - Track all significant operations</li>
+<li><strong>Integration</strong> - External systems can react to events</li>
+<li><strong>Event sourcing</strong> - Reconstruct state from event history</li>
+</ul>
+<h2 id="business-rules-and-invariants"><a class="header" href="#business-rules-and-invariants">Business Rules and Invariants</a></h2>
+<p>The domain model enforces critical business rules:</p>
+<h3 id="pipeline-rules"><a class="header" href="#pipeline-rules">Pipeline Rules</a></h3>
+<ol>
+<li>
+<p><strong>Pipelines must have at least one user-defined stage</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if user_stages.is_empty() {
+    return Err(PipelineError::InvalidConfiguration(
+        "Pipeline must have at least one stage".to_string()
+    ));
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Stage order must be sequential and valid</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Stages are automatically reordered: 0, 1, 2, 3...
+// Input checksum = 0
+// User stages = 1, 2, 3...
+// Output checksum = final
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Pipeline names must be unique</strong> (enforced by repository)</p>
+</li>
+</ol>
+<h3 id="chunk-processing-rules"><a class="header" href="#chunk-processing-rules">Chunk Processing Rules</a></h3>
+<ol>
+<li>
+<p><strong>Chunks must have non-zero size</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if size == 0 {
+    return Err(PipelineError::InvalidChunkSize);
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Chunk sequence numbers must be sequential</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Chunks are numbered 0, 1, 2, 3...
+// Missing sequences cause processing to fail
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Final chunks must be properly marked</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if chunk.is_final() {
+    // No more chunks should follow
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+</ol>
+<h3 id="security-rules"><a class="header" href="#security-rules">Security Rules</a></h3>
+<ol>
+<li>
+<p><strong>Security contexts must be validated</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>security_context.validate()?;
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Encryption keys must meet strength requirements</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if key.len() &lt; MIN_KEY_LENGTH {
+    return Err(PipelineError::WeakEncryptionKey);
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><strong>Access permissions must be checked</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if !security_context.has_permission(Permission::ProcessFile) {
+    return Err(PipelineError::PermissionDenied);
+}
+<span class="boring">}</span></code></pre></pre>
+</li>
+</ol>
 <h2 id="ubiquitous-language"><a class="header" href="#ubiquitous-language">Ubiquitous Language</a></h2>
-<p>TODO: Explain ubiquitous language</p>
+<p>The domain model uses consistent terminology shared between developers and domain experts:</p>
+<div class="table-wrapper"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><strong>Pipeline</strong></td><td>An ordered sequence of processing stages</td></tr>
+<tr><td><strong>Stage</strong></td><td>A single processing operation (compress, encrypt, etc.)</td></tr>
+<tr><td><strong>Chunk</strong></td><td>A piece of a file processed in parallel</td></tr>
+<tr><td><strong>Algorithm</strong></td><td>A specific processing method (zstd, aes-256-gcm, etc.)</td></tr>
+<tr><td><strong>Repository</strong></td><td>Storage abstraction for domain objects</td></tr>
+<tr><td><strong>Context</strong></td><td>Runtime execution state</td></tr>
+<tr><td><strong>Metrics</strong></td><td>Performance and operational measurements</td></tr>
+<tr><td><strong>Integrity</strong></td><td>Data verification through checksums</td></tr>
+<tr><td><strong>Security Level</strong></td><td>Required protection level (Public, Confidential, Secret)</td></tr>
+</tbody></table>
+</div>
+<h2 id="testing-domain-logic"><a class="header" href="#testing-domain-logic">Testing Domain Logic</a></h2>
+<p>Domain objects are designed for easy testing:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pipeline_enforces_minimum_stages() {
+        // Domain logic can be tested without any infrastructure
+        let result = Pipeline::new("test".to_string(), vec![]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn algorithm_validates_format() {
+        // Value objects self-validate
+        let result = Algorithm::new("INVALID-NAME".to_string());
+        assert!(result.is_err());
+
+        let result = Algorithm::new("valid-name".to_string());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn chunk_size_enforces_limits() {
+        // Business rules are explicit and testable
+        let too_small = ChunkSize::new(1);
+        assert!(too_small.is_err());
+
+        let valid = ChunkSize::from_megabytes(10);
+        assert!(valid.is_ok());
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="benefits-of-this-domain-model"><a class="header" href="#benefits-of-this-domain-model">Benefits of This Domain Model</a></h2>
+<ol>
+<li><strong>Pure Business Logic</strong> - No infrastructure dependencies</li>
+<li><strong>Highly Testable</strong> - Can test without databases, files, or networks</li>
+<li><strong>Type Safety</strong> - Strong typing prevents many bugs at compile time</li>
+<li><strong>Self-Documenting</strong> - Code structure reflects business concepts</li>
+<li><strong>Flexible</strong> - Easy to change infrastructure without touching domain</li>
+<li><strong>Maintainable</strong> - Business rules are explicit and centralized</li>
+</ol>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you understand the domain model:</p>
+<ul>
+<li><a href="layered-architecture.html">Layered Architecture</a> - How the domain fits into the overall architecture</li>
+<li><a href="hexagonal-architecture.html">Hexagonal Architecture</a> - Ports and adapters pattern</li>
+<li><a href="repository-pattern.html">Repository Pattern</a> - Data persistence abstraction</li>
+<li><a href="event-driven.html">Domain Events</a> - Event-driven communication</li>
+</ul>
 
                     </main>
 
