@@ -176,20 +176,740 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="metrics-collection"><a class="header" href="#metrics-collection">Metrics Collection</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
 <strong>License File:</strong> See the LICENSE file in the project root.
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>How metrics are collected and exposed.</p>
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The pipeline system implements comprehensive metrics collection for monitoring, observability, and performance analysis. Metrics are collected in real-time, exported in Prometheus format, and can be visualized using Grafana dashboards.</p>
+<p><strong>Key Features:</strong></p>
+<ul>
+<li><strong>Prometheus Integration</strong>: Native Prometheus metrics export</li>
+<li><strong>Real-Time Collection</strong>: Low-overhead metric updates</li>
+<li><strong>Comprehensive Coverage</strong>: Performance, system, and business metrics</li>
+<li><strong>Dimensional Data</strong>: Labels for multi-dimensional analysis</li>
+<li><strong>Thread-Safe</strong>: Safe concurrent metric updates</li>
+</ul>
 <h2 id="metrics-architecture"><a class="header" href="#metrics-architecture">Metrics Architecture</a></h2>
-<p>TODO: Extract from metrics files</p>
-<h2 id="prometheus-integration"><a class="header" href="#prometheus-integration">Prometheus Integration</a></h2>
-<p>TODO: Show Prometheus integration</p>
+<h3 id="two-level-metrics-system"><a class="header" href="#two-level-metrics-system">Two-Level Metrics System</a></h3>
+<p>The system uses a two-level metrics architecture:</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────┐
+│         Application Layer                   │
+│  - ProcessingMetrics (domain entity)        │
+│  - Per-pipeline performance tracking        │
+│  - Business metrics and analytics           │
+└─────────────────┬───────────────────────────┘
+                  │
+                  ↓
+┌─────────────────────────────────────────────┐
+│       Infrastructure Layer                  │
+│  - MetricsService (Prometheus)              │
+│  - System-wide aggregation                  │
+│  - HTTP export endpoint                     │
+└─────────────────────────────────────────────┘
+</code></pre>
+<p><strong>Domain Metrics (ProcessingMetrics):</strong></p>
+<ul>
+<li>Attached to processing context</li>
+<li>Track individual pipeline execution</li>
+<li>Support detailed analytics</li>
+<li>Persist to database</li>
+</ul>
+<p><strong>Infrastructure Metrics (MetricsService):</strong></p>
+<ul>
+<li>System-wide aggregation</li>
+<li>Prometheus counters, gauges, histograms</li>
+<li>HTTP /metrics endpoint</li>
+<li>Real-time monitoring</li>
+</ul>
+<h2 id="domain-metrics"><a class="header" href="#domain-metrics">Domain Metrics</a></h2>
+<h3 id="processingmetrics-entity"><a class="header" href="#processingmetrics-entity">ProcessingMetrics Entity</a></h3>
+<p>Tracks performance data for individual pipeline executions:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pipeline_domain::entities::ProcessingMetrics;
+use std::time::{Duration, Instant};
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessingMetrics {
+    // Progress tracking
+    bytes_processed: u64,
+    bytes_total: u64,
+    chunks_processed: u64,
+    chunks_total: u64,
+
+    // Timing (high-resolution internal, RFC3339 for export)
+    #[serde(skip)]
+    start_time: Option&lt;Instant&gt;,
+    #[serde(skip)]
+    end_time: Option&lt;Instant&gt;,
+    start_time_rfc3339: Option&lt;String&gt;,
+    end_time_rfc3339: Option&lt;String&gt;,
+    processing_duration: Option&lt;Duration&gt;,
+
+    // Performance metrics
+    throughput_bytes_per_second: f64,
+    compression_ratio: Option&lt;f64&gt;,
+
+    // Error tracking
+    error_count: u64,
+    warning_count: u64,
+
+    // File information
+    input_file_size_bytes: u64,
+    output_file_size_bytes: u64,
+    input_file_checksum: Option&lt;String&gt;,
+    output_file_checksum: Option&lt;String&gt;,
+
+    // Per-stage metrics
+    stage_metrics: HashMap&lt;String, StageMetrics&gt;,
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="creating-and-using-processingmetrics"><a class="header" href="#creating-and-using-processingmetrics">Creating and Using ProcessingMetrics</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl ProcessingMetrics {
+    /// Create new metrics for pipeline execution
+    pub fn new(total_bytes: u64, total_chunks: u64) -&gt; Self {
+        Self {
+            bytes_processed: 0,
+            bytes_total: total_bytes,
+            chunks_processed: 0,
+            chunks_total: total_chunks,
+            start_time: Some(Instant::now()),
+            start_time_rfc3339: Some(Utc::now().to_rfc3339()),
+            end_time: None,
+            end_time_rfc3339: None,
+            processing_duration: None,
+            throughput_bytes_per_second: 0.0,
+            compression_ratio: None,
+            error_count: 0,
+            warning_count: 0,
+            input_file_size_bytes: total_bytes,
+            output_file_size_bytes: 0,
+            input_file_checksum: None,
+            output_file_checksum: None,
+            stage_metrics: HashMap::new(),
+        }
+    }
+
+    /// Update progress
+    pub fn update_progress(&amp;mut self, bytes: u64, chunks: u64) {
+        self.bytes_processed += bytes;
+        self.chunks_processed += chunks;
+        self.update_throughput();
+    }
+
+    /// Calculate throughput
+    fn update_throughput(&amp;mut self) {
+        if let Some(start) = self.start_time {
+            let elapsed = start.elapsed().as_secs_f64();
+            if elapsed &gt; 0.0 {
+                self.throughput_bytes_per_second =
+                    self.bytes_processed as f64 / elapsed;
+            }
+        }
+    }
+
+    /// Complete processing
+    pub fn complete(&amp;mut self) {
+        self.end_time = Some(Instant::now());
+        self.end_time_rfc3339 = Some(Utc::now().to_rfc3339());
+
+        if let (Some(start), Some(end)) = (self.start_time, self.end_time) {
+            self.processing_duration = Some(end - start);
+        }
+
+        self.update_throughput();
+        self.calculate_compression_ratio();
+    }
+
+    /// Calculate compression ratio
+    fn calculate_compression_ratio(&amp;mut self) {
+        if self.output_file_size_bytes &gt; 0 &amp;&amp; self.input_file_size_bytes &gt; 0 {
+            self.compression_ratio = Some(
+                self.output_file_size_bytes as f64 /
+                self.input_file_size_bytes as f64
+            );
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="stagemetrics"><a class="header" href="#stagemetrics">StageMetrics</a></h3>
+<p>Track performance for individual pipeline stages:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StageMetrics {
+    /// Stage name
+    stage_name: String,
+
+    /// Bytes processed by this stage
+    bytes_processed: u64,
+
+    /// Processing time for this stage
+    #[serde(skip)]
+    processing_time: Option&lt;Duration&gt;,
+
+    /// Throughput (bytes per second)
+    throughput_bps: f64,
+
+    /// Error count for this stage
+    error_count: u64,
+
+    /// Memory usage (optional)
+    memory_usage_bytes: Option&lt;u64&gt;,
+}
+
+impl ProcessingMetrics {
+    /// Record stage metrics
+    pub fn record_stage_metrics(
+        &amp;mut self,
+        stage_name: String,
+        bytes: u64,
+        duration: Duration,
+    ) {
+        let throughput = if duration.as_secs_f64() &gt; 0.0 {
+            bytes as f64 / duration.as_secs_f64()
+        } else {
+            0.0
+        };
+
+        let stage_metrics = StageMetrics {
+            stage_name: stage_name.clone(),
+            bytes_processed: bytes,
+            processing_time: Some(duration),
+            throughput_bps: throughput,
+            error_count: 0,
+            memory_usage_bytes: None,
+        };
+
+        self.stage_metrics.insert(stage_name, stage_metrics);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="prometheus-metrics"><a class="header" href="#prometheus-metrics">Prometheus Metrics</a></h2>
+<h3 id="metricsservice"><a class="header" href="#metricsservice">MetricsService</a></h3>
+<p>Infrastructure service for Prometheus metrics:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use prometheus::{
+    IntCounter, IntGauge, Gauge, Histogram,
+    HistogramOpts, Opts, Registry
+};
+use std::sync::Arc;
+
+#[derive(Clone)]
+pub struct MetricsService {
+    registry: Arc&lt;Registry&gt;,
+
+    // Pipeline execution metrics
+    pipelines_processed_total: IntCounter,
+    pipeline_processing_duration: Histogram,
+    pipeline_bytes_processed_total: IntCounter,
+    pipeline_chunks_processed_total: IntCounter,
+    pipeline_errors_total: IntCounter,
+    pipeline_warnings_total: IntCounter,
+
+    // Performance metrics
+    throughput_mbps: Gauge,
+    compression_ratio: Gauge,
+    active_pipelines: IntGauge,
+
+    // System metrics
+    memory_usage_bytes: IntGauge,
+    cpu_utilization_percent: Gauge,
+}
+
+impl MetricsService {
+    pub fn new() -&gt; Result&lt;Self, PipelineError&gt; {
+        let registry = Arc::new(Registry::new());
+
+        // Create counters
+        let pipelines_processed_total = IntCounter::new(
+            "pipeline_processed_total",
+            "Total number of pipelines processed"
+        )?;
+
+        let pipeline_bytes_processed_total = IntCounter::new(
+            "pipeline_bytes_processed_total",
+            "Total bytes processed by pipelines"
+        )?;
+
+        let pipeline_errors_total = IntCounter::new(
+            "pipeline_errors_total",
+            "Total number of processing errors"
+        )?;
+
+        // Create histograms
+        let pipeline_processing_duration = Histogram::with_opts(
+            HistogramOpts::new(
+                "pipeline_processing_duration_seconds",
+                "Pipeline processing duration in seconds"
+            )
+            .buckets(vec![0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0])
+        )?;
+
+        // Create gauges
+        let throughput_mbps = Gauge::new(
+            "pipeline_throughput_mbps",
+            "Current processing throughput in MB/s"
+        )?;
+
+        let compression_ratio = Gauge::new(
+            "pipeline_compression_ratio",
+            "Current compression ratio"
+        )?;
+
+        let active_pipelines = IntGauge::new(
+            "pipeline_active_count",
+            "Number of currently active pipelines"
+        )?;
+
+        // Register all metrics
+        registry.register(Box::new(pipelines_processed_total.clone()))?;
+        registry.register(Box::new(pipeline_bytes_processed_total.clone()))?;
+        registry.register(Box::new(pipeline_errors_total.clone()))?;
+        registry.register(Box::new(pipeline_processing_duration.clone()))?;
+        registry.register(Box::new(throughput_mbps.clone()))?;
+        registry.register(Box::new(compression_ratio.clone()))?;
+        registry.register(Box::new(active_pipelines.clone()))?;
+
+        Ok(Self {
+            registry,
+            pipelines_processed_total,
+            pipeline_processing_duration,
+            pipeline_bytes_processed_total,
+            pipeline_chunks_processed_total: /* ... */,
+            pipeline_errors_total,
+            pipeline_warnings_total: /* ... */,
+            throughput_mbps,
+            compression_ratio,
+            active_pipelines,
+            memory_usage_bytes: /* ... */,
+            cpu_utilization_percent: /* ... */,
+        })
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="recording-metrics"><a class="header" href="#recording-metrics">Recording Metrics</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl MetricsService {
+    /// Record pipeline completion
+    pub fn record_pipeline_completion(
+        &amp;self,
+        metrics: &amp;ProcessingMetrics
+    ) -&gt; Result&lt;(), PipelineError&gt; {
+        // Increment counters
+        self.pipelines_processed_total.inc();
+        self.pipeline_bytes_processed_total
+            .inc_by(metrics.bytes_processed());
+        self.pipeline_chunks_processed_total
+            .inc_by(metrics.chunks_processed());
+
+        // Record duration
+        if let Some(duration) = metrics.processing_duration() {
+            self.pipeline_processing_duration
+                .observe(duration.as_secs_f64());
+        }
+
+        // Update gauges
+        self.throughput_mbps.set(
+            metrics.throughput_bytes_per_second() / 1_000_000.0
+        );
+
+        if let Some(ratio) = metrics.compression_ratio() {
+            self.compression_ratio.set(ratio);
+        }
+
+        // Record errors
+        if metrics.error_count() &gt; 0 {
+            self.pipeline_errors_total
+                .inc_by(metrics.error_count());
+        }
+
+        Ok(())
+    }
+
+    /// Record pipeline start
+    pub fn record_pipeline_start(&amp;self) {
+        self.active_pipelines.inc();
+    }
+
+    /// Record pipeline end
+    pub fn record_pipeline_end(&amp;self) {
+        self.active_pipelines.dec();
+    }
+}
+<span class="boring">}</span></code></pre></pre>
 <h2 id="available-metrics"><a class="header" href="#available-metrics">Available Metrics</a></h2>
-<p>TODO: List available metrics</p>
+<h3 id="counter-metrics"><a class="header" href="#counter-metrics">Counter Metrics</a></h3>
+<p>Monotonically increasing values:</p>
+<div class="table-wrapper"><table><thead><tr><th>Metric Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>pipeline_processed_total</code></td><td>Counter</td><td>Total pipelines processed</td></tr>
+<tr><td><code>pipeline_bytes_processed_total</code></td><td>Counter</td><td>Total bytes processed</td></tr>
+<tr><td><code>pipeline_chunks_processed_total</code></td><td>Counter</td><td>Total chunks processed</td></tr>
+<tr><td><code>pipeline_errors_total</code></td><td>Counter</td><td>Total processing errors</td></tr>
+<tr><td><code>pipeline_warnings_total</code></td><td>Counter</td><td>Total warnings</td></tr>
+</tbody></table>
+</div>
+<h3 id="gauge-metrics"><a class="header" href="#gauge-metrics">Gauge Metrics</a></h3>
+<p>Values that can increase or decrease:</p>
+<div class="table-wrapper"><table><thead><tr><th>Metric Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>pipeline_active_count</code></td><td>Gauge</td><td>Currently active pipelines</td></tr>
+<tr><td><code>pipeline_throughput_mbps</code></td><td>Gauge</td><td>Current throughput (MB/s)</td></tr>
+<tr><td><code>pipeline_compression_ratio</code></td><td>Gauge</td><td>Current compression ratio</td></tr>
+<tr><td><code>pipeline_memory_usage_bytes</code></td><td>Gauge</td><td>Memory usage in bytes</td></tr>
+<tr><td><code>pipeline_cpu_utilization_percent</code></td><td>Gauge</td><td>CPU utilization percentage</td></tr>
+</tbody></table>
+</div>
+<h3 id="histogram-metrics"><a class="header" href="#histogram-metrics">Histogram Metrics</a></h3>
+<p>Distribution of values with buckets:</p>
+<div class="table-wrapper"><table><thead><tr><th>Metric Name</th><th>Type</th><th>Buckets</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>pipeline_processing_duration_seconds</code></td><td>Histogram</td><td>0.1, 0.5, 1, 5, 10, 30, 60</td><td>Processing duration</td></tr>
+<tr><td><code>pipeline_chunk_size_bytes</code></td><td>Histogram</td><td>1K, 10K, 100K, 1M, 10M</td><td>Chunk size distribution</td></tr>
+<tr><td><code>pipeline_stage_duration_seconds</code></td><td>Histogram</td><td>0.01, 0.1, 0.5, 1, 5</td><td>Stage processing time</td></tr>
+</tbody></table>
+</div>
+<h2 id="metrics-export"><a class="header" href="#metrics-export">Metrics Export</a></h2>
+<h3 id="http-endpoint"><a class="header" href="#http-endpoint">HTTP Endpoint</a></h3>
+<p>Export metrics via HTTP for Prometheus scraping:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use warp::Filter;
+
+pub fn metrics_endpoint(
+    metrics_service: Arc&lt;MetricsService&gt;
+) -&gt; impl Filter&lt;Extract = impl warp::Reply, Error = warp::Rejection&gt; + Clone {
+    warp::path!("metrics")
+        .and(warp::get())
+        .map(move || {
+            let encoder = prometheus::TextEncoder::new();
+            let metric_families = metrics_service.registry.gather();
+            let mut buffer = Vec::new();
+
+            encoder.encode(&amp;metric_families, &amp;mut buffer)
+                .unwrap_or_else(|e| {
+                    eprintln!("Failed to encode metrics: {}", e);
+                });
+
+            warp::reply::with_header(
+                buffer,
+                "Content-Type",
+                encoder.format_type()
+            )
+        })
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="prometheus-configuration"><a class="header" href="#prometheus-configuration">Prometheus Configuration</a></h3>
+<p>Configure Prometheus to scrape metrics:</p>
+<pre><code class="language-yaml"># prometheus.yml
+scrape_configs:
+  - job_name: 'pipeline'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+</code></pre>
+<h3 id="example-metrics-output"><a class="header" href="#example-metrics-output">Example Metrics Output</a></h3>
+<pre><code class="language-text"># HELP pipeline_processed_total Total number of pipelines processed
+# TYPE pipeline_processed_total counter
+pipeline_processed_total 1234
+
+# HELP pipeline_bytes_processed_total Total bytes processed
+# TYPE pipeline_bytes_processed_total counter
+pipeline_bytes_processed_total 1073741824
+
+# HELP pipeline_processing_duration_seconds Pipeline processing duration
+# TYPE pipeline_processing_duration_seconds histogram
+pipeline_processing_duration_seconds_bucket{le="0.1"} 45
+pipeline_processing_duration_seconds_bucket{le="0.5"} 120
+pipeline_processing_duration_seconds_bucket{le="1.0"} 280
+pipeline_processing_duration_seconds_bucket{le="5.0"} 450
+pipeline_processing_duration_seconds_bucket{le="10.0"} 500
+pipeline_processing_duration_seconds_bucket{le="+Inf"} 520
+pipeline_processing_duration_seconds_sum 2340.5
+pipeline_processing_duration_seconds_count 520
+
+# HELP pipeline_throughput_mbps Current processing throughput
+# TYPE pipeline_throughput_mbps gauge
+pipeline_throughput_mbps 125.7
+
+# HELP pipeline_compression_ratio Current compression ratio
+# TYPE pipeline_compression_ratio gauge
+pipeline_compression_ratio 0.35
+</code></pre>
+<h2 id="integration-with-processing"><a class="header" href="#integration-with-processing">Integration with Processing</a></h2>
+<h3 id="automatic-metric-collection"><a class="header" href="#automatic-metric-collection">Automatic Metric Collection</a></h3>
+<p>Metrics are automatically collected during processing:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pipeline::MetricsService;
+
+async fn process_file_with_metrics(
+    input_path: &amp;str,
+    output_path: &amp;str,
+    metrics_service: Arc&lt;MetricsService&gt;,
+) -&gt; Result&lt;(), PipelineError&gt; {
+    // Create domain metrics
+    let mut metrics = ProcessingMetrics::new(
+        file_size,
+        chunk_count
+    );
+
+    // Record start
+    metrics_service.record_pipeline_start();
+
+    // Process file
+    for chunk in chunks {
+        let start = Instant::now();
+
+        let processed = process_chunk(chunk)?;
+
+        metrics.update_progress(
+            processed.len() as u64,
+            1
+        );
+
+        metrics.record_stage_metrics(
+            "compression".to_string(),
+            processed.len() as u64,
+            start.elapsed()
+        );
+    }
+
+    // Complete metrics
+    metrics.complete();
+
+    // Export to Prometheus
+    metrics_service.record_pipeline_completion(&amp;metrics)?;
+    metrics_service.record_pipeline_end();
+
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="observer-pattern"><a class="header" href="#observer-pattern">Observer Pattern</a></h3>
+<p>Use observer pattern for automatic metric updates:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct MetricsObserver {
+    metrics_service: Arc&lt;MetricsService&gt;,
+}
+
+impl MetricsObserver {
+    pub fn observe_processing(
+        &amp;self,
+        event: ProcessingEvent
+    ) {
+        match event {
+            ProcessingEvent::PipelineStarted =&gt; {
+                self.metrics_service.record_pipeline_start();
+            }
+            ProcessingEvent::ChunkProcessed { bytes, duration } =&gt; {
+                self.metrics_service.pipeline_bytes_processed_total
+                    .inc_by(bytes);
+                self.metrics_service.pipeline_processing_duration
+                    .observe(duration.as_secs_f64());
+            }
+            ProcessingEvent::PipelineCompleted { metrics } =&gt; {
+                self.metrics_service
+                    .record_pipeline_completion(&amp;metrics)
+                    .ok();
+                self.metrics_service.record_pipeline_end();
+            }
+            ProcessingEvent::Error =&gt; {
+                self.metrics_service.pipeline_errors_total.inc();
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="visualization-with-grafana"><a class="header" href="#visualization-with-grafana">Visualization with Grafana</a></h2>
+<h3 id="dashboard-configuration"><a class="header" href="#dashboard-configuration">Dashboard Configuration</a></h3>
+<p>Create Grafana dashboard for visualization:</p>
+<pre><code class="language-json">{
+  "dashboard": {
+    "title": "Pipeline Metrics",
+    "panels": [
+      {
+        "title": "Throughput",
+        "targets": [{
+          "expr": "rate(pipeline_bytes_processed_total[5m]) / 1000000",
+          "legendFormat": "Throughput (MB/s)"
+        }]
+      },
+      {
+        "title": "Processing Duration (P95)",
+        "targets": [{
+          "expr": "histogram_quantile(0.95, rate(pipeline_processing_duration_seconds_bucket[5m]))",
+          "legendFormat": "P95 Duration"
+        }]
+      },
+      {
+        "title": "Active Pipelines",
+        "targets": [{
+          "expr": "pipeline_active_count",
+          "legendFormat": "Active"
+        }]
+      },
+      {
+        "title": "Error Rate",
+        "targets": [{
+          "expr": "rate(pipeline_errors_total[5m])",
+          "legendFormat": "Errors/sec"
+        }]
+      }
+    ]
+  }
+}
+</code></pre>
+<h3 id="common-queries"><a class="header" href="#common-queries">Common Queries</a></h3>
+<p><strong>Throughput over time:</strong></p>
+<pre><code class="language-promql">rate(pipeline_bytes_processed_total[5m]) / 1000000
+</code></pre>
+<p><strong>Average processing duration:</strong></p>
+<pre><code class="language-promql">rate(pipeline_processing_duration_seconds_sum[5m]) /
+rate(pipeline_processing_duration_seconds_count[5m])
+</code></pre>
+<p><strong>P99 latency:</strong></p>
+<pre><code class="language-promql">histogram_quantile(0.99,
+  rate(pipeline_processing_duration_seconds_bucket[5m])
+)
+</code></pre>
+<p><strong>Error rate:</strong></p>
+<pre><code class="language-promql">rate(pipeline_errors_total[5m])
+</code></pre>
+<p><strong>Compression effectiveness:</strong></p>
+<pre><code class="language-promql">avg(pipeline_compression_ratio)
+</code></pre>
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<h3 id="low-overhead-updates"><a class="header" href="#low-overhead-updates">Low-Overhead Updates</a></h3>
+<p>Metrics use atomic operations for minimal overhead:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ GOOD: Atomic increment
+self.counter.inc();
+
+// ❌ BAD: Locking for simple increment
+let mut guard = self.counter.lock().unwrap();
+*guard += 1;
+<span class="boring">}</span></code></pre></pre>
+<h3 id="batch-updates"><a class="header" href="#batch-updates">Batch Updates</a></h3>
+<p>Batch metric updates when possible:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ GOOD: Batch update
+self.pipeline_bytes_processed_total.inc_by(total_bytes);
+
+// ❌ BAD: Multiple individual updates
+for _ in 0..total_bytes {
+    self.pipeline_bytes_processed_total.inc();
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="efficient-labels"><a class="header" href="#efficient-labels">Efficient Labels</a></h3>
+<p>Use labels judiciously to avoid cardinality explosion:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ GOOD: Limited cardinality
+let counter = register_int_counter_vec!(
+    "pipeline_processed_total",
+    "Total pipelines processed",
+    &amp;["algorithm", "stage"]  // ~10 algorithms × ~5 stages = 50 series
+)?;
+
+// ❌ BAD: High cardinality
+let counter = register_int_counter_vec!(
+    "pipeline_processed_total",
+    "Total pipelines processed",
+    &amp;["pipeline_id", "user_id"]  // Could be millions of series!
+)?;
+<span class="boring">}</span></code></pre></pre>
+<h2 id="alerting"><a class="header" href="#alerting">Alerting</a></h2>
+<h3 id="alert-rules"><a class="header" href="#alert-rules">Alert Rules</a></h3>
+<p>Define Prometheus alert rules:</p>
+<pre><code class="language-yaml"># alerts.yml
+groups:
+  - name: pipeline_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(pipeline_errors_total[5m]) &gt; 0.1
+        for: 5m
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/sec"
+
+      - alert: LowThroughput
+        expr: rate(pipeline_bytes_processed_total[5m]) &lt; 1000000
+        for: 10m
+        annotations:
+          summary: "Low throughput detected"
+          description: "Throughput is {{ $value }} bytes/sec"
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(pipeline_processing_duration_seconds_bucket[5m])
+          ) &gt; 60
+        for: 5m
+        annotations:
+          summary: "High P95 latency"
+          description: "P95 latency is {{ $value }}s"
+</code></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="metric-naming"><a class="header" href="#metric-naming">Metric Naming</a></h3>
+<p>Follow Prometheus naming conventions:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ GOOD: Clear, consistent names
+pipeline_bytes_processed_total      // Counter with _total suffix
+pipeline_processing_duration_seconds // Time in base unit (seconds)
+pipeline_active_count               // Gauge without suffix
+
+// ❌ BAD: Inconsistent naming
+processed_bytes                     // Missing namespace
+duration_ms                        // Wrong unit (use seconds)
+active                             // Too vague
+<span class="boring">}</span></code></pre></pre>
+<h3 id="unit-consistency"><a class="header" href="#unit-consistency">Unit Consistency</a></h3>
+<p>Always use base units:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ GOOD: Base units
+duration_seconds: f64              // Seconds, not milliseconds
+size_bytes: u64                    // Bytes, not KB/MB
+ratio: f64                         // Unitless ratio 0.0-1.0
+
+// ❌ BAD: Non-standard units
+duration_ms: u64
+size_mb: f64
+percentage: u8
+<span class="boring">}</span></code></pre></pre>
+<h3 id="documentation"><a class="header" href="#documentation">Documentation</a></h3>
+<p>Document all metrics:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ GOOD: Well documented
+let counter = IntCounter::with_opts(
+    Opts::new(
+        "pipeline_processed_total",
+        "Total number of pipelines processed successfully. \
+         Incremented on completion of each pipeline execution."
+    )
+)?;
+<span class="boring">}</span></code></pre></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you understand metrics collection:</p>
+<ul>
+<li><a href="logging.html">Logging</a> - Structured logging implementation</li>
+<li><a href="observability.html">Observability</a> - Complete observability strategy</li>
+<li><a href="../advanced/performance.html">Performance</a> - Performance optimization</li>
+<li><a href="../advanced/monitoring.html">Monitoring</a> - Production monitoring setup</li>
+</ul>
 
                     </main>
 

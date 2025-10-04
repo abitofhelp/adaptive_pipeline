@@ -48,14 +48,8 @@ partition "Process Each Chunk" {
 
 :Combine processed chunks\ninto output file;
 
-:Verify integrity;
-
-:Output File\n(processed);
-
-stop
-
-note right of "Process Each Chunk"
-  **Chunk Processing**
+note right
+  **Chunk Processing Details**
   Each chunk is processed independently:
   1. Read chunk from input file
   2. Apply compression (if enabled)
@@ -67,5 +61,11 @@ note right of "Process Each Chunk"
   Chunks can be processed in parallel
   for better performance
 end note
+
+:Verify integrity;
+
+:Output File\n(processed);
+
+stop
 
 @enduml

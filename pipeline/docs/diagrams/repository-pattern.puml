@@ -63,15 +63,15 @@ package "Infrastructure Layer" {
 }
 
 package "External" {
-  database "SQLite Database" as db {
-    table pipelines {
-      id: TEXT PK
-      input_path: TEXT
-      output_path: TEXT
-      status: TEXT
-      created_at: TEXT
-      completed_at: TEXT
-    }
+  class "SQLite Database" as db <<database>> {
+    Table: pipelines
+    --
+    id: TEXT (PK)
+    input_path: TEXT
+    output_path: TEXT
+    status: TEXT
+    created_at: TEXT
+    completed_at: TEXT
   }
 }
 
@@ -83,7 +83,7 @@ PipelineRepositoryAdapter ..|> PipelineRepository : implements
 PipelineRepositoryAdapter --> SQLitePipelineRepository : delegates to
 
 SQLitePipelineRepository --> PipelineMapper : uses
-SQLitePipelineRepository --> db : queries
+SQLitePipelineRepository --> pipelines : queries
 
 note right of PipelineRepository
   **Domain Interface (Trait)**
