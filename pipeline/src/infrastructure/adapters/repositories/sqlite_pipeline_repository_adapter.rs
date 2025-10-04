@@ -291,9 +291,15 @@ impl SqlitePipelineRepository {
             format!("sqlite://{}", database_path)
         };
 
-        let pool = SqlitePool::connect(&database_url)
+        // Use schema initialization which handles database creation and migrations
+        let pool = crate::infrastructure::repositories::schema::initialize_database(&database_url)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to connect to SQLite database: {}", e)))?;
+            .map_err(|e| {
+                PipelineError::database_error(format!(
+                    "Failed to initialize database '{}': {}",
+                    database_path, e
+                ))
+            })?;
 
         debug!("Successfully connected to structured SQLite database");
         Ok(Self { pool })

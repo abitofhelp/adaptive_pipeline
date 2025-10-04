@@ -125,6 +125,10 @@
 // DOMAIN-SPECIFIC REPOSITORIES (PUBLIC - for dependency injection)
 pub mod sqlite_pipeline_repository;
 
+// SCHEMA MANAGEMENT (PUBLIC - for database initialization)
+pub mod schema;
+pub mod schema_integration_example;
+
 // INFRASTRUCTURE UTILITIES (CRATE-VISIBLE - internal infrastructure sharing)
 pub(crate) mod generic_repository;
 pub(crate) mod sqlite_repository;
