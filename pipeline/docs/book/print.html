@@ -1,0 +1,1007 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Pipeline Developer Guide</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Pipeline Developer Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="pipeline-developer-guide"><a class="header" href="#pipeline-developer-guide">Pipeline Developer Guide</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<h2 id="welcome"><a class="header" href="#welcome">Welcome</a></h2>
+<p>This is the comprehensive technical guide for the Optimized Adaptive Pipeline. Whether you're learning advanced Rust patterns, contributing to the project, or using the pipeline in production, this guide provides the depth you need.</p>
+<h2 id="how-to-use-this-guide"><a class="header" href="#how-to-use-this-guide">How to Use This Guide</a></h2>
+<p>This guide follows a <strong>progressive disclosure</strong> approach - each section builds on previous ones:</p>
+<h3 id="start-here-fundamentals"><a class="header" href="#start-here-fundamentals">Start Here: Fundamentals</a></h3>
+<p>If you're new to the pipeline, start with <strong>Fundamentals</strong>. This section introduces core concepts in an accessible way:</p>
+<ul>
+<li>What pipelines do and why they're useful</li>
+<li>Key terminology and concepts</li>
+<li>How stages work together</li>
+<li>Basic configuration</li>
+<li>Running your first pipeline</li>
+</ul>
+<p><strong>Time commitment:</strong> 30-45 minutes</p>
+<h3 id="building-understanding-architecture"><a class="header" href="#building-understanding-architecture">Building Understanding: Architecture</a></h3>
+<p>Once you understand the basics, explore the <strong>Architecture</strong> section. This explains <em>how</em> the pipeline is designed:</p>
+<ul>
+<li>Layered architecture (Domain, Application, Infrastructure)</li>
+<li>Domain-Driven Design concepts</li>
+<li>Design patterns in use (Repository, Service, Adapter, Observer)</li>
+<li>Dependency management</li>
+</ul>
+<p>This section bridges the gap between basic usage and implementation details.</p>
+<p><strong>Time commitment:</strong> 1-2 hours</p>
+<h3 id="going-deeper-implementation"><a class="header" href="#going-deeper-implementation">Going Deeper: Implementation</a></h3>
+<p>The <strong>Implementation</strong> section covers how specific features work:</p>
+<ul>
+<li>Stage processing details</li>
+<li>Compression and encryption</li>
+<li>Data persistence and schema management</li>
+<li>File I/O and chunking</li>
+<li>Metrics and observability</li>
+</ul>
+<p>Perfect for contributors or those adapting the pipeline for specific needs.</p>
+<p><strong>Time commitment:</strong> 2-3 hours</p>
+<h3 id="expert-level-advanced-topics"><a class="header" href="#expert-level-advanced-topics">Expert Level: Advanced Topics</a></h3>
+<p>For optimization and extension, the <strong>Advanced Topics</strong> section covers:</p>
+<ul>
+<li>Concurrency model and thread pooling</li>
+<li>Performance optimization techniques</li>
+<li>Creating custom stages and algorithms</li>
+</ul>
+<p><strong>Time commitment:</strong> 2-4 hours depending on depth</p>
+<h3 id="reference-formal-documentation"><a class="header" href="#reference-formal-documentation">Reference: Formal Documentation</a></h3>
+<p>The <strong>Formal Documentation</strong> section contains:</p>
+<ul>
+<li>Software Requirements Specification (SRS)</li>
+<li>Software Design Document (SDD)</li>
+<li>Test Strategy (STP)</li>
+</ul>
+<p>These are comprehensive reference documents.</p>
+<h2 id="documentation-scope"><a class="header" href="#documentation-scope">Documentation Scope</a></h2>
+<p>Following our <strong>"reasonable" principle</strong>, this guide focuses on:</p>
+<p>✅ <strong>What you need to know</strong> to use, contribute to, or extend the pipeline
+✅ <strong>Why decisions were made</strong> with just enough context
+✅ <strong>How to accomplish tasks</strong> with practical examples
+✅ <strong>Advanced Rust patterns</strong> demonstrated in real code</p>
+<p>We intentionally <strong>do not</strong> include:</p>
+<p>❌ Rust language tutorials (see <a href="https://doc.rust-lang.org/book/">The Rust Book</a>)
+❌ General programming concepts
+❌ Third-party library documentation (links provided instead)
+❌ Exhaustive algorithm details (high-level explanations with references)</p>
+<h2 id="learning-path-recommendations"><a class="header" href="#learning-path-recommendations">Learning Path Recommendations</a></h2>
+<h3 id="i-want-to-use-the-pipeline"><a class="header" href="#i-want-to-use-the-pipeline">I want to use the pipeline</a></h3>
+<p>→ Read <a href="fundamentals/what-is-a-pipeline.html">Fundamentals</a>
+→ Skip to <a href="implementation/stages.html">Implementation</a> for specific features</p>
+<h3 id="i-want-to-contribute"><a class="header" href="#i-want-to-contribute">I want to contribute</a></h3>
+<p>→ Read Fundamentals + Architecture (full sections)
+→ Review relevant Implementation chapters
+→ Check <a href="../../docs/book/contributing/guidelines.html">Contributing Guide</a></p>
+<h3 id="i-want-to-learn-advanced-rust-patterns"><a class="header" href="#i-want-to-learn-advanced-rust-patterns">I want to learn advanced Rust patterns</a></h3>
+<p>→ Focus on Architecture section (patterns)
+→ Review Implementation for real-world examples
+→ Study Advanced Topics for concurrency/performance</p>
+<h3 id="im-building-something-similar"><a class="header" href="#im-building-something-similar">I'm building something similar</a></h3>
+<p>→ Read Architecture + Implementation
+→ Study formal documentation (SRS/SDD)
+→ Review source code with this guide as reference</p>
+<h2 id="conventions-used"><a class="header" href="#conventions-used">Conventions Used</a></h2>
+<p>Throughout this guide:</p>
+<ul>
+<li><strong>Code examples</strong> are complete and runnable unless marked otherwise</li>
+<li><strong>File paths</strong> use format <code>module/file.rs:line</code> for source references</li>
+<li><strong>Diagrams</strong> are in PlantUML (SVG rendered in book)</li>
+<li><strong>Callouts</strong> highlight important information:</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Additional helpful information</p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> Important caveats or gotchas</p>
+</blockquote>
+<blockquote>
+<p><strong>Example:</strong> Practical code demonstration</p>
+</blockquote>
+<h2 id="ready-to-start"><a class="header" href="#ready-to-start">Ready to Start?</a></h2>
+<p>Choose your path:</p>
+<ul>
+<li><strong>New users:</strong> <a href="fundamentals/what-is-a-pipeline.html">What is a Pipeline?</a></li>
+<li><strong>Contributors:</strong> <a href="architecture/overview.html">Architecture Overview</a></li>
+<li><strong>Specific feature:</strong> Use search (press 's') or browse <a href="introduction.html#">table of contents</a></li>
+</ul>
+<p>Let's dive in!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="what-is-a-pipeline"><a class="header" href="#what-is-a-pipeline">What is a Pipeline?</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Introduction to pipelines and their purpose.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>TODO: Explain what a pipeline is</p>
+<h2 id="real-world-analogy"><a class="header" href="#real-world-analogy">Real-World Analogy</a></h2>
+<p>TODO: Add assembly line analogy</p>
+<h2 id="pipeline-benefits"><a class="header" href="#pipeline-benefits">Pipeline Benefits</a></h2>
+<p>TODO: Add benefits</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Essential concepts for understanding the pipeline.</p>
+<h2 id="stages"><a class="header" href="#stages">Stages</a></h2>
+<p>TODO: Explain stages</p>
+<h2 id="data-flow"><a class="header" href="#data-flow">Data Flow</a></h2>
+<p>TODO: Explain data flow</p>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<p>TODO: Explain configuration basics</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="pipeline-stages"><a class="header" href="#pipeline-stages">Pipeline Stages</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Understanding how stages work together.</p>
+<h2 id="available-stages"><a class="header" href="#available-stages">Available Stages</a></h2>
+<p>TODO: List available stages</p>
+<h2 id="stage-order"><a class="header" href="#stage-order">Stage Order</a></h2>
+<p>TODO: Explain stage ordering</p>
+<h2 id="stage-configuration"><a class="header" href="#stage-configuration">Stage Configuration</a></h2>
+<p>TODO: Explain per-stage configuration</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-basics"><a class="header" href="#configuration-basics">Configuration Basics</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Basic configuration for running pipelines.</p>
+<h2 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h2>
+<p>TODO: Explain configuration files</p>
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<p>TODO: Explain environment configuration</p>
+<h2 id="command-line-options"><a class="header" href="#command-line-options">Command-Line Options</a></h2>
+<p>TODO: Explain CLI options</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="running-your-first-pipeline"><a class="header" href="#running-your-first-pipeline">Running Your First Pipeline</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Step-by-step guide to running your first pipeline.</p>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<p>TODO: List prerequisites</p>
+<h2 id="example-pipeline"><a class="header" href="#example-pipeline">Example Pipeline</a></h2>
+<p>TODO: Add complete example</p>
+<h2 id="understanding-results"><a class="header" href="#understanding-results">Understanding Results</a></h2>
+<p>TODO: Explain output</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>High-level architectural overview of the pipeline system.</p>
+<h2 id="architectural-patterns"><a class="header" href="#architectural-patterns">Architectural Patterns</a></h2>
+<p>TODO: Extract from pipeline/src/lib.rs</p>
+<h2 id="clean-architecture"><a class="header" href="#clean-architecture">Clean Architecture</a></h2>
+<p>TODO: Explain Clean Architecture application</p>
+<h2 id="hexagonal-architecture"><a class="header" href="#hexagonal-architecture">Hexagonal Architecture</a></h2>
+<p>TODO: Explain ports and adapters</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="layered-architecture"><a class="header" href="#layered-architecture">Layered Architecture</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Understanding the layered architecture.</p>
+<h2 id="domain-layer"><a class="header" href="#domain-layer">Domain Layer</a></h2>
+<p>TODO: Explain domain layer</p>
+<h2 id="application-layer"><a class="header" href="#application-layer">Application Layer</a></h2>
+<p>TODO: Explain application layer</p>
+<h2 id="infrastructure-layer"><a class="header" href="#infrastructure-layer">Infrastructure Layer</a></h2>
+<p>TODO: Explain infrastructure layer</p>
+<h2 id="presentation-layer"><a class="header" href="#presentation-layer">Presentation Layer</a></h2>
+<p>TODO: Explain presentation layer</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="dependency-flow"><a class="header" href="#dependency-flow">Dependency Flow</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Understanding dependency direction and inversion.</p>
+<h2 id="dependency-rule"><a class="header" href="#dependency-rule">Dependency Rule</a></h2>
+<p>TODO: Explain dependency direction</p>
+<h2 id="dependency-inversion"><a class="header" href="#dependency-inversion">Dependency Inversion</a></h2>
+<p>TODO: Explain DIP application</p>
+<h2 id="trait-abstractions"><a class="header" href="#trait-abstractions">Trait Abstractions</a></h2>
+<p>TODO: Explain trait usage</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="domain-model"><a class="header" href="#domain-model">Domain Model</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>The domain model and its components.</p>
+<h2 id="domain-driven-design"><a class="header" href="#domain-driven-design">Domain-Driven Design</a></h2>
+<p>TODO: Explain DDD concepts</p>
+<h2 id="core-domain"><a class="header" href="#core-domain">Core Domain</a></h2>
+<p>TODO: Explain core domain</p>
+<h2 id="ubiquitous-language"><a class="header" href="#ubiquitous-language">Ubiquitous Language</a></h2>
+<p>TODO: Explain ubiquitous language</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="entities"><a class="header" href="#entities">Entities</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Understanding entities in the domain model.</p>
+<h2 id="what-are-entities"><a class="header" href="#what-are-entities">What are Entities?</a></h2>
+<p>TODO: Define entities</p>
+<h2 id="pipeline-entity"><a class="header" href="#pipeline-entity">Pipeline Entity</a></h2>
+<p>TODO: Extract from entities/pipeline.rs</p>
+<h2 id="stage-entity"><a class="header" href="#stage-entity">Stage Entity</a></h2>
+<p>TODO: Extract from entities/pipeline_stage.rs</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="value-objects"><a class="header" href="#value-objects">Value Objects</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Understanding value objects in the domain model.</p>
+<h2 id="what-are-value-objects"><a class="header" href="#what-are-value-objects">What are Value Objects?</a></h2>
+<p>TODO: Define value objects</p>
+<h2 id="immutability"><a class="header" href="#immutability">Immutability</a></h2>
+<p>TODO: Explain immutability</p>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<p>TODO: List key value objects</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="aggregates"><a class="header" href="#aggregates">Aggregates</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Understanding aggregates and aggregate roots.</p>
+<h2 id="what-are-aggregates"><a class="header" href="#what-are-aggregates">What are Aggregates?</a></h2>
+<p>TODO: Define aggregates</p>
+<h2 id="aggregate-boundaries"><a class="header" href="#aggregate-boundaries">Aggregate Boundaries</a></h2>
+<p>TODO: Explain boundaries</p>
+<h2 id="pipeline-aggregate"><a class="header" href="#pipeline-aggregate">Pipeline Aggregate</a></h2>
+<p>TODO: Explain pipeline aggregate</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="design-patterns"><a class="header" href="#design-patterns">Design Patterns</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Design patterns used throughout the pipeline.</p>
+<h2 id="pattern-overview"><a class="header" href="#pattern-overview">Pattern Overview</a></h2>
+<p>TODO: List patterns</p>
+<h2 id="when-to-use-each-pattern"><a class="header" href="#when-to-use-each-pattern">When to Use Each Pattern</a></h2>
+<p>TODO: Add guidance</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="repository-pattern"><a class="header" href="#repository-pattern">Repository Pattern</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>The Repository pattern for data persistence.</p>
+<h2 id="pattern-overview-1"><a class="header" href="#pattern-overview-1">Pattern Overview</a></h2>
+<p>TODO: Extract from repository files</p>
+<h2 id="implementation"><a class="header" href="#implementation">Implementation</a></h2>
+<p>TODO: Show implementation</p>
+<h2 id="benefits"><a class="header" href="#benefits">Benefits</a></h2>
+<p>TODO: List benefits</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="service-pattern"><a class="header" href="#service-pattern">Service Pattern</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>The Service pattern for domain and application logic.</p>
+<h2 id="pattern-overview-2"><a class="header" href="#pattern-overview-2">Pattern Overview</a></h2>
+<p>TODO: Extract from service files</p>
+<h2 id="domain-vs-application-services"><a class="header" href="#domain-vs-application-services">Domain vs Application Services</a></h2>
+<p>TODO: Explain distinction</p>
+<h2 id="implementation-1"><a class="header" href="#implementation-1">Implementation</a></h2>
+<p>TODO: Show examples</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="adapter-pattern"><a class="header" href="#adapter-pattern">Adapter Pattern</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>The Adapter pattern for infrastructure integration.</p>
+<h2 id="pattern-overview-3"><a class="header" href="#pattern-overview-3">Pattern Overview</a></h2>
+<p>TODO: Extract from adapter files</p>
+<h2 id="hexagonal-architecture-1"><a class="header" href="#hexagonal-architecture-1">Hexagonal Architecture</a></h2>
+<p>TODO: Explain ports and adapters</p>
+<h2 id="implementation-2"><a class="header" href="#implementation-2">Implementation</a></h2>
+<p>TODO: Show examples</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="observer-pattern"><a class="header" href="#observer-pattern">Observer Pattern</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>The Observer pattern for metrics and events.</p>
+<h2 id="pattern-overview-4"><a class="header" href="#pattern-overview-4">Pattern Overview</a></h2>
+<p>TODO: Extract from metrics observer</p>
+<h2 id="implementation-3"><a class="header" href="#implementation-3">Implementation</a></h2>
+<p>TODO: Show implementation</p>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<p>TODO: List use cases</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="stage-processing"><a class="header" href="#stage-processing">Stage Processing</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>How stages process data in the pipeline.</p>
+<h2 id="stage-lifecycle"><a class="header" href="#stage-lifecycle">Stage Lifecycle</a></h2>
+<p>TODO: Explain stage lifecycle</p>
+<h2 id="stage-interface"><a class="header" href="#stage-interface">Stage Interface</a></h2>
+<p>TODO: Show stage trait</p>
+<h2 id="stage-execution"><a class="header" href="#stage-execution">Stage Execution</a></h2>
+<p>TODO: Explain execution model</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="compression"><a class="header" href="#compression">Compression</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Compression algorithms and implementation.</p>
+<h2 id="supported-algorithms"><a class="header" href="#supported-algorithms">Supported Algorithms</a></h2>
+<p>TODO: Extract from compression service</p>
+<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
+<p>TODO: Add performance data</p>
+<h2 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h2>
+<p>TODO: Show configuration</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="encryption"><a class="header" href="#encryption">Encryption</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Encryption algorithms and security.</p>
+<h2 id="supported-algorithms-1"><a class="header" href="#supported-algorithms-1">Supported Algorithms</a></h2>
+<p>TODO: Extract from encryption service</p>
+<h2 id="key-management"><a class="header" href="#key-management">Key Management</a></h2>
+<p>TODO: Explain key management</p>
+<h2 id="security-best-practices"><a class="header" href="#security-best-practices">Security Best Practices</a></h2>
+<p>TODO: Add security guidance</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="integrity-checking"><a class="header" href="#integrity-checking">Integrity Checking</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Data integrity verification.</p>
+<h2 id="checksum-algorithms"><a class="header" href="#checksum-algorithms">Checksum Algorithms</a></h2>
+<p>TODO: Extract from checksum service</p>
+<h2 id="verification-process"><a class="header" href="#verification-process">Verification Process</a></h2>
+<p>TODO: Explain verification</p>
+<h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
+<p>TODO: Show error handling</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="data-persistence"><a class="header" href="#data-persistence">Data Persistence</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>How data is persisted to storage.</p>
+<h2 id="storage-architecture"><a class="header" href="#storage-architecture">Storage Architecture</a></h2>
+<p>TODO: Explain storage design</p>
+<h2 id="database-choice"><a class="header" href="#database-choice">Database Choice</a></h2>
+<p>TODO: Explain SQLite usage</p>
+<h2 id="transaction-management"><a class="header" href="#transaction-management">Transaction Management</a></h2>
+<p>TODO: Explain transactions</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="repository-implementation"><a class="header" href="#repository-implementation">Repository Implementation</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Concrete repository implementations.</p>
+<h2 id="sqlite-repository"><a class="header" href="#sqlite-repository">SQLite Repository</a></h2>
+<p>TODO: Extract from sqlite_pipeline_repository.rs</p>
+<h2 id="crud-operations"><a class="header" href="#crud-operations">CRUD Operations</a></h2>
+<p>TODO: Show CRUD examples</p>
+<h2 id="query-patterns"><a class="header" href="#query-patterns">Query Patterns</a></h2>
+<p>TODO: Show query patterns</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="schema-management"><a class="header" href="#schema-management">Schema Management</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Database schema and migrations.</p>
+<h2 id="schema-design"><a class="header" href="#schema-design">Schema Design</a></h2>
+<p>TODO: Show database schema</p>
+<h2 id="migrations"><a class="header" href="#migrations">Migrations</a></h2>
+<p>TODO: Explain sqlx migrations</p>
+<h2 id="version-management"><a class="header" href="#version-management">Version Management</a></h2>
+<p>TODO: Explain versioning</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="file-io"><a class="header" href="#file-io">File I/O</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>File input/output operations.</p>
+<h2 id="file-reading"><a class="header" href="#file-reading">File Reading</a></h2>
+<p>TODO: Extract from file_io_service.rs</p>
+<h2 id="file-writing"><a class="header" href="#file-writing">File Writing</a></h2>
+<p>TODO: Show writing patterns</p>
+<h2 id="error-handling-1"><a class="header" href="#error-handling-1">Error Handling</a></h2>
+<p>TODO: Show error handling</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="chunking-strategy"><a class="header" href="#chunking-strategy">Chunking Strategy</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>How files are split into chunks for processing.</p>
+<h2 id="chunk-size"><a class="header" href="#chunk-size">Chunk Size</a></h2>
+<p>TODO: Explain chunk sizing</p>
+<h2 id="chunk-processing"><a class="header" href="#chunk-processing">Chunk Processing</a></h2>
+<p>TODO: Show chunk processing</p>
+<h2 id="memory-management"><a class="header" href="#memory-management">Memory Management</a></h2>
+<p>TODO: Explain memory efficiency</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="binary-format"><a class="header" href="#binary-format">Binary Format</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>The binary file format specification.</p>
+<h2 id="format-overview"><a class="header" href="#format-overview">Format Overview</a></h2>
+<p>TODO: Extract from binary_file_format.rs</p>
+<h2 id="format-versioning"><a class="header" href="#format-versioning">Format Versioning</a></h2>
+<p>TODO: Explain versioning</p>
+<h2 id="backwards-compatibility"><a class="header" href="#backwards-compatibility">Backwards Compatibility</a></h2>
+<p>TODO: Explain compatibility</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="observability"><a class="header" href="#observability">Observability</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Observability architecture and implementation.</p>
+<h2 id="observability-overview"><a class="header" href="#observability-overview">Observability Overview</a></h2>
+<p>TODO: Extract from observability_service.rs</p>
+<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<p>TODO: Link to metrics chapter</p>
+<h2 id="logging"><a class="header" href="#logging">Logging</a></h2>
+<p>TODO: Link to logging chapter</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="metrics-collection"><a class="header" href="#metrics-collection">Metrics Collection</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>How metrics are collected and exposed.</p>
+<h2 id="metrics-architecture"><a class="header" href="#metrics-architecture">Metrics Architecture</a></h2>
+<p>TODO: Extract from metrics files</p>
+<h2 id="prometheus-integration"><a class="header" href="#prometheus-integration">Prometheus Integration</a></h2>
+<p>TODO: Show Prometheus integration</p>
+<h2 id="available-metrics"><a class="header" href="#available-metrics">Available Metrics</a></h2>
+<p>TODO: List available metrics</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="logging-1"><a class="header" href="#logging-1">Logging</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Logging implementation and best practices.</p>
+<h2 id="logging-framework"><a class="header" href="#logging-framework">Logging Framework</a></h2>
+<p>TODO: Explain tracing usage</p>
+<h2 id="log-levels"><a class="header" href="#log-levels">Log Levels</a></h2>
+<p>TODO: Explain log levels</p>
+<h2 id="structured-logging"><a class="header" href="#structured-logging">Structured Logging</a></h2>
+<p>TODO: Show structured logging</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="concurrency-model"><a class="header" href="#concurrency-model">Concurrency Model</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Understanding the concurrency model.</p>
+<h2 id="asyncawait"><a class="header" href="#asyncawait">Async/Await</a></h2>
+<p>TODO: Explain async usage</p>
+<h2 id="tokio-runtime"><a class="header" href="#tokio-runtime">Tokio Runtime</a></h2>
+<p>TODO: Explain Tokio integration</p>
+<h2 id="concurrency-patterns"><a class="header" href="#concurrency-patterns">Concurrency Patterns</a></h2>
+<p>TODO: Show patterns</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="thread-pooling"><a class="header" href="#thread-pooling">Thread Pooling</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Thread pool configuration and tuning.</p>
+<h2 id="thread-pool-architecture"><a class="header" href="#thread-pool-architecture">Thread Pool Architecture</a></h2>
+<p>TODO: Explain thread pooling</p>
+<h2 id="configuration-2"><a class="header" href="#configuration-2">Configuration</a></h2>
+<p>TODO: Show configuration</p>
+<h2 id="tuning-guidelines"><a class="header" href="#tuning-guidelines">Tuning Guidelines</a></h2>
+<p>TODO: Add tuning guidance</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="resource-management"><a class="header" href="#resource-management">Resource Management</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Managing system resources efficiently.</p>
+<h2 id="memory-management-1"><a class="header" href="#memory-management-1">Memory Management</a></h2>
+<p>TODO: Explain memory usage</p>
+<h2 id="file-descriptors"><a class="header" href="#file-descriptors">File Descriptors</a></h2>
+<p>TODO: Explain FD management</p>
+<h2 id="resource-limits"><a class="header" href="#resource-limits">Resource Limits</a></h2>
+<p>TODO: Show limits and tuning</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Performance optimization techniques.</p>
+<h2 id="optimization-strategies"><a class="header" href="#optimization-strategies">Optimization Strategies</a></h2>
+<p>TODO: List strategies</p>
+<h2 id="common-bottlenecks"><a class="header" href="#common-bottlenecks">Common Bottlenecks</a></h2>
+<p>TODO: Identify bottlenecks</p>
+<h2 id="tuning-parameters"><a class="header" href="#tuning-parameters">Tuning Parameters</a></h2>
+<p>TODO: Show tuning options</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="benchmarking"><a class="header" href="#benchmarking">Benchmarking</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Benchmarking the pipeline.</p>
+<h2 id="benchmark-suite"><a class="header" href="#benchmark-suite">Benchmark Suite</a></h2>
+<p>TODO: Show benchmark suite</p>
+<h2 id="running-benchmarks"><a class="header" href="#running-benchmarks">Running Benchmarks</a></h2>
+<p>TODO: Show how to run</p>
+<h2 id="interpreting-results"><a class="header" href="#interpreting-results">Interpreting Results</a></h2>
+<p>TODO: Explain results</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="profiling"><a class="header" href="#profiling">Profiling</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Profiling tools and techniques.</p>
+<h2 id="profiling-tools"><a class="header" href="#profiling-tools">Profiling Tools</a></h2>
+<p>TODO: List tools (flamegraph, perf, etc.)</p>
+<h2 id="cpu-profiling"><a class="header" href="#cpu-profiling">CPU Profiling</a></h2>
+<p>TODO: Show CPU profiling</p>
+<h2 id="memory-profiling"><a class="header" href="#memory-profiling">Memory Profiling</a></h2>
+<p>TODO: Show memory profiling</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="extending-the-pipeline"><a class="header" href="#extending-the-pipeline">Extending the Pipeline</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>How to extend the pipeline with custom functionality.</p>
+<h2 id="extension-points"><a class="header" href="#extension-points">Extension Points</a></h2>
+<p>TODO: List extension points</p>
+<h2 id="plugin-architecture"><a class="header" href="#plugin-architecture">Plugin Architecture</a></h2>
+<p>TODO: Explain plugin system (if any)</p>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<p>TODO: Add guidance</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="custom-stages"><a class="header" href="#custom-stages">Custom Stages</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Creating custom pipeline stages.</p>
+<h2 id="stage-interface-1"><a class="header" href="#stage-interface-1">Stage Interface</a></h2>
+<p>TODO: Show stage trait</p>
+<h2 id="implementation-example"><a class="header" href="#implementation-example">Implementation Example</a></h2>
+<p>TODO: Show complete example</p>
+<h2 id="testing-custom-stages"><a class="header" href="#testing-custom-stages">Testing Custom Stages</a></h2>
+<p>TODO: Show testing approach</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="custom-algorithms"><a class="header" href="#custom-algorithms">Custom Algorithms</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Adding custom compression or encryption algorithms.</p>
+<h2 id="algorithm-interface"><a class="header" href="#algorithm-interface">Algorithm Interface</a></h2>
+<p>TODO: Show algorithm trait</p>
+<h2 id="compression-example"><a class="header" href="#compression-example">Compression Example</a></h2>
+<p>TODO: Show compression algorithm</p>
+<h2 id="encryption-example"><a class="header" href="#encryption-example">Encryption Example</a></h2>
+<p>TODO: Show encryption algorithm</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="software-requirements-specification"><a class="header" href="#software-requirements-specification">Software Requirements Specification</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Comprehensive software requirements specification.</p>
+<h2 id="introduction"><a class="header" href="#introduction">Introduction</a></h2>
+<p>TODO: Add SRS introduction</p>
+<h2 id="functional-requirements"><a class="header" href="#functional-requirements">Functional Requirements</a></h2>
+<p>TODO: List functional requirements</p>
+<h2 id="non-functional-requirements"><a class="header" href="#non-functional-requirements">Non-Functional Requirements</a></h2>
+<p>TODO: List non-functional requirements</p>
+<h2 id="system-requirements"><a class="header" href="#system-requirements">System Requirements</a></h2>
+<p>TODO: List system requirements</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="software-design-document"><a class="header" href="#software-design-document">Software Design Document</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Comprehensive software design document.</p>
+<h2 id="introduction-1"><a class="header" href="#introduction-1">Introduction</a></h2>
+<p>TODO: Add SDD introduction</p>
+<h2 id="system-architecture"><a class="header" href="#system-architecture">System Architecture</a></h2>
+<p>TODO: Add detailed architecture</p>
+<h2 id="component-design"><a class="header" href="#component-design">Component Design</a></h2>
+<p>TODO: Add component designs</p>
+<h2 id="data-design"><a class="header" href="#data-design">Data Design</a></h2>
+<p>TODO: Add data models</p>
+<h2 id="interface-design"><a class="header" href="#interface-design">Interface Design</a></h2>
+<p>TODO: Add interface specifications</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="software-test-plan"><a class="header" href="#software-test-plan">Software Test Plan</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Software test plan and strategy.</p>
+<h2 id="introduction-2"><a class="header" href="#introduction-2">Introduction</a></h2>
+<p>TODO: Add STP introduction</p>
+<h2 id="test-strategy"><a class="header" href="#test-strategy">Test Strategy</a></h2>
+<p>TODO: Add test strategy</p>
+<h2 id="test-levels"><a class="header" href="#test-levels">Test Levels</a></h2>
+<p>TODO: List test levels (unit, integration, system)</p>
+<h2 id="test-cases"><a class="header" href="#test-cases">Test Cases</a></h2>
+<p>TODO: Add key test cases</p>
+<h2 id="test-environment"><a class="header" href="#test-environment">Test Environment</a></h2>
+<p>TODO: Describe test environment</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="public-api-reference"><a class="header" href="#public-api-reference">Public API Reference</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Public API documentation and examples.</p>
+<h2 id="api-overview"><a class="header" href="#api-overview">API Overview</a></h2>
+<p>TODO: Add API overview</p>
+<h2 id="core-types"><a class="header" href="#core-types">Core Types</a></h2>
+<p>TODO: List core public types</p>
+<h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
+<p>TODO: Add usage examples</p>
+<h2 id="generated-documentation"><a class="header" href="#generated-documentation">Generated Documentation</a></h2>
+<p>See <a href="api/../../../target/doc/pipeline/index.html">rustdoc API documentation</a></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="internal-apis"><a class="header" href="#internal-apis">Internal APIs</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Date:</strong> October 2025
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner
+<strong>Status:</strong> Draft</p>
+<p>Internal API documentation for contributors.</p>
+<h2 id="internal-architecture"><a class="header" href="#internal-architecture">Internal Architecture</a></h2>
+<p>TODO: Add internal API overview</p>
+<h2 id="module-organization"><a class="header" href="#module-organization">Module Organization</a></h2>
+<p>TODO: Explain module structure</p>
+<h2 id="extension-points-1"><a class="header" href="#extension-points-1">Extension Points</a></h2>
+<p>TODO: List internal extension points</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
