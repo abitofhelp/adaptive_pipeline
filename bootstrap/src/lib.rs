@@ -129,9 +129,66 @@ pub mod exit_code;
 pub mod logger;
 pub mod signals;
 pub mod config;
-pub mod cli;
+pub mod cli;  // Now a module directory with parser and validator
 pub mod shutdown;
 
 // Future modules (to be implemented)
 // pub mod composition_root;
 // pub mod app_runner;
+
+// Re-export commonly used types
+pub use cli::{ValidatedCli, ValidatedCommand, parse_and_validate};
+pub use exit_code::{ExitCode, map_error_to_exit_code, result_to_exit_code};
+
+/// Bootstrap and parse CLI arguments
+///
+/// This is the main entry point for the bootstrap layer.
+/// It handles:
+/// 1. CLI parsing with clap
+/// 2. Security validation
+/// 3. Returns validated configuration
+///
+/// The caller is responsible for:
+/// - Running the application logic
+/// - Mapping results to exit codes using `result_to_exit_code`
+///
+/// # Returns
+///
+/// `ValidatedCli` with all arguments security-checked and validated
+///
+/// # Errors
+///
+/// Returns `cli::ParseError` if CLI parsing or validation fails.
+/// Clap will handle --help and --version automatically and exit the process.
+///
+/// # Example
+///
+/// ```no_run
+/// use bootstrap::{bootstrap_cli, result_to_exit_code};
+///
+/// #[tokio::main]
+/// async fn main() -> std::process::ExitCode {
+///     // Parse and validate CLI
+///     let validated_cli = match bootstrap::bootstrap_cli() {
+///         Ok(cli) => cli,
+///         Err(e) => {
+///             eprintln!("CLI Error: {}", e);
+///             return std::process::ExitCode::from(65); // EX_DATAERR
+///         }
+///     };
+///
+///     // Run application with validated config
+///     let result = run_application(validated_cli).await;
+///
+///     // Map result to exit code
+///     result_to_exit_code(result)
+/// }
+///
+/// async fn run_application(cli: bootstrap::ValidatedCli) -> Result<(), String> {
+///     // Application logic here
+///     Ok(())
+/// }
+/// ```
+pub fn bootstrap_cli() -> Result<ValidatedCli, cli::ParseError> {
+    cli::parse_and_validate()
+}
