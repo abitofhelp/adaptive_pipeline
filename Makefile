@@ -47,7 +47,7 @@ NC := \033[0m # No Color
         pipeline-check pipelinelib-check coverage flamegraph bloat pre-commit \
         docker-build docker-run ci-local install-cross-targets build-linux-x86_64 \
         build-linux-aarch64 build-macos-x86_64 build-macos-aarch64 build-windows-x86_64 \
-        build-all-platforms
+        build-all-platforms diagrams docs serve-docs
 
 ##@ Help
 help: ## Display this help message
@@ -88,8 +88,11 @@ help: ## Display this help message
 	@echo -e "  $(CYAN)docker-run           $(NC) Run Docker container"
 	@echo ""
 	@echo -e "$(YELLOW)Documentation$(NC)"
-	@echo -e "  $(CYAN)doc                  $(NC) Generate documentation"
-	@echo -e "  $(CYAN)doc-open             $(NC) Generate and open documentation"
+	@echo -e "  $(CYAN)diagrams             $(NC) Generate PlantUML diagrams as SVG"
+	@echo -e "  $(CYAN)doc                  $(NC) Generate API documentation"
+	@echo -e "  $(CYAN)doc-open             $(NC) Generate and open API documentation"
+	@echo -e "  $(CYAN)docs                 $(NC) Build all documentation (diagrams + books + API)"
+	@echo -e "  $(CYAN)serve-docs           $(NC) Serve documentation with live reload"
 	@echo ""
 	@echo -e "$(YELLOW)Help$(NC)"
 	@echo -e "  $(CYAN)help                 $(NC) Display this help message"
@@ -319,6 +322,37 @@ doc: ## Generate documentation
 doc-open: ## Generate and open documentation
 	@echo -e "$(BLUE)Generating and opening documentation...$(NC)"
 	@$(CARGO) doc --workspace --no-deps --document-private-items --open
+
+diagrams: ## Generate PlantUML diagrams as SVG
+	@echo -e "$(BLUE)Generating diagrams...$(NC)"
+	@./tools/generate-diagrams.sh
+
+docs: diagrams ## Build all documentation (diagrams + mdBooks + API docs)
+	@echo -e "$(BLUE)Building all documentation...$(NC)"
+	@echo -e "$(CYAN)  - Generating diagrams...$(NC)"
+	@./tools/generate-diagrams.sh
+	@echo -e "$(CYAN)  - Building main documentation book...$(NC)"
+	@cd docs && mdbook build
+	@echo -e "$(CYAN)  - Building pipeline documentation book...$(NC)"
+	@cd pipeline/docs && mdbook build
+	@echo -e "$(CYAN)  - Building API documentation...$(NC)"
+	@$(CARGO) doc --workspace --no-deps
+	@echo -e "$(GREEN)✓ Documentation built!$(NC)"
+	@echo -e ""
+	@echo -e "$(CYAN)Documentation available at:$(NC)"
+	@echo -e "  - Main docs: $(YELLOW)docs/book/index.html$(NC)"
+	@echo -e "  - Pipeline docs: $(YELLOW)pipeline/docs/book/index.html$(NC)"
+	@echo -e "  - API docs: $(YELLOW)target/doc/pipeline/index.html$(NC)"
+
+serve-docs: diagrams ## Serve documentation with live reload
+	@echo -e "$(BLUE)Starting documentation servers...$(NC)"
+	@echo -e "$(CYAN)Main docs: http://localhost:3000$(NC)"
+	@echo -e "$(CYAN)Pipeline docs: http://localhost:3001$(NC)"
+	@echo -e "$(YELLOW)Press Ctrl+C to stop$(NC)"
+	@echo ""
+	@cd docs && mdbook serve --port 3000 &
+	@cd pipeline/docs && mdbook serve --port 3001 &
+	@wait
 
 ##@ Benchmarking
 bench: ## Run all benchmarks

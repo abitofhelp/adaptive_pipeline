@@ -77,3 +77,6 @@ plantuml.jar
 **/large_test_3gb.txt
 **/test_10MB_file.txt
 Cargo.lock
+
+# Documentation
+**/book/  # mdBook generated output
