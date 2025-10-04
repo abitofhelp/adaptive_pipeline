@@ -69,7 +69,7 @@ pub struct PipelineAggregate {
 impl PipelineAggregate {
     /// Creates a new pipeline aggregate
     pub fn new(pipeline: Pipeline) -> Result<Self, PipelineError> {
-        pipeline.validate().unwrap();
+        pipeline.validate()?;
 
         let mut aggregate = Self {
             pipeline: pipeline.clone(),
@@ -103,15 +103,13 @@ impl PipelineAggregate {
                 PipelineEvent::PipelineCreated(event) => Some(event),
                 _ => None,
             })
-            .ok_or_else(|| PipelineError::InvalidConfiguration("No PipelineCreated event found".to_string()))
-            .unwrap();
+            .ok_or_else(|| PipelineError::InvalidConfiguration("No PipelineCreated event found".to_string()))?;
 
         // Create initial pipeline (this would normally be reconstructed from events)
         let pipeline = Pipeline::new(
             created_event.pipeline_name.clone(),
             Vec::new(), // Stages would be reconstructed from events
-        )
-        .unwrap();
+        )?;
 
         let mut aggregate = Self {
             pipeline,
@@ -122,7 +120,7 @@ impl PipelineAggregate {
 
         // Apply all events to reconstruct state
         for event in events {
-            aggregate.apply_event(&event).unwrap();
+            aggregate.apply_event(&event)?;
         }
 
         Ok(aggregate)
@@ -150,7 +148,7 @@ impl PipelineAggregate {
 
     /// Updates the pipeline configuration
     pub fn update_pipeline(&mut self, updated_pipeline: Pipeline) -> Result<(), PipelineError> {
-        updated_pipeline.validate().unwrap();
+        updated_pipeline.validate()?;
 
         // Track changes
         let mut changes = Vec::new();
@@ -194,7 +192,7 @@ impl PipelineAggregate {
         security_context: SecurityContext,
     ) -> Result<Uuid, PipelineError> {
         // Validate security context
-        security_context.validate().unwrap();
+        security_context.validate()?;
 
         // Create processing context
         let processing_id = Uuid::new_v4();
@@ -312,11 +310,11 @@ impl PipelineAggregate {
 
     /// Validates the aggregate state
     pub fn validate(&self) -> Result<(), PipelineError> {
-        self.pipeline.validate().unwrap();
+        self.pipeline.validate()?;
 
         // Validate all active processing contexts
         for context in self.active_processing_contexts.values() {
-            context.security_context().validate().unwrap();
+            context.security_context().validate()?;
         }
 
         Ok(())

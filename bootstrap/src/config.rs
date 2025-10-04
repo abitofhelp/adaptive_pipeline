@@ -199,6 +199,13 @@ impl AppConfigBuilder {
     /// # Panics
     ///
     /// Panics if app_name was not set
+    ///
+    /// # Note
+    ///
+    /// This method is intended for test code and examples where panicking on
+    /// misconfiguration is acceptable. Production code should use `try_build()`
+    /// instead for proper error handling.
+    #[allow(clippy::expect_used)] // Builder pattern convention: panics are documented
     pub fn build(self) -> AppConfig {
         AppConfig {
             app_name: self.app_name.expect("app_name is required"),

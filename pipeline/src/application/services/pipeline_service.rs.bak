@@ -224,7 +224,7 @@ use crate::infrastructure::services::progress_indicator_service::ProgressIndicat
 ///
 
 // ============================================================================
-// WEEK 2: Channel-Based Pipeline Architecture
+// Channel-Based Pipeline Architecture
 // ============================================================================
 // Educational: This section implements the three-stage execution pipeline
 // (Reader → CPU Workers → Writer) using channels for communication.
@@ -303,7 +303,7 @@ struct WriterStats {
 }
 
 // ============================================================================
-// WEEK 2: Pipeline Task Implementations
+// Pipeline Task Implementations
 // ============================================================================
 
 /// Reader Task - Stage 1 of Execution Pipeline
@@ -888,7 +888,7 @@ impl PipelineService for PipelineServiceImpl {
         }
 
         // =============================================================================
-        // WEEK 2: CHANNEL-BASED PIPELINE ARCHITECTURE
+        // CHANNEL-BASED PIPELINE ARCHITECTURE
         // =============================================================================
         // This section implements the three-stage execution pipeline using channels
         // for natural backpressure and lock-free concurrent writes.
@@ -909,7 +909,7 @@ impl PipelineService for PipelineServiceImpl {
         let total_chunks = (input_size as usize).div_ceil(chunk_size);
 
         // STEP 2: Create thread-safe writer (NO MUTEX!)
-        // Week 2: Writer is now Arc<dyn BinaryFormatWriter> instead of Arc<Mutex<...>>
+        // Writer is now Arc<dyn BinaryFormatWriter> instead of Arc<Mutex<...>>
         // Workers can write concurrently using platform-specific atomic operations
         let binary_writer = self.binary_format_service
             .create_writer(output_path, header.clone())?;

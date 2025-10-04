@@ -416,6 +416,7 @@ pub fn init_resource_manager(config: ResourceConfig) -> Result<(), String> {
 ///
 /// Panics if called before `init_resource_manager()`. This is intentional -
 /// using the resource manager before initialization is a programming error.
+#[allow(clippy::expect_used)]
 pub fn resource_manager() -> &'static GlobalResourceManager {
     RESOURCE_MANAGER_CELL
         .get()

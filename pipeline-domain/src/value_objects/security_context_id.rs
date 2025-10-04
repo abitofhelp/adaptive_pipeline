@@ -321,7 +321,7 @@ impl<'de> Deserialize<'de> for SecurityContextId {
     where
         D: serde::Deserializer<'de>,
     {
-        let generic_id = GenericId::deserialize(deserializer).unwrap();
+        let generic_id = GenericId::deserialize(deserializer)?;
         Ok(Self(generic_id))
     }
 }

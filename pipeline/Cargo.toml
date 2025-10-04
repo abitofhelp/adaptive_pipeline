@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 pipeline-domain = { path = "../pipeline-domain" }
+bootstrap = { path = "../bootstrap" }
 
 # Core dependencies
 serde = { workspace = true }

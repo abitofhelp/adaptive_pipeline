@@ -38,10 +38,7 @@
 //! }
 //! ```
 
-use std::sync::{
-    atomic::{AtomicU64, AtomicUsize, Ordering},
-    Arc, Mutex,
-};
+use std::sync::{ atomic::{ AtomicU64, AtomicUsize, Ordering }, Arc, Mutex };
 use std::time::Duration;
 
 /// Simple histogram for latency distribution tracking
@@ -81,8 +78,7 @@ impl Histogram {
     /// Record a value in milliseconds
     pub fn record(&self, value_ms: u64) {
         // Find appropriate bucket
-        let bucket_idx = self
-            .bucket_boundaries
+        let bucket_idx = self.bucket_boundaries
             .iter()
             .position(|&boundary| value_ms < boundary)
             .unwrap_or(self.bucket_boundaries.len());
@@ -110,7 +106,7 @@ impl Histogram {
             return 0;
         }
 
-        let target = (total as f64 * p / 100.0) as u64;
+        let target = (((total as f64) * p) / 100.0) as u64;
         let mut cumulative = 0u64;
 
         for (i, bucket) in self.buckets.iter().enumerate() {
@@ -191,7 +187,7 @@ pub struct ConcurrencyMetrics {
     /// Total number of tasks completed (counter)
     tasks_completed: AtomicU64,
 
-    // === Week 2: Channel Queue Metrics ===
+    // === Channel Queue Metrics ===
     /// Current depth of CPU worker channel (gauge)
     /// Educational: Reveals backpressure - high depth means workers can't keep up
     cpu_queue_depth: AtomicUsize,
@@ -225,7 +221,7 @@ impl ConcurrencyMetrics {
             tasks_spawned: AtomicU64::new(0),
             tasks_completed: AtomicU64::new(0),
 
-            // Week 2: Queue metrics
+            // Queue metrics
             cpu_queue_depth: AtomicUsize::new(0),
             cpu_queue_depth_max: AtomicUsize::new(0),
             cpu_queue_wait_histogram: Mutex::new(Histogram::new()),
@@ -256,7 +252,7 @@ impl ConcurrencyMetrics {
     pub fn cpu_saturation_percent(&self) -> f64 {
         let available = self.cpu_tokens_available.load(Ordering::Relaxed);
         let in_use = self.cpu_tokens_total.saturating_sub(available);
-        (in_use as f64 / self.cpu_tokens_total as f64) * 100.0
+        ((in_use as f64) / (self.cpu_tokens_total as f64)) * 100.0
     }
 
     /// Record CPU token wait time
@@ -305,7 +301,7 @@ impl ConcurrencyMetrics {
     pub fn io_saturation_percent(&self) -> f64 {
         let available = self.io_tokens_available.load(Ordering::Relaxed);
         let in_use = self.io_tokens_total.saturating_sub(available);
-        (in_use as f64 / self.io_tokens_total as f64) * 100.0
+        ((in_use as f64) / (self.io_tokens_total as f64)) * 100.0
     }
 
     /// Record I/O token wait time
@@ -350,7 +346,7 @@ impl ConcurrencyMetrics {
     }
 
     pub fn memory_used_mb(&self) -> f64 {
-        self.memory_used_bytes() as f64 / (1024.0 * 1024.0)
+        (self.memory_used_bytes() as f64) / (1024.0 * 1024.0)
     }
 
     pub fn memory_capacity_bytes(&self) -> usize {
@@ -358,7 +354,7 @@ impl ConcurrencyMetrics {
     }
 
     pub fn memory_utilization_percent(&self) -> f64 {
-        (self.memory_used_bytes() as f64 / self.memory_capacity_bytes as f64) * 100.0
+        ((self.memory_used_bytes() as f64) / (self.memory_capacity_bytes as f64)) * 100.0
     }
 
     // === Worker Metrics ===
@@ -385,7 +381,7 @@ impl ConcurrencyMetrics {
         self.tasks_completed.load(Ordering::Relaxed)
     }
 
-    // === Week 2: Channel Queue Metrics ===
+    // === Channel Queue Metrics ===
 
     /// Update CPU queue depth
     ///
@@ -401,14 +397,20 @@ impl ConcurrencyMetrics {
         // Track maximum depth observed
         let mut current_max = self.cpu_queue_depth_max.load(Ordering::Relaxed);
         while depth > current_max {
-            match self.cpu_queue_depth_max.compare_exchange_weak(
-                current_max,
-                depth,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            ) {
-                Ok(_) => break,
-                Err(x) => current_max = x,
+            match
+                self.cpu_queue_depth_max.compare_exchange_weak(
+                    current_max,
+                    depth,
+                    Ordering::Relaxed,
+                    Ordering::Relaxed
+                )
+            {
+                Ok(_) => {
+                    break;
+                }
+                Err(x) => {
+                    current_max = x;
+                }
             }
         }
     }
@@ -462,7 +464,7 @@ impl ConcurrencyMetrics {
         self.tasks_spawned.store(0, Ordering::Relaxed);
         self.tasks_completed.store(0, Ordering::Relaxed);
 
-        // Week 2: Reset queue metrics
+        // Reset queue metrics
         self.cpu_queue_depth.store(0, Ordering::Relaxed);
         self.cpu_queue_depth_max.store(0, Ordering::Relaxed);
 
@@ -484,16 +486,19 @@ impl ConcurrencyMetrics {
 ///
 /// Initialized from RESOURCE_MANAGER values on first access.
 /// This ensures metrics match actual resource configuration.
-pub static CONCURRENCY_METRICS: std::sync::LazyLock<Arc<ConcurrencyMetrics>> =
-    std::sync::LazyLock::new(|| {
+pub static CONCURRENCY_METRICS: std::sync::LazyLock<Arc<ConcurrencyMetrics>> = std::sync::LazyLock::new(
+    || {
         use crate::infrastructure::runtime::RESOURCE_MANAGER;
 
-        Arc::new(ConcurrencyMetrics::new(
-            RESOURCE_MANAGER.cpu_tokens_total(),
-            RESOURCE_MANAGER.io_tokens_total(),
-            RESOURCE_MANAGER.memory_capacity(),
-        ))
-    });
+        Arc::new(
+            ConcurrencyMetrics::new(
+                RESOURCE_MANAGER.cpu_tokens_total(),
+                RESOURCE_MANAGER.io_tokens_total(),
+                RESOURCE_MANAGER.memory_capacity()
+            )
+        )
+    }
+);
 
 #[cfg(test)]
 mod tests {

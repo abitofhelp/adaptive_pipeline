@@ -317,11 +317,11 @@ impl ConfigService {
         let config_content = fs::read_to_string(config_path)
             .await
             .map_err(|e| PipelineError::invalid_config(format!("Failed to read config file {:?}: {}", config_path, e)))
-            .unwrap();
+            ?;
 
         let config: ObservabilityConfig = toml::from_str(&config_content)
             .map_err(|e| PipelineError::invalid_config(format!("Failed to parse config file {:?}: {}", config_path, e)))
-            .unwrap();
+            ?;
 
         debug!(
             "Loaded observability config from {:?}: metrics port {}, structured logging {}",
@@ -336,7 +336,7 @@ impl ConfigService {
         // Try to find observability.toml in current directory or parent directories
         let mut current_dir = std::env::current_dir()
             .map_err(|e| PipelineError::invalid_config(format!("Failed to get current directory: {}", e)))
-            .unwrap();
+            ?;
 
         // Look for observability.toml in current directory and up to 3 parent
         // directories

@@ -242,6 +242,21 @@ impl PipelineError {
         Self::MetricsError(msg.into())
     }
 
+    /// Creates a new validation error
+    pub fn validation_error(msg: impl Into<String>) -> Self {
+        Self::ValidationError(msg.into())
+    }
+
+    /// Creates a cancellation error with default message
+    pub fn cancelled() -> Self {
+        Self::Cancelled("operation cancelled".into())
+    }
+
+    /// Creates a cancellation error with custom message
+    pub fn cancelled_with_msg(msg: impl Into<String>) -> Self {
+        Self::Cancelled(msg.into())
+    }
+
     /// Checks if the error is recoverable
     pub fn is_recoverable(&self) -> bool {
         matches!(

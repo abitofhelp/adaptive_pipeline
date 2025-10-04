@@ -139,6 +139,7 @@ impl RayonPoolManager {
 ///
 /// # Panics
 /// Will panic if Rayon pools cannot be initialized (should never happen in normal operation)
+#[allow(clippy::expect_used)]
 pub static RAYON_POOLS: std::sync::LazyLock<RayonPoolManager> =
     std::sync::LazyLock::new(|| RayonPoolManager::new().expect("Failed to initialize Rayon pools"));
 

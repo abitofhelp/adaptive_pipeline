@@ -188,7 +188,7 @@ use crate::infrastructure::services::progress_indicator_service::ProgressIndicat
 /// Format bytes with 6-digit precision
 fn format_bytes_6_digits(bytes: u64) -> String {
     let byte_obj = Byte::from_u128(bytes as u128)
-        .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+        .unwrap_or_default()
         .get_appropriate_unit(byte_unit::UnitType::Decimal);
 
     let (value, unit) = (byte_obj.get_value(), byte_obj.get_unit());
@@ -496,7 +496,7 @@ async fn main() -> Result<()> {
         })
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).unwrap();
+    tracing::subscriber::set_global_default(subscriber)?;
 
     debug!("Starting Optimized Adaptive Pipeline RS v0.1.0");
 
@@ -564,27 +564,27 @@ async fn main() -> Result<()> {
                 pipeline_repository.clone(),
             )
             .await
-            .unwrap();
+            ?;
         }
 
         Commands::Create { name, stages, output } => {
             create_pipeline(name, stages, output, pipeline_repository.clone())
                 .await
-                .unwrap();
+                ?;
         }
 
         Commands::List => {
-            list_pipelines(pipeline_repository.clone()).await.unwrap();
+            list_pipelines(pipeline_repository.clone()).await?;
         }
 
         Commands::Show { pipeline } => {
-            show_pipeline(pipeline, pipeline_repository.clone()).await.unwrap();
+            show_pipeline(pipeline, pipeline_repository.clone()).await?;
         }
 
         Commands::Delete { pipeline, force } => {
             delete_pipeline(pipeline, force, pipeline_repository.clone())
                 .await
-                .unwrap();
+                ?;
         }
 
         Commands::Benchmark {
@@ -592,14 +592,14 @@ async fn main() -> Result<()> {
             size_mb,
             iterations,
         } => {
-            benchmark_system(file, size_mb, iterations).await.unwrap();
+            benchmark_system(file, size_mb, iterations).await?;
         }
 
         Commands::Validate { config } => {
-            validate_pipeline_config(config).await.unwrap();
+            validate_pipeline_config(config).await?;
         }
         Commands::ValidateFile { file, full } => {
-            validate_adapipe_file(file, full).await.unwrap();
+            validate_adapipe_file(file, full).await?;
         }
 
         Commands::Restore {
@@ -611,7 +611,7 @@ async fn main() -> Result<()> {
             // Use the new hybrid architecture-compliant function
             restore_file_from_adapipe_v2(input, output_dir, mkdir, overwrite)
                 .await
-                .unwrap();
+                ?;
         }
 
         Commands::Compare {
@@ -619,7 +619,7 @@ async fn main() -> Result<()> {
             adapipe,
             detailed,
         } => {
-            compare_file_against_adapipe(original, adapipe, detailed).await.unwrap();
+            compare_file_against_adapipe(original, adapipe, detailed).await?;
         }
     }
 
@@ -671,7 +671,7 @@ async fn process_file(
         "Input file size: {} bytes ({})",
         actual_input_size,
         Byte::from_u128(actual_input_size as u128)
-            .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+            .unwrap_or_default()
             .get_appropriate_unit(byte_unit::UnitType::Decimal)
             .to_string()
     );
@@ -716,7 +716,7 @@ async fn process_file(
         "Final chunk size: {} bytes ({}) - {}",
         actual_chunk_size_bytes,
         Byte::from_u128(actual_chunk_size_bytes as u128)
-            .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+            .unwrap_or_default()
             .get_appropriate_unit(byte_unit::UnitType::Decimal)
             .to_string(),
         chunk_size_source
@@ -751,7 +751,7 @@ async fn process_file(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
         .ok_or_else(|| anyhow::anyhow!("Pipeline '{}' not found", pipeline))
-        .unwrap();
+        ?;
 
     debug!(
         "Loaded pipeline '{}' with {} stages",
@@ -1138,7 +1138,7 @@ async fn create_pipeline(
     info!("Stages: {}", stages);
 
     // Validate and normalize pipeline name
-    let _normalized_name = validate_pipeline_name(&name).unwrap();
+    let _normalized_name = validate_pipeline_name(&name)?;
 
     let stage_names: Vec<&str> = stages.split(',').collect();
     let mut pipeline_stages = Vec::new();
@@ -1171,19 +1171,19 @@ async fn create_pipeline(
             ..Default::default()
         };
 
-        let stage = PipelineStage::new(stage_name.trim().to_string(), stage_type, config, index as u32).unwrap();
+        let stage = PipelineStage::new(stage_name.trim().to_string(), stage_type, config, index as u32)?;
 
         pipeline_stages.push(stage);
     }
 
-    let pipeline = Pipeline::new(name, pipeline_stages).unwrap();
+    let pipeline = Pipeline::new(name, pipeline_stages)?;
 
     // Save pipeline to database
     pipeline_repository
         .save(&pipeline)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to save pipeline: {}", e))
-        .unwrap();
+        ?;
 
     info!(
         "Pipeline '{}' created successfully with ID: {}",
@@ -1207,7 +1207,7 @@ async fn list_pipelines(pipeline_repository: Arc<SqlitePipelineRepository>) -> R
         .list_all()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to query pipelines: {}", e))
-        .unwrap();
+        ?;
 
     if pipelines.is_empty() {
         println!("No pipelines found. Use 'pipeline create' to create a new pipeline.");
@@ -1238,7 +1238,7 @@ async fn show_pipeline(pipeline_name: String, pipeline_repository: Arc<SqlitePip
         .await
         .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
         .ok_or_else(|| anyhow::anyhow!("Pipeline not found: {}", pipeline_name))
-        .unwrap();
+        ?;
 
     // Display pipeline details
     println!("\n=== Pipeline Details ===");
@@ -1302,7 +1302,7 @@ async fn delete_pipeline(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
         .ok_or_else(|| anyhow::anyhow!("Pipeline '{}' not found", pipeline_name))
-        .unwrap();
+        ?;
 
     // Show pipeline details before deletion
     println!("\n=== Pipeline to Delete ===");
@@ -1318,10 +1318,10 @@ async fn delete_pipeline(
             pipeline_name
         );
         use std::io::{self, Write};
-        io::stdout().flush().unwrap();
+        io::stdout().flush()?;
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin().read_line(&mut input)?;
         let input = input.trim().to_lowercase();
 
         if input != "y" && input != "yes" {
@@ -1335,7 +1335,7 @@ async fn delete_pipeline(
         .delete(pipeline.id().clone())
         .await
         .map_err(|e| anyhow::anyhow!("Failed to delete pipeline: {}", e))
-        .unwrap();
+        ?;
 
     println!("✅ Pipeline '{}' deleted successfully", pipeline_name);
     Ok(())
@@ -1389,7 +1389,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
         } else {
             // Generate test file
             let test_file = PathBuf::from(format!("benchmark_test_{}mb.txt", test_size_mb));
-            generate_test_file(&test_file, test_size_mb).await.unwrap();
+            generate_test_file(&test_file, test_size_mb).await?;
             test_file
         };
 
@@ -1416,7 +1416,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
             &metrics_service,
         )
         .await
-        .unwrap();
+        ?;
 
         results.push(BenchmarkResult {
             file_size_mb: test_size_mb,
@@ -1445,7 +1445,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
                 &metrics_service,
             )
             .await
-            .unwrap();
+            ?;
 
             results.push(BenchmarkResult {
                 file_size_mb: test_size_mb,
@@ -1472,7 +1472,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
                 &metrics_service,
             )
             .await
-            .unwrap();
+            ?;
 
             results.push(BenchmarkResult {
                 file_size_mb: test_size_mb,
@@ -1486,12 +1486,12 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
 
         // Clean up generated test file
         if file.is_none() && test_file.exists() {
-            std::fs::remove_file(&test_file).unwrap();
+            std::fs::remove_file(&test_file)?;
         }
     }
 
     // Generate comprehensive report
-    generate_optimization_report(&results).await.unwrap();
+    generate_optimization_report(&results).await?;
 
     println!("\n✅ Benchmark completed successfully!");
     println!("📊 Check the generated optimization report for detailed results.");
@@ -1528,8 +1528,8 @@ async fn simulate_pipeline_processing(
     use tokio::task;
 
     let chunk_size_bytes = chunk_size_mb * 1024 * 1024;
-    let mut input = std::fs::File::open(input_file).unwrap();
-    let mut output = std::fs::File::create(output_file).unwrap();
+    let mut input = std::fs::File::open(input_file)?;
+    let mut output = std::fs::File::create(output_file)?;
 
     // Read file in chunks and simulate processing
     let mut buffer = vec![0u8; chunk_size_bytes];
@@ -1537,7 +1537,7 @@ async fn simulate_pipeline_processing(
 
     // Read all chunks
     loop {
-        let bytes_read = input.read(&mut buffer).unwrap();
+        let bytes_read = input.read(&mut buffer)?;
         if bytes_read == 0 {
             break;
         }
@@ -1571,14 +1571,14 @@ async fn simulate_pipeline_processing(
 
     // Collect results and write to output
     for handle in handles {
-        let processed_chunks = handle.await.unwrap();
+        let processed_chunks = handle.await?;
         for chunk in processed_chunks {
             // Write processed chunk (just write original for benchmark)
-            output.write_all(&chunk).unwrap();
+            output.write_all(&chunk)?;
         }
     }
 
-    output.flush().unwrap();
+    output.flush()?;
     Ok(())
 }
 
@@ -1586,15 +1586,15 @@ async fn simulate_pipeline_processing(
 async fn generate_test_file(path: &PathBuf, size_mb: usize) -> Result<()> {
     use std::io::Write;
 
-    let mut file = std::fs::File::create(path).unwrap();
+    let mut file = std::fs::File::create(path)?;
     let chunk_size = 1024 * 1024; // 1MB chunks
     let data = vec![b'A'; chunk_size]; // Fill with 'A' characters
 
     for _ in 0..size_mb {
-        file.write_all(&data).unwrap();
+        file.write_all(&data)?;
     }
 
-    file.flush().unwrap();
+    file.flush()?;
     Ok(())
 }
 
@@ -1629,7 +1629,7 @@ async fn run_benchmark_test(
 
         // Clean up output file
         if output_file.exists() {
-            std::fs::remove_file(&output_file).unwrap();
+            std::fs::remove_file(&output_file)?;
         }
 
         match result {
@@ -1683,10 +1683,11 @@ async fn generate_optimization_report(results: &[BenchmarkResult]) -> Result<()>
         // Find best configuration
         let best_result = size_results
             .iter()
-            .max_by(|a, b| a.avg_throughput_mbps.partial_cmp(&b.avg_throughput_mbps).unwrap())
-            .unwrap();
+            .max_by(|a, b| a.avg_throughput_mbps.partial_cmp(&b.avg_throughput_mbps).unwrap_or(std::cmp::Ordering::Equal))
+            .ok_or_else(|| anyhow::anyhow!("No benchmark results found"))?;
 
-        let adaptive_result = size_results.iter().find(|r| r.config_type == "Adaptive").unwrap();
+        let adaptive_result = size_results.iter().find(|r| r.config_type == "Adaptive")
+            .ok_or_else(|| anyhow::anyhow!("No adaptive results found"))?;
 
         report.push_str("**Adaptive Configuration:**\n");
         report.push_str(&format!("- Chunk Size: {} MB\n", adaptive_result.chunk_size_mb));
@@ -1726,7 +1727,12 @@ async fn generate_optimization_report(results: &[BenchmarkResult]) -> Result<()>
         report.push_str("|-----------------|---------|-------------------|--------------|-------------|\n");
 
         let mut sorted_results = size_results.clone();
-        sorted_results.sort_by(|a, b| b.avg_throughput_mbps.partial_cmp(&a.avg_throughput_mbps).unwrap());
+        sorted_results.sort_by(|a, b| {
+            b
+                .avg_throughput_mbps
+                .partial_cmp(&a.avg_throughput_mbps)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         for result in sorted_results {
             report.push_str(&format!(
@@ -1750,8 +1756,8 @@ async fn generate_optimization_report(results: &[BenchmarkResult]) -> Result<()>
 
         let best_result = size_results
             .iter()
-            .max_by(|a, b| a.avg_throughput_mbps.partial_cmp(&b.avg_throughput_mbps).unwrap())
-            .unwrap();
+            .max_by(|a, b| a.avg_throughput_mbps.partial_cmp(&b.avg_throughput_mbps).unwrap_or(std::cmp::Ordering::Equal))
+            .ok_or_else(|| anyhow::anyhow!("No benchmark results found"))?;
 
         report.push_str(&format!(
             "- **{} MB files**: {} MB chunks, {} workers ({:.2} MB/s)\n",
@@ -1760,7 +1766,7 @@ async fn generate_optimization_report(results: &[BenchmarkResult]) -> Result<()>
     }
 
     // Write report to file
-    std::fs::write(&report_file, report).unwrap();
+    std::fs::write(&report_file, report)?;
 
     println!("\n📊 Optimization report generated: {}", report_file.display());
 
@@ -1781,7 +1787,7 @@ async fn validate_pipeline_config(config_path: PathBuf) -> Result<()> {
     // Read and parse configuration file
     let config_content = std::fs::read_to_string(&config_path)
         .map_err(|e| anyhow::anyhow!("Failed to read configuration file: {}", e))
-        .unwrap();
+        ?;
 
     println!("🔍 Validating configuration file: {}", config_path.display());
     println!("   File size: {} bytes", config_content.len());
@@ -1796,11 +1802,11 @@ async fn validate_pipeline_config(config_path: PathBuf) -> Result<()> {
         _ => {
             // Try to auto-detect format
             if config_content.trim_start().starts_with('{') {
-                validate_json_config(&config_content, &config_path).unwrap();
+                validate_json_config(&config_content, &config_path)?;
             } else if config_content.contains("---") || config_content.contains(":") {
-                validate_yaml_config(&config_content, &config_path).unwrap();
+                validate_yaml_config(&config_content, &config_path)?;
             } else {
-                validate_toml_config(&config_content, &config_path).unwrap();
+                validate_toml_config(&config_content, &config_path)?;
             }
         }
     }
@@ -1816,7 +1822,7 @@ fn validate_toml_config(content: &str, _path: &PathBuf) -> Result<()> {
     // Parse TOML
     let parsed: toml::Value = toml::from_str(content)
         .map_err(|e| anyhow::anyhow!("Invalid TOML syntax: {}", e))
-        .unwrap();
+        ?;
 
     // Validate expected structure
     if let Some(pipelines) = parsed.get("pipelines") {
@@ -1824,14 +1830,14 @@ fn validate_toml_config(content: &str, _path: &PathBuf) -> Result<()> {
             println!("   Found {} pipeline(s) in configuration", pipeline_table.len());
 
             for (name, config) in pipeline_table {
-                validate_pipeline_config_entry(name, config).unwrap();
+                validate_pipeline_config_entry(name, config)?;
             }
         }
     }
 
     // Validate global settings if present
     if let Some(settings) = parsed.get("settings") {
-        validate_global_settings(settings).unwrap();
+        validate_global_settings(settings)?;
     }
 
     println!("   ✅ TOML structure is valid");
@@ -1845,7 +1851,7 @@ fn validate_json_config(content: &str, _path: &PathBuf) -> Result<()> {
     // Parse JSON
     let parsed: serde_json::Value = serde_json::from_str(content)
         .map_err(|e| anyhow::anyhow!("Invalid JSON syntax: {}", e))
-        .unwrap();
+        ?;
 
     // Validate expected structure
     if let Some(pipelines) = parsed.get("pipelines") {
@@ -1853,7 +1859,7 @@ fn validate_json_config(content: &str, _path: &PathBuf) -> Result<()> {
             println!("   Found {} pipeline(s) in configuration", pipeline_obj.len());
 
             for (name, config) in pipeline_obj {
-                validate_json_pipeline_entry(name, config).unwrap();
+                validate_json_pipeline_entry(name, config)?;
             }
         }
     }
@@ -1966,7 +1972,7 @@ async fn validate_adapipe_file(file_path: PathBuf, full_validation: bool) -> Res
         .validate_file(&file_path)
         .await
         .map_err(|e| anyhow::anyhow!("Format validation failed: {}", e))
-        .unwrap();
+        ?;
 
     if !validation_result.is_valid {
         println!("❌ File format validation failed!");
@@ -1984,13 +1990,13 @@ async fn validate_adapipe_file(file_path: PathBuf, full_validation: bool) -> Res
         .read_metadata(&file_path)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to read metadata: {}", e))
-        .unwrap();
+        ?;
 
     println!("   Original filename: {}", metadata.original_filename);
     println!(
         "   Original size: {}",
         Byte::from_u128(metadata.original_size as u128)
-            .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+            .unwrap_or_default()
             .get_appropriate_unit(byte_unit::UnitType::Decimal)
     );
     println!("   Original checksum: {}", metadata.original_checksum);
@@ -1999,7 +2005,7 @@ async fn validate_adapipe_file(file_path: PathBuf, full_validation: bool) -> Res
     println!(
         "   Chunk size: {}",
         Byte::from_u128(metadata.chunk_size as u128)
-            .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+            .unwrap_or_default()
             .get_appropriate_unit(byte_unit::UnitType::Decimal)
     );
     println!("   Chunk count: {}", metadata.chunk_count);
@@ -2073,10 +2079,10 @@ async fn restore_file_from_adapipe_v2(
 
     // Read .adapipe metadata to determine target path
     println!("🔍 Reading .adapipe file metadata...");
-    let file_data = std::fs::read(&input).unwrap();
+    let file_data = std::fs::read(&input)?;
     let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
         .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-        .unwrap();
+        ?;
 
     // Determine output path
     let target_path = if let Some(ref dir) = output_dir {
@@ -2130,22 +2136,22 @@ async fn restore_file_from_adapipe_v2(
         if mkdir && !output_dir.exists() {
             std::fs::create_dir_all(&output_dir)
                 .map_err(|e| anyhow::anyhow!("Failed to create output directory: {}", e))
-                .unwrap();
+                ?;
         }
 
         // Read metadata to get original filename
-        let file_data = std::fs::read(&input).unwrap();
+        let file_data = std::fs::read(&input)?;
         let (metadata, _) = FileHeader::from_footer_bytes(&file_data)
             .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-            .unwrap();
+            ?;
 
         output_dir.join(&metadata.original_filename)
     } else {
         // Use same directory as input file, but with original filename
-        let file_data = std::fs::read(&input).unwrap();
+        let file_data = std::fs::read(&input)?;
         let (metadata, _) = FileHeader::from_footer_bytes(&file_data)
             .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-            .unwrap();
+            ?;
 
         input
             .parent()
@@ -2180,7 +2186,7 @@ async fn restore_file_from_adapipe_v2(
     //     .restore_file(restore_command)
     //     .await
     //     .map_err(|e| anyhow::anyhow!("Restoration failed: {}", e))
-    //     .unwrap();
+    //     ?;
     // let duration = start_time.elapsed();
     //
     // // Display results
@@ -2219,12 +2225,12 @@ async fn restore_file_from_adapipe_legacy(
 
     // Read .adapipe metadata
     println!("🔍 Reading .adapipe file metadata...");
-    let _file = std::fs::File::open(&input).unwrap();
+    let _file = std::fs::File::open(&input)?;
     // Read entire file to get footer data
-    let file_data = std::fs::read(&input).unwrap();
+    let file_data = std::fs::read(&input)?;
     let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
         .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-        .unwrap();
+        ?;
 
     // Debug: Show metadata details
     println!("   📋 Metadata details:");
@@ -2280,7 +2286,7 @@ async fn restore_file_from_adapipe_legacy(
         // Check if existing file is writable
         let metadata = std::fs::metadata(&output_path)
             .map_err(|e| anyhow::anyhow!("Failed to check existing file permissions: {}", e))
-            .unwrap();
+            ?;
 
         if metadata.permissions().readonly() {
             return Err(anyhow::anyhow!(
@@ -2310,16 +2316,16 @@ async fn restore_file_from_adapipe_legacy(
                             anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
                         }
                     })
-                    .unwrap();
+                    ?;
             } else {
                 print!(
                     "Directory '{}' does not exist. Create it? [y/N]: ",
                     parent_dir.display()
                 );
-                std::io::Write::flush(&mut std::io::stdout()).unwrap();
+                std::io::Write::flush(&mut std::io::stdout())?;
 
                 let mut input = String::new();
-                std::io::stdin().read_line(&mut input).unwrap();
+                std::io::stdin().read_line(&mut input)?;
 
                 if input.trim().to_lowercase() == "y" || input.trim().to_lowercase() == "yes" {
                     println!("📂 Creating directory: {}", parent_dir.display());
@@ -2335,7 +2341,7 @@ async fn restore_file_from_adapipe_legacy(
                                 anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
                             }
                         })
-                        .unwrap();
+                        ?;
                 } else {
                     return Err(anyhow::anyhow!("Directory creation cancelled by user"));
                 }
@@ -2399,7 +2405,7 @@ async fn restore_file_from_adapipe_legacy(
     let restoration_pipeline = create_restoration_pipeline(&metadata)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create restoration pipeline: {}", e))
-        .unwrap();
+        ?;
 
     println!("   Pipeline ID: {}", restoration_pipeline.id());
     println!("   Stages: {}", restoration_pipeline.stages().len());
@@ -2433,7 +2439,7 @@ async fn restore_file_from_adapipe_legacy(
     )
     .await
     .map_err(|e| anyhow::anyhow!("Restoration failed: {}", e))
-    .unwrap();
+    ?;
 
     // Validate restoration results
     if restoration_result.checksum_verified {
@@ -2475,15 +2481,15 @@ async fn compare_file_against_adapipe(original: PathBuf, adapipe: PathBuf, detai
 
     // Read .adapipe metadata
     println!("🔍 Reading .adapipe file metadata...");
-    let _file = std::fs::File::open(&adapipe).unwrap();
+    let _file = std::fs::File::open(&adapipe)?;
     // Read entire file to get footer data
-    let file_data = std::fs::read(&adapipe).unwrap();
+    let file_data = std::fs::read(&adapipe)?;
     let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
         .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-        .unwrap();
+        ?;
 
     // Get original file info
-    let original_metadata = std::fs::metadata(&original).unwrap();
+    let original_metadata = std::fs::metadata(&original)?;
     let original_size = original_metadata.len();
 
     println!("📊 File Comparison:");
@@ -2513,8 +2519,8 @@ async fn compare_file_against_adapipe(original: PathBuf, adapipe: PathBuf, detai
     println!("   🔄 Calculating current file checksum...");
 
     let mut hasher = Sha256::new();
-    let mut file = std::fs::File::open(&original).unwrap();
-    std::io::copy(&mut file, &mut hasher).unwrap();
+    let mut file = std::fs::File::open(&original)?;
+    std::io::copy(&mut file, &mut hasher)?;
     let current_checksum = format!("{:x}", hasher.finalize());
 
     println!("   Current file checksum: {}", current_checksum);
@@ -2549,7 +2555,7 @@ async fn compare_file_against_adapipe(original: PathBuf, adapipe: PathBuf, detai
             );
         }
 
-        let current_modified = original_metadata.modified().unwrap();
+        let current_modified = original_metadata.modified()?;
         println!(
             "   Current file modified: {}",
             chrono::DateTime::<chrono::Utc>::from(current_modified).format("%Y-%m-%d %H:%M:%S UTC")
@@ -2617,7 +2623,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                     decryption_config,
                     stage_index,
                 )
-                .unwrap();
+                ?;
 
                 stages.push(decryption_stage);
                 info!(
@@ -2640,7 +2646,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                     decompression_config,
                     stage_index,
                 )
-                .unwrap();
+                ?;
 
                 stages.push(decompression_stage);
                 info!(
@@ -2701,7 +2707,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                 };
 
                 let custom_stage =
-                    PipelineStage::new(stage_name.clone(), stage_type, custom_config, stage_index).unwrap();
+                    PipelineStage::new(stage_name.clone(), stage_type, custom_config, stage_index)?;
 
                 stages.push(custom_stage);
                 info!(
@@ -2727,7 +2733,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
         verification_config,
         stage_index,
     )
-    .unwrap();
+    ?;
 
     stages.push(verification_stage);
     info!("Added verification stage: sha256");
@@ -2740,7 +2746,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
     // Create ephemeral pipeline with special naming convention
     let pipeline_name = format!("__restore__{}", metadata.pipeline_id);
 
-    let pipeline = Pipeline::new(pipeline_name, stages).unwrap();
+    let pipeline = Pipeline::new(pipeline_name, stages)?;
 
     info!(
         "Created ephemeral restoration pipeline with {} stages",
@@ -2799,13 +2805,13 @@ async fn stream_restore_with_validation(
         .create_reader(input_path)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create .adapipe reader: {}", e))
-        .unwrap();
+        ?;
 
     // Create output file for writing restored data
     let mut output_file = File::create(output_path)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))
-        .unwrap();
+        ?;
 
     // Create domain services for restoration pipeline
     let compression_service = Arc::new(CompressionServiceImpl::new());
@@ -2857,7 +2863,7 @@ async fn stream_restore_with_validation(
             false, // is_final - we'll determine this later
         )
         .map_err(|e| anyhow::anyhow!("Failed to create file chunk: {}", e))
-        .unwrap();
+        ?;
 
         // Process chunk through restoration pipeline stages
         let mut current_chunk = file_chunk;
@@ -2868,7 +2874,7 @@ async fn stream_restore_with_validation(
                 .execute(stage, current_chunk, &mut processing_context)
                 .await
                 .map_err(|e| anyhow::anyhow!("Stage '{}' failed: {}", stage.name(), e))
-                .unwrap();
+                ?;
         }
 
         // Write restored chunk to output file
@@ -2877,7 +2883,7 @@ async fn stream_restore_with_validation(
             .write_all(restored_data)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to write restored data: {}", e))
-            .unwrap();
+            ?;
 
         // Update incremental checksum with restored data
         hasher.update(restored_data);
@@ -2903,7 +2909,7 @@ async fn stream_restore_with_validation(
         .flush()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to flush output file: {}", e))
-        .unwrap();
+        ?;
 
     // Calculate final checksum
     let calculated_hash = hasher.finalize();
@@ -2972,7 +2978,7 @@ mod restore_tests {
             result.err()
         );
 
-        let pipeline = result.unwrap();
+        let pipeline = result?;
         assert_eq!(
             pipeline.stages().len(),
             5,
@@ -3004,7 +3010,7 @@ mod restore_tests {
         let result = create_restoration_pipeline(&header).await;
         assert!(result.is_ok());
 
-        let pipeline = result.unwrap();
+        let pipeline = result?;
         assert_eq!(
             pipeline.stages().len(),
             4,
@@ -3025,7 +3031,7 @@ mod restore_tests {
         let result = create_restoration_pipeline(&header).await;
         assert!(result.is_ok());
 
-        let pipeline = result.unwrap();
+        let pipeline = result?;
         assert_eq!(
             pipeline.stages().len(),
             3,
@@ -3070,7 +3076,7 @@ mod restore_tests {
         let header = FileHeader::new("test.txt".to_string(), 1024, "abc123".to_string())
             .with_pipeline_id("original-pipeline-123".to_string());
 
-        let pipeline = create_restoration_pipeline(&header).await.unwrap();
+        let pipeline = create_restoration_pipeline(&header).await?;
 
         // Verify ephemeral pipeline naming convention
         assert!(pipeline.name().starts_with("__restore__"));
@@ -3089,7 +3095,7 @@ mod restore_tests {
 
         assert!(chunk.is_ok(), "Failed to create FileChunk: {:?}", chunk.err());
 
-        let chunk = chunk.unwrap();
+        let chunk = chunk?;
         assert_eq!(chunk.sequence_number(), 0);
         assert_eq!(chunk.offset(), 0);
         assert_eq!(chunk.data(), &test_data);

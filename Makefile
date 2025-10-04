@@ -8,7 +8,20 @@ SHELL := /bin/bash
 PROJECT_NAME := optimized_adaptive_pipeline_rs
 RUST_VERSION := stable
 CARGO := cargo
+
+# Clippy configuration
+# Development mode: warnings for pedantic/nursery lints
 CLIPPY_ARGS := -- -D warnings -W clippy::pedantic -W clippy::nursery -W clippy::cargo
+
+# Strict mode: deny production anti-patterns (for CI/CD)
+# Focus ONLY on safety-critical denies, not style warnings
+CLIPPY_STRICT := -- \
+	-D clippy::unwrap_used \
+	-D clippy::expect_used \
+	-D clippy::panic \
+	-D clippy::todo \
+	-D clippy::unimplemented
+
 RUSTFMT_ARGS := --edition 2021
 
 # Environment Variables
@@ -29,7 +42,7 @@ NC := \033[0m # No Color
 .DEFAULT_GOAL := help
 
 # Phony targets
-.PHONY: help setup clean build test check lint format doc bench audit security \
+.PHONY: help setup clean build test check lint lint-strict lint-fix lint-cicd format doc bench audit security \
         install-tools update-deps release debug run examples workspace-check \
         pipeline-check pipelinelib-check coverage flamegraph bloat pre-commit \
         docker-build docker-run ci-local install-cross-targets build-linux-x86_64 \
@@ -59,7 +72,10 @@ help: ## Display this help message
 	@echo -e "  $(CYAN)clippy               $(NC) Run clippy linter with strict settings"
 	@echo -e "  $(CYAN)format               $(NC) Format code with rustfmt"
 	@echo -e "  $(CYAN)format-check         $(NC) Check code formatting"
-	@echo -e "  $(CYAN)lint                 $(NC) Run clippy linter"
+	@echo -e "  $(CYAN)lint                 $(NC) Run clippy linter (development mode)"
+	@echo -e "  $(CYAN)lint-cicd            $(NC) Run strict linting for CI/CD (denies unwrap/panic/todo)"
+	@echo -e "  $(CYAN)lint-fix             $(NC) Auto-fix clippy warnings"
+	@echo -e "  $(CYAN)lint-strict          $(NC) Run clippy with production-level strictness"
 	@echo ""
 	@echo -e "$(YELLOW)Development Workflow$(NC)"
 	@echo -e "  $(CYAN)ci-local             $(NC) Run full CI pipeline locally"
@@ -269,10 +285,23 @@ check: ## Run cargo check
 	@echo -e "$(BLUE)Running cargo check...$(NC)"
 	@$(CARGO) check --workspace
 
-lint: clippy ## Run clippy linter
+lint: clippy ## Run clippy linter (development mode)
 clippy: ## Run clippy linter with strict settings
-	@echo -e "$(BLUE)Running clippy...$(NC)"
+	@echo -e "$(BLUE)Running clippy (development mode)...$(NC)"
 	@$(CARGO) clippy --workspace --all-targets --all-features $(CLIPPY_ARGS)
+
+lint-strict: ## Run clippy with production-level strictness (denies unwrap/panic/todo)
+	@echo -e "$(BLUE)Running clippy (strict mode - production rules)...$(NC)"
+	@echo -e "$(YELLOW)This denies: unwrap, expect, panic, todo, unimplemented in production code$(NC)"
+	@echo -e "$(YELLOW)Note: Tests are excluded (tests can use unwrap/expect)$(NC)"
+	@$(CARGO) clippy --workspace --lib --bins --all-features $(CLIPPY_STRICT)
+
+lint-fix: ## Auto-fix clippy warnings where possible
+	@echo -e "$(BLUE)Auto-fixing clippy warnings...$(NC)"
+	@$(CARGO) clippy --workspace --all-targets --all-features --fix --allow-dirty $(CLIPPY_ARGS)
+
+lint-cicd: lint-strict format-check ## Run full linting for CI/CD (strict clippy + format check)
+	@echo -e "$(GREEN)✓ CI/CD linting passed!$(NC)"
 
 format: ## Format code with rustfmt
 	@echo -e "$(BLUE)Formatting code...$(NC)"
@@ -367,7 +396,7 @@ watch-check: ## Watch for changes and run check
 pre-commit: format lint test ## Run pre-commit checks
 	@echo -e "$(GREEN)✓ Pre-commit checks passed!$(NC)"
 
-ci-local: clean build test lint doc audit ## Run full CI pipeline locally
+ci-local: clean build test lint-cicd doc audit ## Run full CI pipeline locally
 	@echo -e "$(GREEN)✓ Local CI pipeline completed!$(NC)"
 
 ##@ Release Management

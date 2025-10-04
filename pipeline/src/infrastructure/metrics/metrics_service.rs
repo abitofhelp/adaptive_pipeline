@@ -218,7 +218,7 @@ impl MetricsService {
             Opts::new("pipeline_processed_total", "Total number of pipelines processed").namespace("adaptive_pipeline"),
         )
         .map_err(|e| PipelineError::metrics_error(format!("Failed to create pipelines_processed_total metric: {}", e)))
-        .unwrap();
+        ?;
 
         let pipeline_processing_duration = Histogram::with_opts(
             HistogramOpts::new(
@@ -231,7 +231,7 @@ impl MetricsService {
         .map_err(|e| {
             PipelineError::metrics_error(format!("Failed to create pipeline_processing_duration metric: {}", e))
         })
-        .unwrap();
+        ?;
 
         let pipeline_bytes_processed_total = IntCounter::with_opts(
             Opts::new("pipeline_bytes_processed_total", "Total bytes processed by pipelines")
@@ -240,7 +240,7 @@ impl MetricsService {
         .map_err(|e| {
             PipelineError::metrics_error(format!("Failed to create pipeline_bytes_processed_total metric: {}", e))
         })
-        .unwrap();
+        ?;
 
         let pipeline_chunks_processed_total = IntCounter::with_opts(
             Opts::new("pipeline_chunks_processed_total", "Total chunks processed by pipelines")
@@ -252,84 +252,84 @@ impl MetricsService {
                 e
             ))
         })
-        .unwrap();
+        ?;
 
         let pipeline_errors_total = IntCounter::with_opts(
             Opts::new("pipeline_errors_total", "Total pipeline processing errors").namespace("adaptive_pipeline"),
         )
         .map_err(|e| PipelineError::metrics_error(format!("Failed to create pipeline_errors_total metric: {}", e)))
-        .unwrap();
+        ?;
 
         let pipeline_warnings_total = IntCounter::with_opts(
             Opts::new("pipeline_warnings_total", "Total pipeline processing warnings").namespace("adaptive_pipeline"),
         )
         .map_err(|e| PipelineError::metrics_error(format!("Failed to create pipeline_warnings_total metric: {}", e)))
-        .unwrap();
+        ?;
 
         // Create performance gauges
         let throughput_mbps = Gauge::with_opts(
             Opts::new("pipeline_throughput_mbps", "Current pipeline throughput in MB/s").namespace("adaptive_pipeline"),
         )
         .map_err(|e| PipelineError::metrics_error(format!("Failed to create throughput_mbps metric: {}", e)))
-        .unwrap();
+        ?;
 
         let compression_ratio = Gauge::with_opts(
             Opts::new("pipeline_compression_ratio", "Current compression ratio achieved")
                 .namespace("adaptive_pipeline"),
         )
         .map_err(|e| PipelineError::metrics_error(format!("Failed to create compression_ratio metric: {}", e)))
-        .unwrap();
+        ?;
 
         // Create system gauges
         let active_pipelines = IntGauge::with_opts(
             Opts::new("pipeline_active_count", "Number of currently active pipelines").namespace("adaptive_pipeline"),
         )
         .map_err(|e| PipelineError::metrics_error(format!("Failed to create active_pipelines metric: {}", e)))
-        .unwrap();
+        ?;
 
         // Register all metrics
         registry
             .register(Box::new(pipelines_processed_total.clone()))
             .map_err(|e| PipelineError::metrics_error(format!("Failed to register pipelines_processed_total: {}", e)))
-            .unwrap();
+            ?;
         registry
             .register(Box::new(pipeline_processing_duration.clone()))
             .map_err(|e| {
                 PipelineError::metrics_error(format!("Failed to register pipeline_processing_duration: {}", e))
             })
-            .unwrap();
+            ?;
         registry
             .register(Box::new(pipeline_bytes_processed_total.clone()))
             .map_err(|e| {
                 PipelineError::metrics_error(format!("Failed to register pipeline_bytes_processed_total: {}", e))
             })
-            .unwrap();
+            ?;
         registry
             .register(Box::new(pipeline_chunks_processed_total.clone()))
             .map_err(|e| {
                 PipelineError::metrics_error(format!("Failed to register pipeline_chunks_processed_total: {}", e))
             })
-            .unwrap();
+            ?;
         registry
             .register(Box::new(pipeline_errors_total.clone()))
             .map_err(|e| PipelineError::metrics_error(format!("Failed to register pipeline_errors_total: {}", e)))
-            .unwrap();
+            ?;
         registry
             .register(Box::new(pipeline_warnings_total.clone()))
             .map_err(|e| PipelineError::metrics_error(format!("Failed to register pipeline_warnings_total: {}", e)))
-            .unwrap();
+            ?;
         registry
             .register(Box::new(throughput_mbps.clone()))
             .map_err(|e| PipelineError::metrics_error(format!("Failed to register throughput_mbps: {}", e)))
-            .unwrap();
+            ?;
         registry
             .register(Box::new(compression_ratio.clone()))
             .map_err(|e| PipelineError::metrics_error(format!("Failed to register compression_ratio: {}", e)))
-            .unwrap();
+            ?;
         registry
             .register(Box::new(active_pipelines.clone()))
             .map_err(|e| PipelineError::metrics_error(format!("Failed to register active_pipelines: {}", e)))
-            .unwrap();
+            ?;
 
         debug!("MetricsService initialized with Prometheus registry");
 
@@ -377,7 +377,7 @@ impl MetricsService {
         debug!(
             "Recorded metrics: {} bytes, {} chunks, {} errors, {:.2} MB/s throughput",
             Byte::from_u128(metrics.bytes_processed() as u128)
-                .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+                .unwrap_or_else(|| Byte::from_u64(0))
                 .get_appropriate_unit(byte_unit::UnitType::Decimal)
                 .to_string(),
             metrics.chunks_processed(),
@@ -450,6 +450,7 @@ impl MetricsService {
 }
 
 impl Default for MetricsService {
+    #[allow(clippy::expect_used)]
     fn default() -> Self {
         Self::new().expect("Failed to create default MetricsService")
     }
@@ -496,7 +497,7 @@ mod tests {
     #[test]
     fn test_metrics_service_creation() {
         let service = MetricsService::new().unwrap();
-        // assert!(!service.get_metrics().unwrap().is_empty());
+        // assert!(!service.get_metrics()?.is_empty());
     }
 
     /// Tests pipeline completion recording and metrics generation.

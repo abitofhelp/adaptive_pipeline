@@ -155,8 +155,8 @@
 //!     #[test]
 //!     fn test_process_file_endpoint() {
 //!         // Arrange: Set up test server
-//!         let app = create_test_app().unwrap();
-//!         let server = StringestServer::new(app).unwrap();
+//!         let app = create_test_app()?;
+//!         let server = StringestServer::new(app)?;
 //!
 //!         // Act: Make API request
 //!         let response = server
@@ -165,7 +165,7 @@
 //!                 input_path: "test.txt".to_string(),
 //!                 output_path: "test.adapipe".to_string(),
 //!             })
-//!             .unwrap();
+//!             ?;
 //!
 //!         // Assert: Verify response
 //!         response.assert_status_ok();

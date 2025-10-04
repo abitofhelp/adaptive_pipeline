@@ -155,12 +155,12 @@ impl CompressionServiceImpl {
         compressor
             .write_all(data)
             .map_err(|e| PipelineError::CompressionError(format!("Brotli compression failed: {}", e)))
-            .unwrap();
+            ?;
 
         compressor
             .flush()
             .map_err(|e| PipelineError::CompressionError(format!("Brotli flush failed: {}", e)))
-            .unwrap();
+            ?;
 
         drop(compressor);
         Ok(output)
@@ -174,7 +174,7 @@ impl CompressionServiceImpl {
         decompressor
             .read_to_end(&mut output)
             .map_err(|e| PipelineError::CompressionError(format!("Brotli decompression failed: {}", e)))
-            .unwrap();
+            ?;
 
         Ok(output)
     }
@@ -188,7 +188,7 @@ impl CompressionServiceImpl {
         encoder
             .read_to_end(&mut output)
             .map_err(|e| PipelineError::CompressionError(format!("Gzip compression failed: {}", e)))
-            .unwrap();
+            ?;
 
         Ok(output)
     }
@@ -201,7 +201,7 @@ impl CompressionServiceImpl {
         decoder
             .read_to_end(&mut output)
             .map_err(|e| PipelineError::CompressionError(format!("Gzip decompression failed: {}", e)))
-            .unwrap();
+            ?;
 
         Ok(output)
     }
@@ -230,15 +230,15 @@ impl CompressionServiceImpl {
 
         let compressed_size = match algorithm {
             CompressionAlgorithm::Brotli => {
-                let compressed = self.compress_brotli(sample, 6).unwrap();
+                let compressed = self.compress_brotli(sample, 6)?;
                 compressed.len()
             }
             CompressionAlgorithm::Gzip => {
-                let compressed = self.compress_gzip(sample, 6).unwrap();
+                let compressed = self.compress_gzip(sample, 6)?;
                 compressed.len()
             }
             CompressionAlgorithm::Zstd => {
-                let compressed = self.compress_zstd(sample, 3).unwrap();
+                let compressed = self.compress_zstd(sample, 3)?;
                 compressed.len()
             }
             _ => {
@@ -278,8 +278,8 @@ impl CompressionService for CompressionServiceImpl {
         };
 
         // Create new chunk with compressed data and calculate checksum
-        let compressed_chunk = chunk.with_data(compressed_data).unwrap();
-        let chunk = compressed_chunk.with_calculated_checksum().unwrap();
+        let compressed_chunk = chunk.with_data(compressed_data)?;
+        let chunk = compressed_chunk.with_calculated_checksum()?;
 
         // Update context metadata
         let compression_ratio = chunk.data_len() as f64 / data.len() as f64;
@@ -313,8 +313,8 @@ impl CompressionService for CompressionServiceImpl {
         };
 
         // Create new chunk with decompressed data and calculate checksum
-        let decompressed_chunk = chunk.with_data(decompressed_data).unwrap();
-        let chunk = decompressed_chunk.with_calculated_checksum().unwrap();
+        let decompressed_chunk = chunk.with_data(decompressed_data)?;
+        let chunk = decompressed_chunk.with_calculated_checksum()?;
 
         // Update context metadata
         context.add_metadata("decompression_algorithm".to_string(), config.algorithm.to_string());

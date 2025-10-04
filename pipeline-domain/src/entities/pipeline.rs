@@ -378,7 +378,7 @@ impl Pipeline {
         let mut complete_stages = Vec::with_capacity(user_stage_count + 2);
 
         // 1. Create and add input_checksum stage (order: 0)
-        let input_checksum_stage = Self::create_input_checksum_stage().unwrap();
+        let input_checksum_stage = Self::create_input_checksum_stage()?;
         complete_stages.push(input_checksum_stage);
 
         // 2. Add user stages with proper order (starting from 1)
@@ -390,13 +390,12 @@ impl Pipeline {
                 *stage.stage_type(),
                 stage.configuration().clone(),
                 (index + 1) as u32, // order: 1, 2, 3...
-            )
-            .unwrap();
+            )?;
             complete_stages.push(user_stage);
         }
 
         // 3. Create and add output_checksum stage (order: last)
-        let output_checksum_stage = Self::create_output_checksum_stage((user_stage_count + 1) as u32).unwrap();
+        let output_checksum_stage = Self::create_output_checksum_stage((user_stage_count + 1) as u32)?;
         complete_stages.push(output_checksum_stage);
 
         Ok(Pipeline {

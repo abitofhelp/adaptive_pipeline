@@ -12,7 +12,7 @@ This isn't just another file processor - it's a **showcase of advanced Rust patt
 - **🔄 Channel-Based Concurrency**: Reader → CPU Workers → Direct Writer pattern eliminates bottlenecks
 - **⚡ Hybrid Parallelism**: Rayon for CPU-bound ops + Tokio for async I/O = optimal resource utilization
 - **🎯 Adaptive Performance**: Dynamic chunk sizing and worker scaling based on file characteristics
-- **🛡️ Zero-Panic Production Code**: 297 unwrap/expect/panic patterns eliminated through systematic remediation
+- **🛡️ Zero-Panic Production Code**: No unwrap/expect/panic patterns
 - **🔐 Security First**: AES-256-GCM, ChaCha20-Poly1305 with Argon2 key derivation
 - **📊 Observable**: Prometheus metrics, structured tracing, performance dashboards
 
@@ -48,7 +48,7 @@ optimized_adaptive_pipeline_rs/
 │
 ├── bootstrap/                # Entry point & platform layer
 │   ├── config.rs            # DI container, service registry
-│   ├── signals.rs           # SIGTERM/SIGINT handling
+│   ├── signals.rs           # SIGTERM/SIGINT/SIGHUP handling
 │   └── platform/            # Cross-platform abstractions
 │
 └── Cargo.toml               # Workspace config
@@ -56,7 +56,7 @@ optimized_adaptive_pipeline_rs/
 
 ### Concurrency Model
 
-**Channel-Based Execution Pipeline** (Week 2 Architecture):
+**Channel-Based Execution Pipeline**:
 
 ```
 ┌─────────────┐    Channel     ┌──────────────┐    Direct Write    ┌────────────┐
@@ -225,9 +225,9 @@ diff test.dat restored.dat
 - Queue depth monitoring
 
 🛡️ **Production Reliability**
-- Zero panic in production code (297 patterns eliminated)
+- Zero panic in production code
 - Comprehensive error handling
-- Graceful shutdown (SIGTERM/SIGINT)
+- Graceful shutdown (SIGTERM/SIGINT/SIGHUP)
 - Supervision tree for task recovery
 
 ### Supported Algorithms
@@ -542,16 +542,6 @@ git push origin feature/amazing-feature
 - [Database Setup](docs/DATABASE_SETUP.md)
 - [Performance Tuning](docs/adaptive-performance-optimization.md)
 - [API Documentation](https://docs.rs/optimized-adaptive-pipeline-rs)
-
-### Recent Improvements
-
-- ✅ **Week 2 Concurrency**: Channel-based pipeline with direct writes
-- ✅ **Error Remediation**: 297 unwrap/expect/panic eliminated
-- ✅ **Rayon Integration**: Parallel CPU-bound processing
-- ✅ **Resource Manager**: Global CPU/IO token management
-- ✅ **Signal Handling**: Graceful shutdown on SIGTERM/SIGINT
-- ✅ **Streaming I/O**: Memory-efficient file processing
-- ✅ **License Change**: MIT → BSD 3-Clause
 
 ## 📄 License
 

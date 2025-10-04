@@ -232,7 +232,7 @@ impl FileChunk {
             return Err(PipelineError::InvalidChunk("Chunk data cannot be empty".to_string()));
         }
 
-        let size = ChunkSize::new(data.len()).unwrap();
+        let size = ChunkSize::new(data.len())?;
 
         Ok(FileChunk {
             id: Uuid::new_v4(),
@@ -259,7 +259,7 @@ impl FileChunk {
         checksum: String,
         is_final: bool,
     ) -> Result<Self, PipelineError> {
-        let chunk = Self::new(sequence_number, offset, data, is_final).unwrap();
+        let chunk = Self::new(sequence_number, offset, data, is_final)?;
         Ok(chunk.with_checksum(checksum))
     }
 
@@ -330,7 +330,7 @@ impl FileChunk {
             return Err(PipelineError::InvalidChunk("Chunk data cannot be empty".to_string()));
         }
 
-        let size = ChunkSize::new(data.len()).unwrap();
+        let size = ChunkSize::new(data.len())?;
 
         Ok(FileChunk {
             id: Uuid::new_v4(), // New chunk gets new ID
@@ -388,7 +388,7 @@ impl FileChunk {
             id: self.id,
             sequence_number: self.sequence_number,
             offset: self.offset,
-            size: ChunkSize::new(0).unwrap(), // Empty chunk
+            size: ChunkSize::new(0).unwrap_or_else(|_| ChunkSize::default()), // Empty chunk - ChunkSize(0) should never fail, but handle it safely
             data: Vec::new(),
             checksum: None, // Clear checksum
             is_final: self.is_final,

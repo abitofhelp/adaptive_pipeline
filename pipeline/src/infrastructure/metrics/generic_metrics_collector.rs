@@ -325,7 +325,7 @@ where
             .active_operations
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))
-            .unwrap();
+            ?;
 
         active_ops.insert(operation_id, Instant::now());
         Ok(())
@@ -343,7 +343,7 @@ where
                 .active_operations
                 .write()
                 .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))
-                .unwrap();
+                ?;
 
             active_ops.remove(&operation_id)
         };
@@ -354,10 +354,10 @@ where
 
         let entry = MetricEntry::new(operation_id, operation_type, metrics.clone()).with_duration(duration);
 
-        self.record_entry(entry).unwrap();
+        self.record_entry(entry)?;
 
         if self.auto_aggregate {
-            self.aggregate_metrics(&metrics).unwrap();
+            self.aggregate_metrics(&metrics)?;
         }
 
         Ok(())
@@ -369,7 +369,7 @@ where
             .entries
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write entries: {}", e)))
-            .unwrap();
+            ?;
 
         entries.push(entry);
 
@@ -393,7 +393,7 @@ where
                 .active_operations
                 .write()
                 .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))
-                .unwrap();
+                ?;
 
             active_ops.remove(&operation_id)
         };
@@ -415,7 +415,7 @@ where
             .aggregated_metrics
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e)))
-            .unwrap();
+            ?;
 
         aggregated.merge(metrics);
         Ok(())
@@ -439,7 +439,7 @@ where
 
     /// Gets entries filtered by operation type
     pub fn get_entries_by_type(&self, operation_type: &str) -> Result<Vec<MetricEntry<T>>, PipelineError> {
-        let entries = self.get_entries().unwrap();
+        let entries = self.get_entries()?;
         Ok(entries
             .into_iter()
             .filter(|entry| entry.operation_type == operation_type)
@@ -452,7 +452,7 @@ where
         start: chrono::DateTime<chrono::Utc>,
         end: chrono::DateTime<chrono::Utc>,
     ) -> Result<Vec<MetricEntry<T>>, PipelineError> {
-        let entries = self.get_entries().unwrap();
+        let entries = self.get_entries()?;
         Ok(entries
             .into_iter()
             .filter(|entry| entry.started_at >= start && entry.completed_at <= end)
@@ -465,19 +465,19 @@ where
             .entries
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write entries: {}", e)))
-            .unwrap();
+            ?;
 
         let mut aggregated = self
             .aggregated_metrics
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e)))
-            .unwrap();
+            ?;
 
         let mut active_ops = self
             .active_operations
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))
-            .unwrap();
+            ?;
 
         entries.clear();
         aggregated.reset();
@@ -488,8 +488,8 @@ where
 
     /// Gets summary statistics
     pub fn get_summary(&self) -> Result<HashMap<String, String>, PipelineError> {
-        let entries = self.get_entries().unwrap();
-        let aggregated = self.get_aggregated_metrics().unwrap();
+        let entries = self.get_entries()?;
+        let aggregated = self.get_aggregated_metrics()?;
 
         let mut summary = HashMap::new();
         summary.insert("collector_name".to_string(), self.collector_name.clone());

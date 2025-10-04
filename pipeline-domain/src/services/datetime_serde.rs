@@ -267,7 +267,7 @@ pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer).unwrap();
+    let s = String::deserialize(deserializer)?;
     DateTime::parse_from_rfc3339(&s)
         .map(|dt| dt.with_timezone(&Utc))
         .map_err(serde::de::Error::custom)
@@ -344,7 +344,7 @@ pub mod optional {
     where
         D: Deserializer<'de>,
     {
-        let opt_s: Option<String> = Option::deserialize(deserializer).unwrap();
+        let opt_s: Option<String> = Option::deserialize(deserializer)?;
         match opt_s {
             Some(s) => DateTime::parse_from_rfc3339(&s)
                 .map(|dt| Some(dt.with_timezone(&Utc)))

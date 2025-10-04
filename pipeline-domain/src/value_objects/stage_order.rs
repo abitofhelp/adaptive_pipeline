@@ -449,8 +449,12 @@ pub mod stage_order_utils {
             return StageOrder::first();
         }
 
-        let max_order = existing_orders.iter().max().unwrap();
-        max_order.next().unwrap_or(*max_order)
+        // Safe: we checked is_empty() above, so max() will return Some
+        if let Some(max_order) = existing_orders.iter().max() {
+            max_order.next().unwrap_or(*max_order)
+        } else {
+            StageOrder::first()
+        }
     }
 }
 

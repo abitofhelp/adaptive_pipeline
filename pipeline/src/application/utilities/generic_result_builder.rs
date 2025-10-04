@@ -346,18 +346,25 @@ where
         let input = self
             .input
             .ok_or_else(|| PipelineError::InternalError("Input is required to build result".to_string()))
-            .unwrap();
+            ?;
 
         let output = self
             .output
             .ok_or_else(|| PipelineError::InternalError("Output is required to build result".to_string()))
-            .unwrap();
+            ?;
 
         let result = T::new(input, output).with_metrics(self.metrics);
         Ok(result)
     }
 
     /// Builds the result with error handling
+    ///
+    /// # Panics
+    ///
+    /// This convenience method will panic if the build fails. This is intentional
+    /// for use cases where the caller knows the build cannot fail. For error handling,
+    /// use `build()` instead.
+    #[allow(clippy::panic)]
     pub fn build_with_error(self) -> T {
         match self.build() {
             Ok(result) => result,
@@ -366,7 +373,7 @@ where
                 // This requires the OperationResult to have a way to represent errors
                 // For now, we'll panic - in real implementation, this would need
                 // to be handled by the specific result type
-                panic!("Failed to build result: {:?}", error);
+                panic!("Failed to build result: {}", error);
             }
         }
     }

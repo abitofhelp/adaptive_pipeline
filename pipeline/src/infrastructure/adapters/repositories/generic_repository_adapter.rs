@@ -399,11 +399,11 @@ mod tests {
         // assert!(repo.save(&entity).is_ok());
 
         // Test find_by_id
-        let found = Some(entity.clone()); // repo.find_by_id(entity_id).unwrap();
+        let found = Some(entity.clone()); // repo.find_by_id(entity_id)?;
         assert_eq!(found, Some(entity.clone()));
 
         // Test find_by_name
-        let found_by_name = Some(entity.clone()); // repo.find_by_name("test_entity").unwrap();
+        let found_by_name = Some(entity.clone()); // repo.find_by_name("test_entity")?;
         assert_eq!(found_by_name, Some(entity.clone()));
 
         // Test exists
@@ -413,7 +413,7 @@ mod tests {
         // assert_eq!(repo.count().unwrap(), 1);
 
         // Test list_all
-        let all_entities = [entity.clone()]; // repo.list_all().unwrap();
+        let all_entities = [entity.clone()]; // repo.list_all()?;
         assert_eq!(all_entities.len(), 1);
         assert_eq!(all_entities[0], entity);
 
@@ -422,7 +422,7 @@ mod tests {
         updated_entity.value = 100;
         // assert!(repo.update(&updated_entity).is_ok());
 
-        let found_updated = updated_entity.clone(); // repo.find_by_id(entity_id).unwrap();
+        let found_updated = updated_entity.clone(); // repo.find_by_id(entity_id)?;
         assert_eq!(found_updated.value, 100);
 
         // Test archive
@@ -430,7 +430,7 @@ mod tests {
         // assert!(!repo.exists(entity_id).unwrap());
         // assert_eq!(repo.count().unwrap(), 0);
 
-        let archived: Vec<TestEntity> = Vec::new(); // repo.list_archived().unwrap();
+        let archived: Vec<TestEntity> = Vec::new(); // repo.list_archived()?;
         assert_eq!(archived.len(), 0);
 
         // Test restore

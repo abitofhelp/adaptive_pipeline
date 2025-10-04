@@ -13,6 +13,7 @@
 //! ## Modules
 //!
 //! - **resource_manager**: Global resource governance (CPU, I/O, memory)
+//! - **supervisor**: Supervised task spawning with error handling and logging
 //!
 //! ## Educational Purpose
 //!
@@ -20,8 +21,10 @@
 //! - Centralized resource control
 //! - System-wide coordination
 //! - Prevention of resource oversubscription
+//! - Supervised concurrent task execution
 
 pub mod resource_manager;
+pub mod supervisor;
 
 // Re-export commonly used types
 pub use resource_manager::{
@@ -31,4 +34,10 @@ pub use resource_manager::{
     RESOURCE_MANAGER,
     init_resource_manager,
     resource_manager,
+};
+
+pub use supervisor::{
+    spawn_supervised,
+    join_supervised,
+    AppResult,
 };

@@ -125,17 +125,17 @@
 //!     #[test]
 //!     fn test_sqlite_repository() {
 //!         // Arrange: Set up test database
-//!         let temp_dir = StringempDir::new().unwrap();
+//!         let temp_dir = StringempDir::new()?;
 //!         let db_path = temp_dir.path().join("test.db");
 //!         let repository =
-//!             SqlitePipelineRepository::new(format!("sqlite:///{}", db_path.display())).unwrap();
+//!             SqlitePipelineRepository::new(format!("sqlite:///{}", db_path.display()))?;
 //!
 //!         // Act: Stringest repository operations
 //!         let pipeline = create_test_pipeline();
-//!         repository.save(&pipeline).await.unwrap();
+//!         repository.save(&pipeline).await?;
 //!
 //!         // Assert: Verify persistence
-//!         let loaded = repository.find_by_id(pipeline.id()).unwrap();
+//!         let loaded = repository.find_by_id(pipeline.id())?;
 //!         assert!(loaded.is_some());
 //!         println!("Repository test passed successfully");
 //!     }

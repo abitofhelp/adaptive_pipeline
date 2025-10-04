@@ -278,7 +278,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
             },
             0, // Order will be set by Pipeline::new
         )
-        .unwrap();
+        ?;
 
         stages.push(stage);
     }
@@ -295,12 +295,12 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
         },
         0, // Order will be set by Pipeline::new
     )
-    .unwrap();
+    ?;
     stages.push(verification_stage);
 
     // Create pipeline with restoration stages (input_checksum and output_checksum
     // will be added automatically)
-    let pipeline = Pipeline::new(pipeline_name, stages).unwrap();
+    let pipeline = Pipeline::new(pipeline_name, stages)?;
 
     info!(
         "Created restoration pipeline with {} stages for file: {}",

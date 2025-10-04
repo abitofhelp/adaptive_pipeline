@@ -207,7 +207,7 @@ impl FileIOServiceImpl {
             let chunk_data = mmap[chunk_start..chunk_end].to_vec();
             let is_final = chunk_end as u64 >= end;
 
-            let chunk = FileChunk::new(sequence, current_offset, chunk_data, is_final).unwrap();
+            let chunk = FileChunk::new(sequence, current_offset, chunk_data, is_final)?;
 
             let chunk = if calculate_checksums {
                 chunk.with_calculated_checksum()?
@@ -244,7 +244,7 @@ impl FileIOServiceImpl {
 impl FileIOService for FileIOServiceImpl {
     async fn read_file_chunks(&self, path: &Path, options: ReadOptions) -> Result<ReadResult, PipelineError> {
         let start_time = std::time::Instant::now();
-        let metadata = self.get_file_metadata(path).await.unwrap();
+        let metadata = self.get_file_metadata(path).await?;
         let file_size = metadata.len();
 
         // Determine if we should use memory mapping
@@ -257,13 +257,13 @@ impl FileIOService for FileIOServiceImpl {
         let mut file = fs::File::open(path)
             .await
             .map_err(|e| PipelineError::IoError(format!("Failed to open file {}: {}", path.display(), e)))
-            .unwrap();
+            ?;
 
         if let Some(offset) = options.start_offset {
             file.seek(SeekFrom::Start(offset))
                 .await
                 .map_err(|e| PipelineError::IoError(format!("Failed to seek to offset {}: {}", offset, e)))
-                .unwrap();
+                ?;
         }
 
         let mut chunks = Vec::new();
@@ -284,7 +284,7 @@ impl FileIOService for FileIOServiceImpl {
                 .read(&mut buffer[..bytes_to_read])
                 .await
                 .map_err(|e| PipelineError::IoError(format!("Failed to read from file: {}", e)))
-                .unwrap();
+                ?;
 
             if bytes_read == 0 {
                 break;
@@ -293,7 +293,7 @@ impl FileIOService for FileIOServiceImpl {
             let chunk_data = buffer[..bytes_read].to_vec();
             let is_final = bytes_read < bytes_to_read || total_read + bytes_read as u64 >= max_bytes;
 
-            let chunk = FileChunk::new(sequence, current_offset, chunk_data, is_final).unwrap();
+            let chunk = FileChunk::new(sequence, current_offset, chunk_data, is_final)?;
 
             let chunk = if options.calculate_checksums {
                 chunk.with_calculated_checksum()?
@@ -334,12 +334,12 @@ impl FileIOService for FileIOServiceImpl {
 
     async fn read_file_mmap(&self, path: &Path, options: ReadOptions) -> Result<ReadResult, PipelineError> {
         let start_time = std::time::Instant::now();
-        let metadata = self.get_file_metadata(path).await.unwrap();
+        let metadata = self.get_file_metadata(path).await?;
         let file_size = metadata.len();
 
         let file = File::open(path)
             .map_err(|e| PipelineError::IoError(format!("Failed to open file for mmap {}: {}", path.display(), e)))
-            .unwrap();
+            ?;
 
         let mmap = unsafe {
             MmapOptions::new()
@@ -358,7 +358,7 @@ impl FileIOService for FileIOServiceImpl {
                 start_offset,
                 options.max_bytes,
             )
-            .unwrap();
+            ?;
 
         let bytes_read = chunks.iter().map(|c| c.data_len() as u64).sum();
 
@@ -399,7 +399,7 @@ impl FileIOService for FileIOServiceImpl {
                 fs::create_dir_all(parent)
                     .await
                     .map_err(|e| PipelineError::IoError(format!("Failed to create directories: {}", e)))
-                    .unwrap();
+                    ?;
             }
         }
 
@@ -409,7 +409,7 @@ impl FileIOService for FileIOServiceImpl {
             fs::File::create(path).await
         }
         .map_err(|e| PipelineError::IoError(format!("Failed to create/open file {}: {}", path.display(), e)))
-        .unwrap();
+        ?;
 
         let mut total_written = 0u64;
         let mut file_hasher = ring::digest::Context::new(&ring::digest::SHA256);
@@ -419,7 +419,7 @@ impl FileIOService for FileIOServiceImpl {
             file.write_all(data)
                 .await
                 .map_err(|e| PipelineError::IoError(format!("Failed to write chunk: {}", e)))
-                .unwrap();
+                ?;
 
             if options.calculate_checksums {
                 file_hasher.update(data);
@@ -432,7 +432,7 @@ impl FileIOService for FileIOServiceImpl {
             file.sync_all()
                 .await
                 .map_err(|e| PipelineError::IoError(format!("Failed to sync file: {}", e)))
-                .unwrap();
+                ?;
         }
 
         let checksum = if options.calculate_checksums {
@@ -461,12 +461,12 @@ impl FileIOService for FileIOServiceImpl {
         options: WriteOptions,
     ) -> Result<WriteResult, PipelineError> {
         // Create a single chunk and use write_file_chunks
-        let chunk = FileChunk::new(0, 0, data.to_vec(), true).unwrap();
+        let chunk = FileChunk::new(0, 0, data.to_vec(), true)?;
         self.write_file_chunks(path, &[chunk], options).await
     }
 
     async fn get_file_info(&self, path: &Path) -> Result<FileInfo, PipelineError> {
-        let metadata = self.get_file_metadata(path).await.unwrap();
+        let metadata = self.get_file_metadata(path).await?;
 
         Ok(FileInfo {
             path: path.to_path_buf(),
@@ -495,7 +495,7 @@ impl FileIOService for FileIOServiceImpl {
         destination: &Path,
         options: WriteOptions,
     ) -> Result<WriteResult, PipelineError> {
-        let read_result = self.read_file_chunks(source, ReadOptions::default()).await.unwrap();
+        let read_result = self.read_file_chunks(source, ReadOptions::default()).await?;
         self.write_file_chunks(destination, &read_result.chunks, options).await
     }
 
@@ -505,8 +505,8 @@ impl FileIOService for FileIOServiceImpl {
         destination: &Path,
         options: WriteOptions,
     ) -> Result<WriteResult, PipelineError> {
-        let result = self.copy_file(source, destination, options).await.unwrap();
-        self.delete_file(source).await.unwrap();
+        let result = self.copy_file(source, destination, options).await?;
+        self.delete_file(source).await?;
         Ok(result)
     }
 
@@ -532,7 +532,7 @@ impl FileIOService for FileIOServiceImpl {
         let mut entries = fs::read_dir(path)
             .await
             .map_err(|e| PipelineError::IoError(format!("Failed to read directory {}: {}", path.display(), e)))
-            .unwrap();
+            ?;
 
         let mut files = Vec::new();
         while let Some(entry) = entries
@@ -544,7 +544,7 @@ impl FileIOService for FileIOServiceImpl {
                 .metadata()
                 .await
                 .map_err(|e| PipelineError::IoError(format!("Failed to get entry metadata: {}", e)))
-                .unwrap();
+                ?;
 
             if metadata.is_file() {
                 files.push(FileInfo {
@@ -579,7 +579,7 @@ impl FileIOService for FileIOServiceImpl {
     }
 
     async fn validate_file_integrity(&self, path: &Path, expected_checksum: &str) -> Result<bool, PipelineError> {
-        let calculated_checksum = self.calculate_file_checksum(path).await.unwrap();
+        let calculated_checksum = self.calculate_file_checksum(path).await?;
         Ok(calculated_checksum == expected_checksum)
     }
 
@@ -593,7 +593,7 @@ impl FileIOService for FileIOServiceImpl {
                 },
             )
             .await
-            .unwrap();
+            ?;
 
         let mut hasher = ring::digest::Context::new(&ring::digest::SHA256);
         for chunk in &read_result.chunks {
@@ -613,14 +613,14 @@ impl FileIOService for FileIOServiceImpl {
         let file = fs::File::open(path)
             .await
             .map_err(|e| PipelineError::IoError(format!("Failed to open file {}: {}", path.display(), e)))
-            .unwrap();
+            ?;
 
         let file = if let Some(offset) = options.start_offset {
             let mut f = file;
             f.seek(std::io::SeekFrom::Start(offset))
                 .await
                 .map_err(|e| PipelineError::IoError(format!("Failed to seek to offset {}: {}", offset, e)))
-                .unwrap();
+                ?;
             f
         } else {
             file
@@ -709,7 +709,7 @@ impl FileIOService for FileIOServiceImpl {
                     .map_err(|e| {
                         PipelineError::IoError(format!("Failed to create directories for {}: {}", path.display(), e))
                     })
-                    .unwrap();
+                    ?;
             }
         }
 
@@ -731,19 +731,19 @@ impl FileIOService for FileIOServiceImpl {
                 .await
         }
         .map_err(|e| PipelineError::IoError(format!("Failed to open file {} for writing: {}", path.display(), e)))
-        .unwrap();
+        ?;
 
         let mut file = file;
         file.write_all(chunk.data())
             .await
             .map_err(|e| PipelineError::IoError(format!("Failed to write chunk to {}: {}", path.display(), e)))
-            .unwrap();
+            ?;
 
         if options.sync {
             file.sync_all()
                 .await
                 .map_err(|e| PipelineError::IoError(format!("Failed to sync file {}: {}", path.display(), e)))
-                .unwrap();
+                ?;
         }
 
         let bytes_written = chunk.data().len() as u64;
@@ -784,7 +784,7 @@ mod tests {
         let temp_path = temp_file.path().to_path_buf();
         // Create 2MB of test data to ensure we have multiple chunks
         let test_data = vec![b'A'; 2 * 1024 * 1024]; // 2MB of 'A' characters
-        
+
         // Write test data asynchronously
         let mut file = tokio::fs::File::create(&temp_path).await.unwrap();
         file.write_all(&test_data).await.unwrap();
@@ -824,7 +824,7 @@ mod tests {
         let temp_path = temp_file.path().to_path_buf();
         // Create 3MB of test data to ensure memory mapping is used and we have multiple chunks
         let test_data = vec![0u8; 3 * 1024 * 1024]; // 3MB of data
-        
+
         // Write test data asynchronously
         let mut file = tokio::fs::File::create(&temp_path).await.unwrap();
         file.write_all(&test_data).await.unwrap();

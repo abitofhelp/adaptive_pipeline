@@ -343,7 +343,7 @@ impl StageParameters {
     /// Merges with another set of parameters (other takes precedence)
     pub fn merge(&mut self, other: StageParameters) -> Result<(), PipelineError> {
         for (key, value) in other.0 {
-            self.set(key, value).unwrap();
+            self.set(key, value)?;
         }
         Ok(())
     }
@@ -568,22 +568,22 @@ impl Display for ParameterValue {
             ParameterValue::Float(fl) => write!(f, "{}", fl),
             ParameterValue::Boolean(b) => write!(f, "{}", b),
             ParameterValue::Array(arr) => {
-                write!(f, "[").unwrap();
+                write!(f, "[")?;
                 for (i, item) in arr.iter().enumerate() {
                     if i > 0 {
-                        write!(f, ", ").unwrap();
+                        write!(f, ", ")?;
                     }
-                    write!(f, "{}", item).unwrap();
+                    write!(f, "{}", item)?;
                 }
                 write!(f, "]")
             }
             ParameterValue::Object(obj) => {
-                write!(f, "{{").unwrap();
+                write!(f, "{{")?;
                 for (i, (key, value)) in obj.iter().enumerate() {
                     if i > 0 {
-                        write!(f, ", ").unwrap();
+                        write!(f, ", ")?;
                     }
-                    write!(f, "\"{}\": {}", key, value).unwrap();
+                    write!(f, "\"{}\": {}", key, value)?;
                 }
                 write!(f, "}}")
             }

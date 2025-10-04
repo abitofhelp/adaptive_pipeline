@@ -469,7 +469,7 @@ impl ProcessingStepDescriptor {
 
     /// Add a parameter to this descriptor
     pub fn with_parameter(mut self, key: &str, value: &str) -> Result<Self, PipelineError> {
-        self.parameters.add_parameter(key, value).unwrap();
+        self.parameters.add_parameter(key, value)?;
         Ok(self)
     }
 }

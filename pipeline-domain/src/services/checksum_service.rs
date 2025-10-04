@@ -368,7 +368,7 @@ impl ChunkProcessor for ChecksumProcessor {
         // Step 1: Verify existing checksum if requested
         if self.verify_existing
             && chunk.checksum().is_some() {
-                let is_valid = chunk.verify_integrity().unwrap();
+                let is_valid = chunk.verify_integrity()?;
                 if !is_valid {
                     return Err(PipelineError::IntegrityError(format!(
                         "Checksum verification failed for chunk {}",

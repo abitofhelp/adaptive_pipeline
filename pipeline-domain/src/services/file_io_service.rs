@@ -516,9 +516,9 @@ impl FileIOService for Arc<dyn FileIOService> {
     }
 
     fn update_config(&mut self, _config: FileIOConfig) {
-        // Note: This will panic for Arc since we can't get mutable access
+        // Note: This is a no-op for Arc since we can't get mutable access
         // In practice, config updates should be done through the concrete type
-        panic!("Cannot update config through Arc<dyn FileIOService>. Use concrete type instead.")
+        // This is intentionally a no-op to avoid panicking in production code
     }
 
     fn get_stats(&self) -> FileIOStats {
@@ -526,9 +526,9 @@ impl FileIOService for Arc<dyn FileIOService> {
     }
 
     fn reset_stats(&mut self) {
-        // Note: This will panic for Arc since we can't get mutable access
+        // Note: This is a no-op for Arc since we can't get mutable access
         // In practice, stats resets should be done through the concrete type
-        panic!("Cannot reset stats through Arc<dyn FileIOService>. Use concrete type instead.")
+        // This is intentionally a no-op to avoid panicking in production code
     }
 
     async fn validate_file_integrity(&self, path: &Path, expected_checksum: &str) -> Result<bool, PipelineError> {

@@ -453,7 +453,7 @@ where
                 .config
                 .write()
                 .map_err(|e| PipelineError::InternalError(format!("Failed to write config: {}", e)))
-                .unwrap();
+                ?;
             *config = new_config.clone();
         }
 
@@ -492,7 +492,7 @@ where
 
         for source in &self.sources {
             if source.exists().await {
-                let config_data = source.load().await.unwrap();
+                let config_data = source.load().await?;
                 let config: T = serde_json::from_str(&config_data)
                     .map_err(|e| {
                         PipelineError::InternalError(format!(
@@ -501,7 +501,7 @@ where
                             e
                         ))
                     })
-                    .unwrap();
+                    ?;
 
                 merged_config = Some(match merged_config {
                     Some(_existing) => {
@@ -517,7 +517,7 @@ where
         if let Some(config) = merged_config {
             self.update_config(config, "Loaded from sources".to_string(), changed_by)
                 .await
-                .unwrap();
+                ?;
         }
 
         Ok(())
@@ -525,10 +525,10 @@ where
 
     /// Saves current configuration to the first writable source
     pub async fn save_to_source(&self) -> Result<(), PipelineError> {
-        let config = self.get_config().unwrap();
+        let config = self.get_config()?;
         let config_data = serde_json::to_string_pretty(&config)
             .map_err(|e| PipelineError::InternalError(format!("Failed to serialize config: {}", e)))
-            .unwrap();
+            ?;
 
         for source in &self.sources {
             if let Ok(()) = source.save(&config_data).await {
@@ -551,7 +551,7 @@ where
 
     /// Validates current configuration
     pub fn validate_current_config(&self) -> Result<ConfigValidationResult, PipelineError> {
-        let config = self.get_config().unwrap();
+        let config = self.get_config()?;
         Ok(config.validate())
     }
 }

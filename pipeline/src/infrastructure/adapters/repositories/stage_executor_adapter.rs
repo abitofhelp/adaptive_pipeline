@@ -345,7 +345,7 @@ mod tests {
         let mut parameters = HashMap::new();
         parameters.insert("algorithm".to_string(), "brotli".to_string());
         parameters.insert("level".to_string(), "6".to_string());
-        
+
         let config = StageConfiguration::new("brotli".to_string(), parameters, false);
         let stage = PipelineStage::new("compression".to_string(), StageType::Compression, config, 0).unwrap();
 
@@ -355,7 +355,7 @@ mod tests {
         // Test invalid compression algorithm
         let mut parameters = HashMap::new();
         parameters.insert("algorithm".to_string(), "invalid".to_string());
-        
+
         let config = StageConfiguration::new("invalid".to_string(), parameters, false);
         let stage = PipelineStage::new("compression".to_string(), StageType::Compression, config, 0).unwrap();
 

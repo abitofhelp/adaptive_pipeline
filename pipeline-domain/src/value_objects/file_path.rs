@@ -654,8 +654,7 @@ impl OutputPath {
                 std::fs::create_dir_all(parent)
                     .map_err(|e| {
                         PipelineError::InvalidConfiguration(format!("Failed to create parent directory: {}", e))
-                    })
-                    .unwrap();
+                    })?;
             }
         }
         Ok(output_path)
@@ -666,8 +665,7 @@ impl OutputPath {
         if self.exists() {
             let backup_path = self.with_extension(&format!("{}.backup", self.extension().unwrap_or("bak")));
             std::fs::copy(&self.path, &backup_path.path)
-                .map_err(|e| PipelineError::InvalidConfiguration(format!("Failed to create backup: {}", e)))
-                .unwrap();
+                .map_err(|e| PipelineError::InvalidConfiguration(format!("Failed to create backup: {}", e)))?;
             Ok(backup_path)
         } else {
             Err(PipelineError::InvalidConfiguration(
@@ -699,7 +697,7 @@ impl TempPath {
 
     /// Creates a temporary path that will be automatically cleaned up
     pub fn auto_cleanup(prefix: &str, extension: &str) -> Result<AutoCleanupTempPath, PipelineError> {
-        let temp_path = Self::unique(prefix, extension).unwrap();
+        let temp_path = Self::unique(prefix, extension)?;
         Ok(AutoCleanupTempPath::new(temp_path))
     }
 }

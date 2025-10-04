@@ -328,7 +328,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
         };
 
         // Call before_processing hook
-        // processor.before_processing(&file_info).unwrap();
+        // processor.before_processing(&file_info)?;
 
         // Read file chunks
         let read_options = ReadOptions {
@@ -356,7 +356,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
             self.file_io_service
                 .write_file_chunks(output_path, &read_result.chunks, write_options)
                 .await
-                .unwrap();
+                ?;
             Some(output_path.to_path_buf())
         } else {
             // If processor modifies data but no output path specified, write back to
@@ -373,13 +373,13 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
             self.file_io_service
                 .write_file_chunks(&temp_path, &read_result.chunks, write_options)
                 .await
-                .unwrap();
+                ?;
 
             // Replace original file with processed version
             self.file_io_service
                 .move_file(&temp_path, input_path, WriteOptions::default())
                 .await
-                .unwrap();
+                ?;
             Some(input_path.to_path_buf())
         };
 
@@ -401,7 +401,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
         };
 
         // Call after_processing hook
-        // processor.after_processing(&result).unwrap();
+        // processor.after_processing(&result)?;
 
         // Update statistics
         self.update_stats(|stats| {
@@ -437,7 +437,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
 
         // Process files in batches to respect concurrency limits
         for batch in file_pairs.chunks(max_concurrent) {
-            let batch_results = self.process_batch_concurrent(batch, processor.as_ref()).await.unwrap();
+            let batch_results = self.process_batch_concurrent(batch, processor.as_ref()).await?;
             results.extend(batch_results);
         }
 
@@ -462,7 +462,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
         // }
 
         // Get file info to check basic properties
-        // let file_info = self.file_io_service.get_file_info(file_path).unwrap();
+        // let file_info = self.file_io_service.get_file_info(file_path)?;
 
         // Check if file is empty
         // if file_info.size == 0 {
@@ -521,7 +521,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
         let start_time = std::time::Instant::now();
 
         // Validate file size
-        let file_info = self.file_io_service.get_file_info(input_path).await.unwrap();
+        let file_info = self.file_io_service.get_file_info(input_path).await?;
         let (max_file_size, verify_integrity, processing_chunk_size, use_memory_mapping) = {
             let config = self.config.read();
             (
@@ -547,7 +547,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
         };
 
         // Call before_processing hook
-        // processor.before_processing(&file_info).unwrap();
+        // processor.before_processing(&file_info)?;
 
         // Set up streaming options
         let read_options = ReadOptions {
@@ -569,7 +569,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
             .file_io_service
             .stream_file_chunks(input_path, read_options)
             .await
-            .unwrap();
+            ?;
         let mut chunks_processed = 0u64;
         let mut bytes_processed = 0u64;
         let mut is_first_chunk = true;
@@ -589,14 +589,14 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
             bytes_processed += chunk.data().len() as u64;
 
             // Process the chunk through the pipeline
-            // processor.process_chunk(&mut chunk).unwrap();
+            // processor.process_chunk(&mut chunk)?;
 
             // Write the processed chunk if we have an output path
             if let Some(ref output_path) = final_output_path {
                 self.file_io_service
                     .write_chunk_to_file(output_path, &chunk, write_options.clone(), is_first_chunk)
                     .await
-                    .unwrap();
+                    ?;
                 is_first_chunk = false;
             }
 
@@ -609,7 +609,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
                 self.file_io_service
                     .move_file(temp_path, input_path, WriteOptions::default())
                     .await
-                    .unwrap();
+                    ?;
             }
         }
 
@@ -629,7 +629,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
         };
 
         // Call after_processing hook
-        // processor.after_processing(&result).unwrap();
+        // processor.after_processing(&result)?;
 
         // Update statistics
         self.update_stats(|stats| {

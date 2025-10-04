@@ -213,7 +213,7 @@ impl<T: SqliteEntity> SqliteRepository<T> {
         };
 
         // Ensure table exists
-        // repo.ensure_table_exists().unwrap();
+        // repo.ensure_table_exists()?;
 
         Ok(repo)
     }
@@ -290,7 +290,7 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     /// Finds an entity by its unique identifier
     pub async fn find_by_id(&self, id: T::Id) -> Result<Option<T>, PipelineError> {
         // Use the same ID format as save method
-        let id_str = self.id_to_string_format(&id).unwrap();
+        let id_str = self.id_to_string_format(&id)?;
 
         let query = format!("SELECT data FROM {} WHERE id = ? AND archived = false", self.table_name);
 
@@ -424,7 +424,7 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     /// Deletes an entity by ID (hard delete)
     pub async fn delete(&self, id: T::Id) -> Result<bool, PipelineError> {
         // Use the same ID format as save method
-        let id_str = self.id_to_string_format(&id).unwrap();
+        let id_str = self.id_to_string_format(&id)?;
 
         let query = format!("DELETE FROM {} WHERE id = ?", self.table_name);
 
@@ -441,7 +441,7 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     /// Checks if an entity exists
     pub async fn exists(&self, id: T::Id) -> Result<bool, PipelineError> {
         // Use the same ID format as save method
-        let id_str = self.id_to_string_format(&id).unwrap();
+        let id_str = self.id_to_string_format(&id)?;
 
         let query = format!(
             "SELECT 1 FROM {} WHERE id = ? AND archived = false LIMIT 1",
@@ -478,7 +478,7 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     /// Archives an entity (soft delete)
     pub async fn archive(&self, id: T::Id) -> Result<bool, PipelineError> {
         // Use the same ID format as save method
-        let id_str = self.id_to_string_format(&id).unwrap();
+        let id_str = self.id_to_string_format(&id)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let query = format!(
@@ -500,7 +500,7 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     /// Restores an archived entity
     pub async fn restore(&self, id: T::Id) -> Result<bool, PipelineError> {
         // Use the same ID format as save method
-        let id_str = self.id_to_string_format(&id).unwrap();
+        let id_str = self.id_to_string_format(&id)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let query = format!(

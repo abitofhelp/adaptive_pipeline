@@ -171,13 +171,13 @@ where
 
     /// Creates a new adapter with a database file path
     pub async fn from_file(database_path: &str) -> Result<Self, PipelineError> {
-        let sqlite_repo = SqliteRepository::from_file(database_path).await.unwrap();
+        let sqlite_repo = SqliteRepository::from_file(database_path).await?;
         Ok(Self::new(sqlite_repo))
     }
 
     /// Creates a new adapter with an in-memory database (useful for testing)
     pub async fn in_memory() -> Result<Self, PipelineError> {
-        let sqlite_repo = SqliteRepository::in_memory().await.unwrap();
+        let sqlite_repo = SqliteRepository::in_memory().await?;
         Ok(Self::new(sqlite_repo))
     }
 
@@ -275,7 +275,7 @@ impl RepositoryFactory {
     where
         T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>,
     {
-        let adapter = SqliteRepositoryAdapter::from_file(database_path).await.unwrap();
+        let adapter = SqliteRepositoryAdapter::from_file(database_path).await?;
         Ok(Arc::new(adapter))
     }
 
@@ -284,7 +284,7 @@ impl RepositoryFactory {
     where
         T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>,
     {
-        let adapter = SqliteRepositoryAdapter::in_memory().await.unwrap();
+        let adapter = SqliteRepositoryAdapter::in_memory().await?;
         Ok(Arc::new(adapter))
     }
 }
@@ -401,10 +401,10 @@ mod tests {
     #[tokio::test]
     async fn test_sqlite_adapter_implements_repository_trait() {
         let adapter = SqliteRepositoryAdapter::<TestEntity>::in_memory().await.unwrap();
-        
+
         // Ensure table exists before testing
         adapter.ensure_table_exists().await.unwrap();
-        
+
         let repo: Arc<dyn Repository<TestEntity>> = Arc::new(adapter);
 
         let entity_id = Uuid::new_v4();
@@ -447,7 +447,7 @@ mod tests {
     #[tokio::test]
     async fn test_repository_config() {
         let config = RepositoryConfig::SqliteInMemory;
-        // let repo = config.create_repository::<TestEntity>().unwrap();
+        // let repo = config.create_repository::<TestEntity>()?;
 
         let entity = TestEntity {
             id: Uuid::new_v4(),

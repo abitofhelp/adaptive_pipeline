@@ -530,8 +530,7 @@ impl FileHeader {
     pub fn to_footer_bytes(&self) -> Result<Vec<u8>, PipelineError> {
         // Serialize header to JSON
         let header_json = serde_json::to_string(self)
-            .map_err(|e| PipelineError::SerializationError(format!("Failed to serialize header: {}", e)))
-            .unwrap();
+            .map_err(|e| PipelineError::SerializationError(format!("Failed to serialize header: {}", e)))?;
 
         let header_bytes = header_json.as_bytes();
         let header_length = header_bytes.len() as u32;
@@ -632,12 +631,10 @@ impl FileHeader {
         let header_start = file_size - footer_size;
         let header_json = &file_data[header_start..header_start + header_length];
         let header_str = std::str::from_utf8(header_json)
-            .map_err(|e| PipelineError::ValidationError(format!("Invalid UTF-8 in header: {}", e)))
-            .unwrap();
+            .map_err(|e| PipelineError::ValidationError(format!("Invalid UTF-8 in header: {}", e)))?;
 
         let header: FileHeader = serde_json::from_str(header_str)
-            .map_err(|e| PipelineError::SerializationError(format!("Failed to deserialize header: {}", e)))
-            .unwrap();
+            .map_err(|e| PipelineError::SerializationError(format!("Failed to deserialize header: {}", e)))?;
 
         Ok((header, footer_size))
     }

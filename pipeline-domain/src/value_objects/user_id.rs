@@ -480,7 +480,7 @@ impl AsRef<str> for UserId {
 impl UserId {
     /// Creates an email-based user ID
     pub fn email(email: &str) -> Result<Self, PipelineError> {
-        let user_id = Self::new(email.to_string()).unwrap();
+        let user_id = Self::new(email.to_string())?;
         if !user_id.is_email() {
             return Err(PipelineError::InvalidConfiguration(
                 "Provided string is not a valid email format".to_string(),
@@ -491,7 +491,7 @@ impl UserId {
 
     /// Creates a username-based user ID
     pub fn username(username: &str) -> Result<Self, PipelineError> {
-        let user_id = Self::new(username.to_string()).unwrap();
+        let user_id = Self::new(username.to_string())?;
         if !user_id.is_username() {
             return Err(PipelineError::InvalidConfiguration(
                 "Provided string is not a valid username format".to_string(),
@@ -502,7 +502,7 @@ impl UserId {
 
     /// Creates a UUID-based user ID
     pub fn uuid(uuid: &str) -> Result<Self, PipelineError> {
-        let user_id = Self::new(uuid.to_string()).unwrap();
+        let user_id = Self::new(uuid.to_string())?;
         if !user_id.is_uuid() {
             return Err(PipelineError::InvalidConfiguration(
                 "Provided string is not a valid UUID format".to_string(),
@@ -531,7 +531,7 @@ pub mod user_id_utils {
     /// Validates a collection of user IDs
     pub fn validate_batch(user_ids: &[UserId]) -> Result<(), PipelineError> {
         for user_id in user_ids {
-            user_id.validate().unwrap();
+            user_id.validate()?;
         }
         Ok(())
     }

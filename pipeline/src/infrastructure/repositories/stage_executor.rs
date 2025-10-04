@@ -298,11 +298,11 @@ impl BasicStageExecutor {
             };
 
             let _input_size = Byte::from_u128(chunk.data().len() as u128)
-                .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+                .unwrap_or_else(|| Byte::from_u64(0))
                 .get_appropriate_unit(byte_unit::UnitType::Decimal)
                 .to_string();
             let _output_size = Byte::from_u128(chunk.data().len() as u128)
-                .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+                .unwrap_or_else(|| Byte::from_u64(0))
                 .get_appropriate_unit(byte_unit::UnitType::Decimal)
                 .to_string();
 
@@ -369,7 +369,7 @@ impl BasicStageExecutor {
                 self.process_encryption_stage(stage, chunk, context).await
             }
             pipeline_domain::entities::pipeline_stage::StageType::Checksum => {
-                self.process_checksum_stage(stage, &chunk, context).await.unwrap();
+                self.process_checksum_stage(stage, &chunk, context).await?;
                 Ok(chunk) // Checksum stages don't modify the chunk data
             }
             pipeline_domain::entities::pipeline_stage::StageType::PassThrough => {
@@ -476,7 +476,7 @@ impl StageExecutor for BasicStageExecutor {
     ) -> Result<FileChunk, PipelineError> {
         // Process stage based on its algorithm configuration, not stage name
         // This ensures all stages (built-in and user-created) are treated equally
-        let result_chunk = self.process_stage_by_type(stage, chunk, context).await.unwrap();
+        let result_chunk = self.process_stage_by_type(stage, chunk, context).await?;
 
         // Record the output size in the tracing span
         tracing::Span::current().record("output_size", result_chunk.data().len());
@@ -496,7 +496,7 @@ impl StageExecutor for BasicStageExecutor {
             chunks.len(),
             stage.name(),
             Byte::from_u128(total_bytes as u128)
-                .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+                .unwrap_or_else(|| Byte::from_u64(0))
                 .get_appropriate_unit(byte_unit::UnitType::Decimal)
                 .to_string()
         );
@@ -504,7 +504,7 @@ impl StageExecutor for BasicStageExecutor {
         // Basic parallel execution using futures
         let mut results = Vec::new();
         for chunk in chunks {
-            let result = self.execute(stage, chunk, context).await.unwrap();
+            let result = self.execute(stage, chunk, context).await?;
             results.push(result);
         }
 

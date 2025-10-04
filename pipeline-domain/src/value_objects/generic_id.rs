@@ -328,7 +328,7 @@ impl<T: IdCategory> GenericId<T> {
 
     /// Creates an entity ID from an existing ULID with validation
     pub fn from_ulid(ulid: Ulid) -> Result<Self, PipelineError> {
-        T::validate_id(&ulid).unwrap();
+        T::validate_id(&ulid)?;
         Ok(Self {
             value: ulid,
             _phantom: std::marker::PhantomData,
@@ -345,7 +345,7 @@ impl<T: IdCategory> GenericId<T> {
         // Generate random bits for the ULID
         let random = rand::random::<u128>() & ((1u128 << 80) - 1); // Mask to 80 bits
         let ulid = Ulid::from_parts(timestamp_ms, random);
-        T::validate_id(&ulid).unwrap();
+        T::validate_id(&ulid)?;
         Ok(Self {
             value: ulid,
             _phantom: std::marker::PhantomData,
@@ -359,8 +359,7 @@ impl<T: IdCategory> GenericId<T> {
     /// Example: "01ARZ3NDEKTSV4RRFFQ69G5FAV"
     pub fn from_string(s: &str) -> Result<Self, PipelineError> {
         let ulid = Ulid::from_str(s)
-            .map_err(|e| PipelineError::InvalidConfiguration(format!("Invalid entity ID format: {}", e)))
-            .unwrap();
+            .map_err(|e| PipelineError::InvalidConfiguration(format!("Invalid entity ID format: {}", e)))?;
         Self::from_ulid(ulid)
     }
 
@@ -510,7 +509,7 @@ pub mod generic_id_utils {
     pub fn validate_batch<T: IdCategory>(ids: &[GenericId<T>]) -> Result<(), PipelineError> {
         // Check each ID individually
         for id in ids {
-            id.validate().unwrap();
+            id.validate()?;
         }
 
         // Check for duplicates

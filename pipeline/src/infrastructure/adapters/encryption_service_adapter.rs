@@ -192,7 +192,7 @@ impl EncryptionServiceImpl {
         self.rng
             .fill(&mut key)
             .map_err(|e| PipelineError::EncryptionError(format!("Failed to generate key: {:?}", e)))
-            .unwrap();
+            ?;
         Ok(key)
     }
 
@@ -202,7 +202,7 @@ impl EncryptionServiceImpl {
         self.rng
             .fill(&mut nonce)
             .map_err(|e| PipelineError::EncryptionError(format!("Failed to generate nonce: {:?}", e)))
-            .unwrap();
+            ?;
         Ok(nonce)
     }
 
@@ -211,14 +211,15 @@ impl EncryptionServiceImpl {
         let argon2 = Argon2::default();
         let salt_string = SaltString::encode_b64(salt)
             .map_err(|e| PipelineError::EncryptionError(format!("Invalid salt: {}", e)))
-            .unwrap();
+            ?;
 
         let password_hash = argon2
             .hash_password(password, &salt_string)
             .map_err(|e| PipelineError::EncryptionError(format!("Argon2 key derivation failed: {}", e)))
-            .unwrap();
+            ?;
 
-        let hash_string = password_hash.hash.unwrap();
+        let hash_string = password_hash.hash
+            .ok_or_else(|| PipelineError::EncryptionError("Password hash missing".to_string()))?;
         let hash_bytes = hash_string.as_bytes();
         if hash_bytes.len() >= key_length {
             Ok(hash_bytes[..key_length].to_vec())
@@ -232,14 +233,15 @@ impl EncryptionServiceImpl {
         let scrypt = Scrypt;
         let salt_string = ScryptSalt::encode_b64(salt)
             .map_err(|e| PipelineError::EncryptionError(format!("Invalid salt: {}", e)))
-            .unwrap();
+            ?;
 
         let password_hash = scrypt
             .hash_password(password, &salt_string)
             .map_err(|e| PipelineError::EncryptionError(format!("Scrypt key derivation failed: {}", e)))
-            .unwrap();
+            ?;
 
-        let hash_string = password_hash.hash.unwrap();
+        let hash_string = password_hash.hash
+            .ok_or_else(|| PipelineError::EncryptionError("Password hash missing".to_string()))?;
         let hash_bytes = hash_string.as_bytes();
         if hash_bytes.len() >= key_length {
             Ok(hash_bytes[..key_length].to_vec())
@@ -259,7 +261,7 @@ impl EncryptionServiceImpl {
         let mut key = vec![0u8; key_length];
         ring::pbkdf2::derive(
             ring::pbkdf2::PBKDF2_HMAC_SHA256,
-            std::num::NonZeroU32::new(iterations).unwrap(),
+            std::num::NonZeroU32::new(iterations).ok_or_else(|| PipelineError::EncryptionError("Invalid iteration count".to_string()))?,
             salt,
             password,
             &mut key,
@@ -288,7 +290,7 @@ impl EncryptionServiceImpl {
         cipher
             .encrypt_in_place(nonce_array, b"", &mut buffer)
             .map_err(|e| PipelineError::EncryptionError(format!("AES-256-GCM encryption failed: {:?}", e)))
-            .unwrap();
+            ?;
 
         // Prepend nonce to encrypted data
         let mut result = nonce.to_vec();
@@ -316,7 +318,7 @@ impl EncryptionServiceImpl {
         cipher
             .decrypt_in_place(nonce_array, b"", &mut buffer)
             .map_err(|e| PipelineError::EncryptionError(format!("AES-256-GCM decryption failed: {:?}", e)))
-            .unwrap();
+            ?;
 
         Ok(buffer)
     }
@@ -342,7 +344,7 @@ impl EncryptionServiceImpl {
         cipher
             .encrypt_in_place(nonce_array, b"", &mut buffer)
             .map_err(|e| PipelineError::EncryptionError(format!("ChaCha20-Poly1305 encryption failed: {:?}", e)))
-            .unwrap();
+            ?;
 
         // Prepend nonce to encrypted data
         let mut result = nonce.to_vec();
@@ -370,7 +372,7 @@ impl EncryptionServiceImpl {
         cipher
             .decrypt_in_place(nonce_array, b"", &mut buffer)
             .map_err(|e| PipelineError::EncryptionError(format!("ChaCha20-Poly1305 decryption failed: {:?}", e)))
-            .unwrap();
+            ?;
 
         Ok(buffer)
     }
@@ -395,7 +397,7 @@ impl EncryptionService for EncryptionServiceImpl {
         let key = key_material;
 
         // Generate nonce
-        let nonce = self.generate_nonce(12).unwrap(); // 12 bytes for GCM/ChaCha20-Poly1305
+        let nonce = self.generate_nonce(12)?; // 12 bytes for GCM/ChaCha20-Poly1305
 
         // Encrypt based on algorithm
         let encrypted_data = match &config.algorithm {
@@ -432,7 +434,7 @@ impl EncryptionService for EncryptionServiceImpl {
         };
 
         // Create new chunk with encrypted data
-        let chunk = chunk.with_data(encrypted_data).unwrap();
+        let chunk = chunk.with_data(encrypted_data)?;
 
         // Calculate integrity hash
         let integrity_hash = self.calculate_hash(chunk.data());
@@ -480,7 +482,7 @@ impl EncryptionService for EncryptionServiceImpl {
         };
 
         // Create new chunk with decrypted data
-        let chunk = chunk.with_data(decrypted_data).unwrap();
+        let chunk = chunk.with_data(decrypted_data)?;
 
         // Verify integrity if hash is available
         if let Some(expected_hash) = context.get_metadata("integrity_hash") {
@@ -506,7 +508,7 @@ impl EncryptionService for EncryptionServiceImpl {
         security_context: &SecurityContext,
     ) -> Result<KeyMaterial, PipelineError> {
         let password_bytes = password.as_bytes();
-        let salt = self.generate_nonce(32).unwrap(); // 32-byte salt
+        let salt = self.generate_nonce(32)?; // 32-byte salt
 
         let key_length = match &config.algorithm {
             EncryptionAlgorithm::Aes128Gcm => 16,
@@ -532,7 +534,7 @@ impl EncryptionService for EncryptionServiceImpl {
             }
         };
 
-        let nonce = self.generate_nonce(12).unwrap(); // 12 bytes for GCM
+        let nonce = self.generate_nonce(12)?; // 12 bytes for GCM
 
         Ok(KeyMaterial::new(key_bytes, nonce, salt, config.algorithm.clone()))
     }
@@ -550,9 +552,9 @@ impl EncryptionService for EncryptionServiceImpl {
             EncryptionAlgorithm::Custom(_) => 32, // Default to 32 bytes for custom algorithms
         };
 
-        let key = self.generate_key(key_length).unwrap();
-        let nonce = self.generate_nonce(12).unwrap();
-        let salt = self.generate_nonce(32).unwrap();
+        let key = self.generate_key(key_length)?;
+        let nonce = self.generate_nonce(12)?;
+        let salt = self.generate_nonce(32)?;
 
         Ok(KeyMaterial::new(key, nonce, salt, config.algorithm.clone()))
     }
@@ -603,8 +605,8 @@ impl EncryptionService for EncryptionServiceImpl {
             EncryptionAlgorithm::ChaCha20Poly1305 => 32,
             EncryptionAlgorithm::Custom(_) => 32, // Default to 32 bytes for custom algorithms
         };
-        let key = self.generate_key(key_length).unwrap();
-        let nonce = self.generate_nonce(12).unwrap();
+        let key = self.generate_key(key_length)?;
+        let nonce = self.generate_nonce(12)?;
 
         let start = std::time::Instant::now();
 

@@ -22,7 +22,7 @@ This document outlines the optimal strategy for porting the Rust-based Optimized
    - Rust Arc<Mutex<T>> → Go sync.Mutex + pointer sharing
    - Rust async/await → Go goroutines + channels
 
-### Week 2: Domain Layer (Pure Business Logic)
+### Domain Layer (Pure Business Logic)
 **Goal**: Translate core business logic
 
 3. **Value Objects**: Direct translation with validation

@@ -189,7 +189,7 @@ impl TransactionalChunkWriter {
         let temp_file = tokio::fs::File::create(&temp_path)
             .await
             .map_err(|e| PipelineError::io_error(format!("Failed to create temporary file: {}", e)))
-            .unwrap();
+            ?;
 
         Ok(Self {
             temp_file: Arc::new(Mutex::new(temp_file)),
@@ -229,7 +229,7 @@ impl TransactionalChunkWriter {
     /// # Example
     pub async fn write_chunk_at_position(&self, chunk: ChunkFormat, sequence_number: u64) -> Result<(), PipelineError> {
         // Validate chunk before writing
-        chunk.validate().unwrap();
+        chunk.validate()?;
 
         // Convert chunk to bytes for writing
         let (chunk_bytes, chunk_size) = chunk.to_bytes_with_size();
@@ -248,7 +248,7 @@ impl TransactionalChunkWriter {
                 .seek(SeekFrom::Start(file_position))
                 .await
                 .map_err(|e| PipelineError::io_error(format!("Failed to seek to position {}: {}", file_position, e)))
-                .unwrap();
+                ?;
 
             // Write the chunk bytes at the current position
             file_guard
@@ -257,7 +257,7 @@ impl TransactionalChunkWriter {
                 .map_err(|e| {
                     PipelineError::io_error(format!("Failed to write chunk at position {}: {}", file_position, e))
                 })
-                .unwrap();
+                ?;
         }
 
         // Update tracking information in thread-safe manner
@@ -277,7 +277,7 @@ impl TransactionalChunkWriter {
         };
 
         if should_checkpoint {
-            self.create_checkpoint().await.unwrap();
+            self.create_checkpoint().await?;
         }
 
         Ok(())
@@ -296,7 +296,7 @@ impl TransactionalChunkWriter {
                 .sync_data()
                 .await
                 .map_err(|e| PipelineError::io_error(format!("Failed to sync data for checkpoint: {}", e)))
-                .unwrap();
+                ?;
         }
 
         // Update last checkpoint counter using atomic operation
@@ -342,7 +342,7 @@ impl TransactionalChunkWriter {
                 .sync_all()
                 .await
                 .map_err(|e| PipelineError::io_error(format!("Failed to sync file before commit: {}", e)))
-                .unwrap();
+                ?;
         }
 
         // Close the temporary file by dropping the Arc<Mutex<File>>
@@ -353,7 +353,7 @@ impl TransactionalChunkWriter {
         tokio::fs::rename(&self.temp_path, &self.final_path)
             .await
             .map_err(|e| PipelineError::io_error(format!("Failed to commit transaction (rename): {}", e)))
-            .unwrap();
+            ?;
 
         let bytes_written = self.bytes_written.load(Ordering::Relaxed);
         debug!(
@@ -383,7 +383,7 @@ impl TransactionalChunkWriter {
                 .map_err(|e| {
                     PipelineError::io_error(format!("Failed to remove temporary file during rollback: {}", e))
                 })
-                .unwrap();
+                ?;
         }
 
         let completed_count = self.completed_chunks.lock().await.len();

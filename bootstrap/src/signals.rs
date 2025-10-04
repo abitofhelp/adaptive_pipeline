@@ -102,12 +102,29 @@ impl SystemSignals for UnixSignalHandler {
         Box::pin(async move {
             use tokio::signal::unix::{signal, SignalKind};
 
-            let mut sigterm = signal(SignalKind::terminate())
-                .expect("Failed to register SIGTERM handler");
-            let mut sigint = signal(SignalKind::interrupt())
-                .expect("Failed to register SIGINT handler");
-            let mut sighup = signal(SignalKind::hangup())
-                .expect("Failed to register SIGHUP handler");
+            // Attempt to register signal handlers
+            // If registration fails, log error and exit gracefully (no shutdown triggered)
+            let mut sigterm = match signal(SignalKind::terminate()) {
+                Ok(sig) => sig,
+                Err(e) => {
+                    tracing::error!("Failed to register SIGTERM handler: {}", e);
+                    return;
+                }
+            };
+            let mut sigint = match signal(SignalKind::interrupt()) {
+                Ok(sig) => sig,
+                Err(e) => {
+                    tracing::error!("Failed to register SIGINT handler: {}", e);
+                    return;
+                }
+            };
+            let mut sighup = match signal(SignalKind::hangup()) {
+                Ok(sig) => sig,
+                Err(e) => {
+                    tracing::error!("Failed to register SIGHUP handler: {}", e);
+                    return;
+                }
+            };
 
             tokio::select! {
                 _ = sigterm.recv() => {
@@ -152,9 +169,10 @@ impl SystemSignals for WindowsSignalHandler {
     fn wait_for_signal(&self, on_shutdown: ShutdownCallback) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
         Box::pin(async move {
             // On Windows, tokio provides ctrl_c signal
-            tokio::signal::ctrl_c()
-                .await
-                .expect("Failed to register Ctrl+C handler");
+            if let Err(e) = tokio::signal::ctrl_c().await {
+                tracing::error!("Failed to register Ctrl+C handler: {}", e);
+                return;
+            }
 
             tracing::info!("Received Ctrl+C, initiating graceful shutdown");
             on_shutdown();

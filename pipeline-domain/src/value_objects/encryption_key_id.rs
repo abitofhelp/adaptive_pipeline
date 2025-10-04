@@ -417,7 +417,7 @@ pub mod encryption_key_id_utils {
     /// Validates a collection of encryption key IDs
     pub fn validate_batch(key_ids: &[EncryptionKeyId]) -> Result<(), PipelineError> {
         for key_id in key_ids {
-            key_id.validate().unwrap();
+            key_id.validate()?;
         }
         Ok(())
     }

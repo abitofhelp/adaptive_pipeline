@@ -220,14 +220,12 @@ impl DateTimeTest {
     pub fn verify_rfc3339_compliance(&self) -> Result<(), String> {
         // Serialize to JSON
         let json = serde_json::to_string(self)
-            .map_err(|e| format!("Serialization failed: {}", e))
-            .unwrap();
+            .map_err(|e| format!("Serialization failed: {}", e))?;
 
         // Check that the timestamp is in RFC3339 format
         // RFC3339 format: YYYY-MM-DDTHH:MM:SS.sssZ or YYYY-MM-DDTHH:MM:SS.sss+/-HH:MM
         let rfc3339_regex = regex::Regex::new(r#"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})"#)
-            .map_err(|e| format!("Regex compilation failed: {}", e))
-            .unwrap();
+            .map_err(|e| format!("Regex compilation failed: {}", e))?;
 
         if !rfc3339_regex.is_match(&json) {
             return Err(format!("Serialized JSON does not contain RFC3339 timestamps: {}", json));
@@ -235,8 +233,7 @@ impl DateTimeTest {
 
         // Deserialize back to verify round-trip compatibility
         let _deserialized: DateTimeTest = serde_json::from_str(&json)
-            .map_err(|e| format!("Deserialization failed: {}", e))
-            .unwrap();
+            .map_err(|e| format!("Deserialization failed: {}", e))?;
 
         Ok(())
     }
