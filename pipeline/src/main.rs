@@ -168,7 +168,7 @@
 
 use anyhow::Result;
 use byte_unit::Byte;
-use clap::{Parser, Subcommand};
+// CLI parsing now handled by bootstrap layer
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -246,369 +246,38 @@ use crate::infrastructure::repositories::stage_executor::BasicStageExecutor;
 use crate::infrastructure::services::{BinaryFormatService, BinaryFormatServiceImpl};
 use crate::application::services::pipeline_service::PipelineServiceImpl;
 
-#[derive(Parser)]
-#[command(name = "pipeline")]
-#[command(about = concat!("Optimized Adaptive Pipeline RS v", env!("CARGO_PKG_VERSION")))]
-#[command(version)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-
-    /// Enable verbose logging
-    #[arg(short, long)]
-    verbose: bool,
-
-    /// Configuration file path
-    #[arg(short, long)]
-    config: Option<PathBuf>,
-
-    // === Resource Configuration Flags ===
-    // Educational: These flags control the GlobalResourceManager's token allocation
-    // for CPU-bound and I/O-bound operations.
-
-    /// Override CPU worker thread count
-    ///
-    /// Controls the number of concurrent CPU-bound operations (compression, encryption).
-    /// Default: num_cpus - 1 (reserves 1 core for I/O and coordination)
-    ///
-    /// Educational: Setting this too high causes thrashing, too low wastes cores.
-    /// Monitor CPU saturation metrics to tune appropriately.
-    #[arg(long)]
-    cpu_threads: Option<usize>,
-
-    /// Override I/O worker thread count
-    ///
-    /// Controls the number of concurrent I/O operations (file reads/writes).
-    /// Default: Device-specific (NVMe: 24, SSD: 12, HDD: 4)
-    ///
-    /// Educational: This should match your storage device's queue depth for optimal
-    /// throughput. Check --storage-type if auto-detection is incorrect.
-    #[arg(long)]
-    io_threads: Option<usize>,
-
-    /// Specify storage device type for I/O optimization
-    ///
-    /// Affects default I/O thread count if --io-threads not specified.
-    /// Values: nvme (queue depth 24), ssd (12), hdd (4)
-    /// Default: auto-detect based on filesystem characteristics
-    ///
-    /// Educational: Different storage devices have different optimal queue depths.
-    /// NVMe handles more concurrent I/O than SSD, which handles more than HDD.
-    #[arg(long, value_parser = parse_storage_type)]
-    storage_type: Option<String>,
-
-    /// Channel depth for pipeline stages (Reader → Workers → Writer)
-    ///
-    /// Controls backpressure in the three-stage pipeline architecture.
-    /// Default: 4
-    ///
-    /// Educational: Lower values reduce memory usage but may cause stalls.
-    /// Higher values increase buffering but consume more memory.
-    /// Optimal value depends on chunk processing time and I/O latency.
-    ///
-    /// Example: If chunk processing = 2ms and I/O = 1ms, depth=4 keeps pipeline full.
-    #[arg(long, default_value = "4")]
-    channel_depth: usize,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Process a file through a pipeline
-    Process {
-        /// Input file path
-        #[arg(short, long)]
-        input: PathBuf,
-
-        /// Output file path
-        #[arg(short, long)]
-        output: PathBuf,
-
-        /// Pipeline name or ID
-        #[arg(short, long)]
-        pipeline: String,
-
-        /// Chunk size in MB
-        #[arg(long)]
-        chunk_size_mb: Option<usize>,
-
-        /// Number of parallel workers
-        #[arg(long)]
-        workers: Option<usize>,
-    },
-
-    /// Create a new pipeline
-    Create {
-        /// Pipeline name
-        #[arg(short, long)]
-        name: String,
-
-        /// Pipeline stages (comma-separated: compression,encryption,integrity)
-        #[arg(short, long)]
-        stages: String,
-
-        /// Save pipeline to file
-        #[arg(short, long)]
-        output: Option<PathBuf>,
-    },
-
-    /// List available pipelines
-    List,
-
-    /// Show pipeline details
-    Show {
-        /// Pipeline name
-        pipeline: String,
-    },
-
-    /// Delete a pipeline
-    Delete {
-        /// Pipeline name to delete
-        pipeline: String,
-
-        /// Skip confirmation prompt
-        #[arg(long)]
-        force: bool,
-    },
-
-    /// Benchmark system performance
-    Benchmark {
-        /// Test file path
-        #[arg(short, long)]
-        file: Option<PathBuf>,
-
-        /// Test data size in MB
-        #[arg(long, default_value = "100")]
-        size_mb: usize,
-
-        /// Number of iterations
-        #[arg(long, default_value = "3")]
-        iterations: usize,
-    },
-
-    /// Validate pipeline configuration
-    Validate {
-        /// Pipeline configuration file
-        config: PathBuf,
-    },
-
-    /// Validate .adapipe processed file
-    ValidateFile {
-        /// .adapipe file to validate
-        #[arg(short, long)]
-        file: PathBuf,
-
-        /// Perform full streaming validation (decrypt/decompress and verify
-        /// checksum)
-        #[arg(long)]
-        full: bool,
-    },
-
-    /// Restore original file from .adapipe file
-    Restore {
-        /// .adapipe file to restore from
-        #[arg(short, long)]
-        input: PathBuf,
-
-        /// Output directory for restored file (optional - uses original
-        /// directory if not specified)
-        #[arg(short, long)]
-        output_dir: Option<PathBuf>,
-
-        /// Create directories without prompting
-        #[arg(long)]
-        mkdir: bool,
-
-        /// Overwrite existing files without prompting
-        #[arg(long)]
-        overwrite: bool,
-    },
-
-    /// Compare original file against .adapipe file
-    Compare {
-        /// Original file to compare
-        #[arg(short, long)]
-        original: PathBuf,
-
-        /// .adapipe file to compare against
-        #[arg(short, long)]
-        adapipe: PathBuf,
-
-        /// Show detailed differences
-        #[arg(long)]
-        detailed: bool,
-    },
-}
-
-/// Parse and validate storage type from CLI argument
-///
-/// Educational: Custom value parser for clap that validates
-/// storage type strings and provides helpful error messages.
-fn parse_storage_type(s: &str) -> Result<String, String> {
-    match s.to_lowercase().as_str() {
-        "nvme" | "ssd" | "hdd" => Ok(s.to_lowercase()),
-        _ => Err(format!(
-            "Invalid storage type '{}'. Valid values: nvme, ssd, hdd",
-            s
-        )),
-    }
-}
-
-/// Maps application errors to Unix exit codes (sysexits.h standard)
-///
-/// # Exit Code Mappings
-///
-/// - `70` (EX_SOFTWARE) - Internal software error (initialization failures)
-/// - `66` (EX_NOINPUT) - Cannot open input (file not found)
-/// - `65` (EX_DATAERR) - Data format error (invalid input)
-/// - `74` (EX_IOERR) - Input/output error (read/write failures)
-/// - `1` - General error (fallback for unclassified errors)
-///
-/// # Arguments
-///
-/// * `error_message` - The error message to classify
-///
-/// # Returns
-///
-/// The appropriate Unix exit code as u8
-fn map_error_to_exit_code(error_message: &str) -> u8 {
-    if error_message.contains("Failed to initialize") {
-        70 // EX_SOFTWARE - internal software error
-    } else if error_message.contains("not found") || error_message.contains("does not exist") {
-        66 // EX_NOINPUT - cannot open input
-    } else if error_message.contains("invalid") || error_message.contains("Invalid") {
-        65 // EX_DATAERR - data format error
-    } else if error_message.contains("I/O") || error_message.contains("Failed to read") || error_message.contains("Failed to write") {
-        74 // EX_IOERR - input/output error
-    } else {
-        1 // General error
-    }
-}
-
-#[cfg(test)]
-mod exit_code_tests {
-    use super::*;
-
-    #[test]
-    fn test_exit_code_initialization_error() {
-        assert_eq!(
-            map_error_to_exit_code("Failed to initialize resource manager"),
-            70
-        );
-        assert_eq!(
-            map_error_to_exit_code("Error: Failed to initialize database connection"),
-            70
-        );
-    }
-
-    #[test]
-    fn test_exit_code_file_not_found() {
-        assert_eq!(
-            map_error_to_exit_code("File not found: input.txt"),
-            66
-        );
-        assert_eq!(
-            map_error_to_exit_code("The file does not exist"),
-            66
-        );
-    }
-
-    #[test]
-    fn test_exit_code_invalid_data() {
-        assert_eq!(
-            map_error_to_exit_code("invalid chunk size specified"),
-            65
-        );
-        assert_eq!(
-            map_error_to_exit_code("Invalid pipeline configuration"),
-            65
-        );
-    }
-
-    #[test]
-    fn test_exit_code_io_error() {
-        assert_eq!(
-            map_error_to_exit_code("I/O error occurred"),
-            74
-        );
-        assert_eq!(
-            map_error_to_exit_code("Failed to read from disk"),
-            74
-        );
-        assert_eq!(
-            map_error_to_exit_code("Failed to write to output file"),
-            74
-        );
-    }
-
-    #[test]
-    fn test_exit_code_general_error() {
-        assert_eq!(
-            map_error_to_exit_code("Unknown error occurred"),
-            1
-        );
-        assert_eq!(
-            map_error_to_exit_code("Something went wrong"),
-            1
-        );
-    }
-
-    #[test]
-    fn test_exit_code_case_sensitivity() {
-        // Test that "Invalid" (capital I) also triggers DATAERR
-        assert_eq!(
-            map_error_to_exit_code("Invalid input provided"),
-            65
-        );
-        assert_eq!(
-            map_error_to_exit_code("invalid input provided"),
-            65
-        );
-    }
-
-    #[test]
-    fn test_exit_code_priority() {
-        // If multiple patterns match, the first one wins
-        // "Failed to initialize" contains "Failed to" but should match initialization first
-        assert_eq!(
-            map_error_to_exit_code("Failed to initialize with invalid data"),
-            70 // Should be EX_SOFTWARE, not EX_DATAERR
-        );
-    }
-
-    #[test]
-    fn test_exit_code_exact_messages() {
-        // Test exact error messages from the codebase
-        assert_eq!(
-            map_error_to_exit_code("Pipeline 'test' not found"),
-            66
-        );
-        assert_eq!(
-            map_error_to_exit_code("I/O error: permission denied"),
-            74
-        );
-        assert_eq!(
-            map_error_to_exit_code("Invalid pipeline name"),
-            65
-        );
-    }
-}
+// CLI parsing now handled by bootstrap layer
+// See bootstrap::cli for CLI definitions and validation
+// Exit code mapping now in bootstrap::exit_code
 
 #[tokio::main]
 async fn main() -> std::process::ExitCode {
-    // Run the actual application logic and map errors to exit codes
-    match run_app().await {
-        Ok(()) => std::process::ExitCode::SUCCESS,
+    // Bootstrap: Parse and validate CLI arguments with security checks
+    let validated_cli = match bootstrap::bootstrap_cli() {
+        Ok(cli) => cli,
         Err(e) => {
-            eprintln!("Error: {}", e);
-            let exit_code = map_error_to_exit_code(&e.to_string());
-            std::process::ExitCode::from(exit_code)
+            eprintln!("CLI Error: {}", e);
+            return std::process::ExitCode::from(65); // EX_DATAERR
         }
-    }
+    };
+
+    // Run application logic with validated configuration
+    let result = run_app(validated_cli).await;
+
+    // Map result to appropriate Unix exit code
+    bootstrap::result_to_exit_code(result)
 }
 
 /// Main application logic separated for testability
-async fn run_app() -> Result<()> {
-    let cli = Cli::parse();
+///
+/// # Arguments
+///
+/// * `cli` - Validated CLI configuration from bootstrap layer
+///
+/// # Returns
+///
+/// Result indicating success or error
+async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
 
     // === Initialize Global Resource Manager ===
     // Educational: This must happen BEFORE any code uses RESOURCE_MANAGER
@@ -694,9 +363,9 @@ async fn run_app() -> Result<()> {
         // TODO: Load configuration
     }
 
-    // Execute command
+    // Execute command (using validated commands from bootstrap)
     match cli.command {
-        Commands::Process {
+        bootstrap::ValidatedCommand::Process {
             input,
             output,
             pipeline,
@@ -720,27 +389,27 @@ async fn run_app() -> Result<()> {
             ?;
         }
 
-        Commands::Create { name, stages, output } => {
+        bootstrap::ValidatedCommand::Create { name, stages, output } => {
             create_pipeline(name, stages, output, pipeline_repository.clone())
                 .await
                 ?;
         }
 
-        Commands::List => {
+        bootstrap::ValidatedCommand::List => {
             list_pipelines(pipeline_repository.clone()).await.unwrap();
         }
 
-        Commands::Show { pipeline } => {
+        bootstrap::ValidatedCommand::Show { pipeline } => {
             show_pipeline(pipeline, pipeline_repository.clone()).await.unwrap();
         }
 
-        Commands::Delete { pipeline, force } => {
+        bootstrap::ValidatedCommand::Delete { pipeline, force } => {
             delete_pipeline(pipeline, force, pipeline_repository.clone())
                 .await
                 ?;
         }
 
-        Commands::Benchmark {
+        bootstrap::ValidatedCommand::Benchmark {
             file,
             size_mb,
             iterations,
@@ -748,14 +417,14 @@ async fn run_app() -> Result<()> {
             benchmark_system(file, size_mb, iterations).await.unwrap();
         }
 
-        Commands::Validate { config } => {
+        bootstrap::ValidatedCommand::Validate { config } => {
             validate_pipeline_config(config).await.unwrap();
         }
-        Commands::ValidateFile { file, full } => {
+        bootstrap::ValidatedCommand::ValidateFile { file, full } => {
             validate_adapipe_file(file, full).await.unwrap();
         }
 
-        Commands::Restore {
+        bootstrap::ValidatedCommand::Restore {
             input,
             output_dir,
             mkdir,
@@ -767,7 +436,7 @@ async fn run_app() -> Result<()> {
                 ?;
         }
 
-        Commands::Compare {
+        bootstrap::ValidatedCommand::Compare {
             original,
             adapipe,
             detailed,

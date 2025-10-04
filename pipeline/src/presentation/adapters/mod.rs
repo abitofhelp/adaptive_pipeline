@@ -7,6 +7,5 @@
 
 
 //! Adapters Module
-
-pub mod cli;
-pub use cli::*;
+//!
+//! CLI adapter moved to bootstrap layer for proper architectural separation.
