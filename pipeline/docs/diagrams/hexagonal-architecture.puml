@@ -1,0 +1,92 @@
+@startuml hexagonal-architecture
+!theme plain
+skinparam hexagonStyle true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+title Hexagonal Architecture (Ports and Adapters)
+
+rectangle "Application Core" as core #FFF3E0 {
+  rectangle "Domain Model" as domain {
+    [Pipeline Entity]
+    [Pipeline Stage]
+    [Value Objects]
+  }
+
+  rectangle "Business Logic" as logic {
+    [Pipeline Service]
+    [Domain Services]
+  }
+
+  rectangle "Ports" as ports {
+    interface "Repository Port" as repo_port
+    interface "File I/O Port" as file_port
+    interface "Metrics Port" as metrics_port
+    interface "Config Port" as config_port
+  }
+}
+
+' Primary (Driving) Adapters
+rectangle "Primary Adapters" as primary #E3F2FD {
+  [CLI Adapter] as cli
+  [HTTP Adapter] as http
+}
+
+' Secondary (Driven) Adapters
+rectangle "Secondary Adapters" as secondary #F3E5F5 {
+  [SQLite Repository Adapter] as sqlite
+  [File System Adapter] as file_adapter
+  [Prometheus Adapter] as prometheus
+  [Config File Adapter] as config_adapter
+}
+
+' External Systems
+database "SQLite Database" as db
+storage "File System" as fs
+component "Prometheus Server" as prom_server
+file "Config Files" as config_files
+
+' Primary adapters call into ports
+cli -down-> logic : commands
+http -down-> logic : HTTP requests
+
+' Business logic uses ports
+logic -down-> repo_port : uses
+logic -down-> file_port : uses
+logic -down-> metrics_port : uses
+logic -down-> config_port : uses
+
+' Secondary adapters implement ports
+sqlite .up.|> repo_port : implements
+file_adapter .up.|> file_port : implements
+prometheus .up.|> metrics_port : implements
+config_adapter .up.|> config_port : implements
+
+' Adapters connect to external systems
+sqlite -down-> db
+file_adapter -down-> fs
+prometheus -down-> prom_server
+config_adapter -down-> config_files
+
+note top of core
+  **Application Core**
+  - Business rules independent of technology
+  - Defines ports (interfaces)
+  - No knowledge of adapters
+end note
+
+note top of primary
+  **Primary (Driving) Adapters**
+  - Drive the application
+  - User interfaces
+  - API endpoints
+end note
+
+note bottom of secondary
+  **Secondary (Driven) Adapters**
+  - Driven by the application
+  - Infrastructure implementations
+  - External system integrations
+end note
+
+@enduml

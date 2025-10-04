@@ -1,0 +1,87 @@
+@startuml project-structure
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam packageStyle rectangle
+
+title Project Structure
+
+package "optimized_adaptive_pipeline_rs" {
+  folder "pipeline/" {
+    [Pipeline Library\n(Main Crate)]
+    folder "src/" {
+      [lib.rs]
+      [main.rs]
+      folder "domain/" {
+        [Domain Entities]
+        [Value Objects]
+        [Domain Services]
+      }
+      folder "application/" {
+        [Use Cases]
+        [Application Services]
+      }
+      folder "infrastructure/" {
+        [Repositories]
+        [Adapters]
+        [Metrics]
+      }
+      folder "presentation/" {
+        [CLI]
+        [Configuration]
+      }
+    }
+  }
+
+  folder "pipeline-domain/" {
+    [Domain Crate\n(Shared Domain)]
+  }
+
+  folder "bootstrap/" {
+    [Bootstrap Crate\n(Initialization)]
+  }
+
+  folder "docs/" {
+    [Main Documentation\n(mdBook)]
+    folder "src/" {
+      [Introduction]
+      [Getting Started]
+      [Architecture]
+      [Contributing]
+    }
+  }
+
+  folder "pipeline/docs/" {
+    [Technical Guide\n(mdBook)]
+    folder "src/" {
+      [Fundamentals]
+      [Architecture Details]
+      [Implementation]
+      [Advanced Topics]
+    }
+  }
+
+  folder "tools/" {
+    [PlantUML JAR]
+    [Diagram Scripts]
+  }
+
+  file "Cargo.toml" as cargo
+  file "Makefile" as makefile
+}
+
+note right of "Pipeline Library"
+  **Main Pipeline Crate**
+  - Binary and library
+  - Clean Architecture layers
+  - Domain-driven design
+end note
+
+note right of "Domain Crate"
+  **Shared Domain Logic**
+  - Reusable across projects
+  - No external dependencies
+  - Pure business logic
+end note
+
+@enduml

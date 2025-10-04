@@ -1,0 +1,70 @@
+@startuml dependency-flow
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam arrowThickness 2
+skinparam arrowColor #1976D2
+
+title Dependency Flow (Dependency Inversion Principle)
+
+package "High-Level Policy" as high #E8F5E9 {
+  [Application Layer\nPipeline Service] as app
+}
+
+package "Abstractions" as abstractions #FFF3E0 {
+  interface "Repository Trait" as repo_trait <<trait>>
+  interface "FileIO Trait" as file_trait <<trait>>
+  interface "Metrics Trait" as metrics_trait <<trait>>
+}
+
+package "Low-Level Details" as low #F3E5F5 {
+  [Infrastructure Layer\nSQLite Repository] as sqlite
+  [Infrastructure Layer\nFile System] as file_system
+  [Infrastructure Layer\nPrometheus Metrics] as prometheus
+}
+
+package "Frameworks & Drivers" as frameworks #ECEFF1 {
+  database "SQLite" as db
+  storage "File System" as fs
+  component "Prometheus" as prom
+}
+
+' Dependencies point inward (toward abstractions)
+app -down-> repo_trait : depends on
+app -down-> file_trait : depends on
+app -down-> metrics_trait : depends on
+
+sqlite .up.|> repo_trait : implements
+file_system .up.|> file_trait : implements
+prometheus .up.|> metrics_trait : implements
+
+sqlite -down-> db : uses
+file_system -down-> fs : uses
+prometheus -down-> prom : uses
+
+note right of abstractions
+  **Key Principle**
+  Source code dependencies point
+  ONLY INWARD toward abstractions
+
+  High-level policy does NOT
+  depend on low-level details
+
+  Both depend on abstractions (traits)
+end note
+
+note bottom of high
+  **Application Layer**
+  - High-level business logic
+  - Stable (rarely changes)
+  - Depends on traits, not concrete types
+end note
+
+note bottom of low
+  **Infrastructure Layer**
+  - Low-level implementation details
+  - Volatile (changes frequently)
+  - Implements domain traits
+end note
+
+@enduml

@@ -1,0 +1,118 @@
+@startuml repository-pattern
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam interfaceBackgroundColor #FFF3E0
+skinparam classBackgroundColor #E3F2FD
+
+title Repository Pattern
+
+' Domain Layer
+package "Domain Layer" {
+  interface PipelineRepository <<trait>> {
+    + create(pipeline: &Pipeline) -> Result<()>
+    + find_by_id(id: &PipelineId) -> Result<Option<Pipeline>>
+    + update(pipeline: &Pipeline) -> Result<()>
+    + delete(id: &PipelineId) -> Result<()>
+    + find_all() -> Result<Vec<Pipeline>>
+  }
+
+  class Pipeline <<Entity>> {
+    - id: PipelineId
+    - input_file_path: FilePath
+    - output_file_path: FilePath
+    - status: PipelineStatus
+  }
+}
+
+' Application Layer
+package "Application Layer" {
+  class PipelineService {
+    - repository: Arc<dyn PipelineRepository>
+    --
+    + create_pipeline(input, output) -> Result<Pipeline>
+    + get_pipeline(id: PipelineId) -> Result<Pipeline>
+    + execute_pipeline(id: PipelineId) -> Result<()>
+  }
+}
+
+' Infrastructure Layer
+package "Infrastructure Layer" {
+  class SQLitePipelineRepository {
+    - pool: SqlitePool
+    - mapper: PipelineMapper
+    --
+    + new(pool: SqlitePool) -> Self
+    + create(pipeline: &Pipeline) -> Result<()>
+    + find_by_id(id: &PipelineId) -> Result<Option<Pipeline>>
+    + update(pipeline: &Pipeline) -> Result<()>
+    + delete(id: &PipelineId) -> Result<()>
+  }
+
+  class PipelineRepositoryAdapter {
+    - repository: SQLitePipelineRepository
+    --
+    + new(repository: SQLitePipelineRepository) -> Self
+  }
+
+  class PipelineMapper {
+    --
+    + to_domain(row: SqliteRow) -> Result<Pipeline>
+    + to_persistence(pipeline: &Pipeline) -> PipelineRow
+  }
+}
+
+package "External" {
+  database "SQLite Database" as db {
+    table pipelines {
+      id: TEXT PK
+      input_path: TEXT
+      output_path: TEXT
+      status: TEXT
+      created_at: TEXT
+      completed_at: TEXT
+    }
+  }
+}
+
+' Relationships
+PipelineService --> PipelineRepository : depends on
+PipelineService ..> Pipeline : uses
+
+PipelineRepositoryAdapter ..|> PipelineRepository : implements
+PipelineRepositoryAdapter --> SQLitePipelineRepository : delegates to
+
+SQLitePipelineRepository --> PipelineMapper : uses
+SQLitePipelineRepository --> db : queries
+
+note right of PipelineRepository
+  **Domain Interface (Trait)**
+  - Defined in domain layer
+  - Technology-agnostic
+  - Focused on domain needs
+  - No infrastructure details
+end note
+
+note right of SQLitePipelineRepository
+  **Infrastructure Implementation**
+  - Implements domain trait
+  - Technology-specific (SQLite)
+  - Handles persistence details
+  - Maps domain to database
+end note
+
+note right of PipelineMapper
+  **Data Mapper**
+  - Converts between domain and persistence
+  - Isolates domain from database schema
+  - Maintains domain integrity
+end note
+
+note left of PipelineService
+  **Application Service**
+  - Depends on trait, not implementation
+  - Can be tested with mock repository
+  - Infrastructure can be swapped
+end note
+
+@enduml

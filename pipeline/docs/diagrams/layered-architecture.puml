@@ -1,0 +1,82 @@
+@startuml layered-architecture
+!theme plain
+skinparam componentStyle rectangle
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+title Layered Architecture
+
+package "Presentation Layer" as presentation #E8F5E9 {
+  [CLI Interface] as cli
+  [Configuration Management] as config
+}
+
+package "Application Layer" as application #E3F2FD {
+  [Pipeline Service] as pipeline_svc
+  [File Processor Service] as file_proc_svc
+  [Use Cases] as use_cases
+}
+
+package "Domain Layer" as domain #FFF3E0 {
+  [Pipeline Entity] as pipeline_entity
+  [Pipeline Stage Entity] as stage_entity
+  [Value Objects] as value_objects
+  [Domain Services] as domain_services
+  [Repository Interfaces] as repo_interfaces
+}
+
+package "Infrastructure Layer" as infrastructure #F3E5F5 {
+  [SQLite Repository] as sqlite_repo
+  [Metrics Collector] as metrics
+  [File I/O Service] as file_io
+  [Compression Service] as compression
+  [Encryption Service] as encryption
+}
+
+package "External Systems" as external #ECEFF1 {
+  database "SQLite DB" as db
+  storage "File System" as fs
+  component "Prometheus" as prometheus
+}
+
+' Dependencies (top-down)
+cli -down-> pipeline_svc
+config -down-> pipeline_svc
+
+pipeline_svc -down-> use_cases
+file_proc_svc -down-> domain_services
+
+use_cases -down-> pipeline_entity
+use_cases -down-> stage_entity
+use_cases -down-> repo_interfaces
+
+pipeline_entity -down-> value_objects
+stage_entity -down-> value_objects
+domain_services -down-> value_objects
+
+' Infrastructure implements domain interfaces
+sqlite_repo .up.|> repo_interfaces : implements
+file_io .up.> domain_services : supports
+compression .up.> domain_services : supports
+encryption .up.> domain_services : supports
+
+' Infrastructure to external
+sqlite_repo -down-> db
+file_io -down-> fs
+metrics -down-> prometheus
+
+note right of domain
+  **Domain Layer**
+  - Business logic
+  - No external dependencies
+  - Defines interfaces
+end note
+
+note right of infrastructure
+  **Infrastructure Layer**
+  - Implements domain interfaces
+  - External system adapters
+  - Technology-specific code
+end note
+
+@enduml

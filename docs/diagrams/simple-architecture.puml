@@ -1,0 +1,47 @@
+@startuml simple-architecture
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+title Pipeline Architecture Overview (Simplified)
+
+actor User
+
+rectangle "CLI Interface" as cli #E3F2FD
+
+rectangle "Pipeline Core" as core #FFF3E0 {
+  [Configuration]
+  [Pipeline Service]
+  [File Processor]
+}
+
+rectangle "Processing Stages" as stages #E8F5E9 {
+  [Compression]
+  [Encryption]
+  [Integrity Check]
+}
+
+database "Metadata Storage\n(SQLite)" as db
+storage "File System" as fs
+
+User -> cli : Command
+cli -> core : Initialize & Execute
+core -> stages : Process Data
+stages -> db : Store Metadata
+stages -> fs : Read/Write Files
+
+note right of core
+  **Core Responsibilities**
+  - Orchestrates file processing
+  - Manages pipeline lifecycle
+  - Coordinates stages
+end note
+
+note right of stages
+  **Processing Stages**
+  - Configurable
+  - Independent
+  - Chainable
+end note
+
+@enduml

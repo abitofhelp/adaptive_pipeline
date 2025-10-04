@@ -1,0 +1,85 @@
+@startuml stage-execution
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+
+title Stage Execution Sequence
+
+actor User
+participant "CLI" as cli
+participant "Pipeline Service" as pipeline_svc
+participant "File Processor\nService" as file_proc
+participant "Compression\nService" as compression
+participant "Encryption\nService" as encryption
+participant "Checksum\nService" as checksum
+participant "Repository" as repo
+participant "File I/O\nService" as file_io
+
+User -> cli: Execute pipeline command
+activate cli
+
+cli -> pipeline_svc: create_and_execute_pipeline(config)
+activate pipeline_svc
+
+pipeline_svc -> repo: create_pipeline_record()
+activate repo
+repo --> pipeline_svc: pipeline_id
+deactivate repo
+
+pipeline_svc -> file_proc: process_file(input_path, config)
+activate file_proc
+
+file_proc -> file_io: read_file_chunks(input_path)
+activate file_io
+file_io --> file_proc: chunk_iterator
+deactivate file_io
+
+loop for each chunk
+  file_proc -> file_proc: read_chunk_data()
+
+  alt compression enabled
+    file_proc -> compression: compress(chunk_data)
+    activate compression
+    compression --> file_proc: compressed_data
+    deactivate compression
+  end
+
+  alt encryption enabled
+    file_proc -> encryption: encrypt(chunk_data)
+    activate encryption
+    encryption --> file_proc: encrypted_data
+    deactivate encryption
+  end
+
+  file_proc -> checksum: calculate(chunk_data)
+  activate checksum
+  checksum --> file_proc: checksum_value
+  deactivate checksum
+
+  file_proc -> repo: store_chunk_metadata(chunk_info)
+  activate repo
+  repo --> file_proc: success
+  deactivate repo
+
+  file_proc -> file_io: write_chunk(output_path, chunk_data)
+  activate file_io
+  file_io --> file_proc: success
+  deactivate file_io
+end
+
+file_proc --> pipeline_svc: processing_complete
+deactivate file_proc
+
+pipeline_svc -> repo: update_pipeline_status(completed)
+activate repo
+repo --> pipeline_svc: success
+deactivate repo
+
+pipeline_svc --> cli: result
+deactivate pipeline_svc
+
+cli --> User: Display summary
+deactivate cli
+
+@enduml

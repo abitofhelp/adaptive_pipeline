@@ -1,0 +1,62 @@
+@startuml pipeline-flow
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam activityBorderColor #1976D2
+skinparam activityBackgroundColor #E3F2FD
+
+title Pipeline Processing Flow
+
+start
+
+:User invokes CLI command;
+
+:Bootstrap layer initializes\n- Configuration\n- Dependencies\n- Database;
+
+:Application layer creates\nPipeline instance;
+
+partition "Pipeline Execution" {
+  :Load input file;
+
+  :Split file into chunks;
+
+  partition "For each chunk" {
+    :Read chunk from file;
+
+    if (Compression enabled?) then (yes)
+      :Compress chunk;
+    else (no)
+    endif
+
+    if (Encryption enabled?) then (yes)
+      :Encrypt chunk;
+    else (no)
+    endif
+
+    :Calculate checksum;
+
+    :Store chunk metadata\nin database;
+
+    :Write processed chunk\nto output file;
+
+    :Emit metrics;
+  }
+
+  :Store pipeline metadata\nin database;
+}
+
+:Generate summary report;
+
+stop
+
+note right
+  **Processing Stages**
+  1. Compression (optional)
+  2. Encryption (optional)
+  3. Integrity check (checksum)
+
+  Each stage is configurable
+  and can be enabled/disabled
+end note
+
+@enduml

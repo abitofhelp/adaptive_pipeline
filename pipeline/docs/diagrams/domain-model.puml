@@ -1,0 +1,146 @@
+@startuml domain-model
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam classBackgroundColor #FFF3E0
+skinparam classBorderColor #F57C00
+
+title Domain Model
+
+' Entities
+class Pipeline <<Entity>> {
+  - id: PipelineId
+  - input_file_path: FilePath
+  - output_file_path: FilePath
+  - stages: Vec<PipelineStage>
+  - status: PipelineStatus
+  - created_at: DateTime
+  - completed_at: Option<DateTime>
+  --
+  + new(id, input_path, output_path) -> Self
+  + add_stage(stage: PipelineStage)
+  + execute() -> Result<()>
+  + is_completed() -> bool
+}
+
+class PipelineStage <<Entity>> {
+  - id: StageId
+  - pipeline_id: PipelineId
+  - stage_type: StageType
+  - algorithm: Algorithm
+  - sequence_number: u32
+  - status: StageStatus
+  --
+  + new(id, pipeline_id, stage_type) -> Self
+  + execute(data: &[u8]) -> Result<Vec<u8>>
+}
+
+class FileChunk <<Entity>> {
+  - id: FileChunkId
+  - pipeline_id: PipelineId
+  - chunk_number: u32
+  - original_size: FileSize
+  - processed_size: FileSize
+  - checksum: Checksum
+  - offset: u64
+  --
+  + new(id, pipeline_id, chunk_number) -> Self
+}
+
+' Value Objects
+class PipelineId <<Value Object>> {
+  - value: Ulid
+  --
+  + new() -> Self
+  + from_string(s: &str) -> Result<Self>
+  + to_string() -> String
+}
+
+class FilePath <<Value Object>> {
+  - value: PathBuf
+  --
+  + new(path: &str) -> Result<Self>
+  + exists() -> bool
+  + is_valid() -> bool
+}
+
+class FileSize <<Value Object>> {
+  - bytes: u64
+  --
+  + new(bytes: u64) -> Result<Self>
+  + to_human_readable() -> String
+}
+
+class Algorithm <<Value Object>> {
+  - algorithm_type: AlgorithmType
+  --
+  + compression(algo: CompressionAlgo) -> Self
+  + encryption(algo: EncryptionAlgo) -> Self
+}
+
+class Checksum <<Value Object>> {
+  - value: String
+  - algorithm: ChecksumAlgorithm
+  --
+  + calculate(data: &[u8]) -> Self
+  + verify(data: &[u8]) -> bool
+}
+
+enum StageType {
+  Compression
+  Encryption
+  IntegrityCheck
+}
+
+enum PipelineStatus {
+  Created
+  Running
+  Completed
+  Failed
+}
+
+' Aggregates
+class PipelineAggregate <<Aggregate Root>> {
+  - pipeline: Pipeline
+  - chunks: Vec<FileChunk>
+  --
+  + create(input_path, output_path) -> Self
+  + add_chunk(chunk: FileChunk)
+  + process() -> Result<()>
+}
+
+' Relationships
+Pipeline "1" *-- "many" PipelineStage : contains
+Pipeline "1" -- "1" PipelineId : has
+Pipeline "1" -- "2" FilePath : has
+Pipeline "1" -- "1" PipelineStatus : has
+
+PipelineStage "1" -- "1" StageType : has
+PipelineStage "1" -- "1" Algorithm : has
+
+FileChunk "1" -- "1" FileSize : has (original)
+FileChunk "1" -- "1" FileSize : has (processed)
+FileChunk "1" -- "1" Checksum : has
+
+PipelineAggregate "1" o-- "1" Pipeline : manages
+PipelineAggregate "1" o-- "many" FileChunk : manages
+
+note right of Pipeline
+  **Aggregate Root**
+  Entities with unique identity
+  that persist over time
+end note
+
+note right of PipelineId
+  **Value Objects**
+  Immutable objects defined
+  by their attributes, not identity
+end note
+
+note bottom of PipelineAggregate
+  **Aggregate**
+  Consistency boundary
+  for related entities
+end note
+
+@enduml

@@ -1,0 +1,71 @@
+@startuml chunk-processing
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam activityBorderColor #1976D2
+
+title File Chunking and Processing
+
+start
+
+:Input File\n(e.g., 10 MB);
+
+partition "Chunking Strategy" {
+  :Determine chunk size\n(default: 1 MB);
+
+  :Calculate number of chunks\n(10 chunks in this example);
+
+  note right
+    **Chunk Size Selection**
+    - Default: 1 MB
+    - Configurable per pipeline
+    - Balances memory vs. I/O
+    - Affects parallelization
+  end note
+}
+
+partition "Process Each Chunk" {
+  fork
+    :Process Chunk 1\n(0-1MB);
+    :Apply stages;
+    :Write output;
+  fork again
+    :Process Chunk 2\n(1-2MB);
+    :Apply stages;
+    :Write output;
+  fork again
+    :Process Chunk 3\n(2-3MB);
+    :Apply stages;
+    :Write output;
+  fork again
+    :...;
+  fork again
+    :Process Chunk 10\n(9-10MB);
+    :Apply stages;
+    :Write output;
+  end fork
+}
+
+:Combine processed chunks\ninto output file;
+
+:Verify integrity;
+
+:Output File\n(processed);
+
+stop
+
+note right of "Process Each Chunk"
+  **Chunk Processing**
+  Each chunk is processed independently:
+  1. Read chunk from input file
+  2. Apply compression (if enabled)
+  3. Apply encryption (if enabled)
+  4. Calculate checksum
+  5. Store metadata
+  6. Write to output file
+
+  Chunks can be processed in parallel
+  for better performance
+end note
+
+@enduml
