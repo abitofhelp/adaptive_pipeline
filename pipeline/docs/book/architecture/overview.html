@@ -184,12 +184,123 @@
 <strong>Authors:</strong> Michael Gardner
 <strong>Status:</strong> Draft</p>
 <p>High-level architectural overview of the pipeline system.</p>
-<h2 id="architectural-patterns"><a class="header" href="#architectural-patterns">Architectural Patterns</a></h2>
-<p>TODO: Extract from pipeline/src/lib.rs</p>
+<h2 id="design-philosophy"><a class="header" href="#design-philosophy">Design Philosophy</a></h2>
+<p>The Optimized Adaptive Pipeline is built on three foundational architectural patterns:</p>
+<ol>
+<li><strong>Clean Architecture</strong> - Organizing code by dependency direction</li>
+<li><strong>Domain-Driven Design (DDD)</strong> - Modeling the business domain</li>
+<li><strong>Hexagonal Architecture</strong> - Isolating business logic from infrastructure</li>
+</ol>
+<p>These patterns work together to create a maintainable, testable, and flexible system.</p>
+<h2 id="layered-architecture"><a class="header" href="#layered-architecture">Layered Architecture</a></h2>
+<p>The pipeline follows a strict layered architecture where dependencies flow inward:</p>
+<p><img src="../diagrams/layered-architecture.svg" alt="Layered Architecture" /></p>
+<h3 id="layer-overview"><a class="header" href="#layer-overview">Layer Overview</a></h3>
+<p><strong>Presentation Layer</strong> (Outermost)</p>
+<ul>
+<li>CLI interface for user interaction</li>
+<li>Configuration management</li>
+<li>Request/response handling</li>
+</ul>
+<p><strong>Application Layer</strong></p>
+<ul>
+<li>Use cases and application services</li>
+<li>Pipeline orchestration</li>
+<li>File processing coordination</li>
+</ul>
+<p><strong>Domain Layer</strong> (Core)</p>
+<ul>
+<li>Business logic and rules</li>
+<li>Entities (Pipeline, PipelineStage)</li>
+<li>Value objects (FilePath, FileSize, Algorithm)</li>
+<li>Domain services</li>
+</ul>
+<p><strong>Infrastructure Layer</strong> (Outermost)</p>
+<ul>
+<li>Database implementations (SQLite)</li>
+<li>File system operations</li>
+<li>External system adapters</li>
+<li>Metrics collection</li>
+</ul>
 <h2 id="clean-architecture"><a class="header" href="#clean-architecture">Clean Architecture</a></h2>
-<p>TODO: Explain Clean Architecture application</p>
-<h2 id="hexagonal-architecture"><a class="header" href="#hexagonal-architecture">Hexagonal Architecture</a></h2>
-<p>TODO: Explain ports and adapters</p>
+<p>Clean Architecture ensures that business logic doesn't depend on implementation details:</p>
+<p><img src="../diagrams/dependency-flow.svg" alt="Dependency Flow" /></p>
+<h3 id="key-principles"><a class="header" href="#key-principles">Key Principles</a></h3>
+<p><strong>Dependency Rule</strong>: Source code dependencies point only inward, toward higher-level policies.</p>
+<ul>
+<li><strong>High-level policy</strong> (Application layer) defines what the system does</li>
+<li><strong>Abstractions</strong> (Traits) define how components interact</li>
+<li><strong>Low-level details</strong> (Infrastructure) implements the abstractions</li>
+</ul>
+<p>This means:</p>
+<ul>
+<li>Domain layer has <strong>zero external dependencies</strong></li>
+<li>Application layer depends only on domain traits</li>
+<li>Infrastructure implements domain interfaces</li>
+</ul>
+<h3 id="benefits"><a class="header" href="#benefits">Benefits</a></h3>
+<p>✅ <strong>Testability</strong>: Business logic can be tested without database or file system
+✅ <strong>Flexibility</strong>: Swap implementations (SQLite → PostgreSQL) without changing business logic
+✅ <strong>Independence</strong>: Domain logic doesn't know about HTTP, databases, or file formats</p>
+<h2 id="hexagonal-architecture-ports-and-adapters"><a class="header" href="#hexagonal-architecture-ports-and-adapters">Hexagonal Architecture (Ports and Adapters)</a></h2>
+<p>The pipeline uses Hexagonal Architecture to isolate the core business logic:</p>
+<p><img src="../diagrams/hexagonal-architecture.svg" alt="Hexagonal Architecture" /></p>
+<h3 id="core-components"><a class="header" href="#core-components">Core Components</a></h3>
+<p><strong>Application Core</strong></p>
+<ul>
+<li>Domain model (entities, value objects)</li>
+<li>Business logic (pipeline orchestration)</li>
+<li>Ports (trait definitions)</li>
+</ul>
+<p><strong>Primary Adapters</strong> (Driving)</p>
+<ul>
+<li>CLI adapter - drives the application</li>
+<li>HTTP adapter - future API endpoints</li>
+</ul>
+<p><strong>Secondary Adapters</strong> (Driven)</p>
+<ul>
+<li>SQLite repository adapter - driven by the application</li>
+<li>File system adapter - driven by the application</li>
+<li>Prometheus metrics adapter - driven by the application</li>
+</ul>
+<h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
+<ol>
+<li><strong>User</strong> interacts with <strong>Primary Adapter</strong> (CLI)</li>
+<li><strong>Primary Adapter</strong> calls <strong>Application Core</strong> through defined ports</li>
+<li><strong>Application Core</strong> uses <strong>Ports</strong> (traits) to interact with infrastructure</li>
+<li><strong>Secondary Adapters</strong> implement these ports</li>
+<li><strong>Adapters</strong> connect to external systems (database, files)</li>
+</ol>
+<p><strong>Example Flow</strong>:</p>
+<pre><code>CLI → Pipeline Service → Repository Port → SQLite Adapter → Database
+</code></pre>
+<p>The application core never knows it's using SQLite - it only knows the <code>Repository</code> trait.</p>
+<h2 id="architecture-integration"><a class="header" href="#architecture-integration">Architecture Integration</a></h2>
+<p>These three patterns work together:</p>
+<pre><code class="language-text">Clean Architecture:    Layers with dependency direction
+Domain-Driven Design:  Business modeling within layers
+Hexagonal Architecture: Ports/Adapters at layer boundaries
+</code></pre>
+<p><strong>In Practice</strong>:</p>
+<ul>
+<li><strong>Domain layer</strong> contains pure business logic (DDD entities)</li>
+<li><strong>Application layer</strong> orchestrates use cases (Clean Architecture)</li>
+<li><strong>Infrastructure</strong> implements ports (Hexagonal Architecture)</li>
+</ul>
+<p>This combination provides:</p>
+<ul>
+<li>Clear separation of concerns</li>
+<li>Testable business logic</li>
+<li>Flexible infrastructure</li>
+<li>Maintainable codebase</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Continue to:</p>
+<ul>
+<li><a href="layers.html">Layered Architecture Details</a> - Deep dive into each layer</li>
+<li><a href="domain-model.html">Domain Model</a> - Understanding entities and value objects</li>
+<li><a href="patterns.html">Design Patterns</a> - Patterns used throughout the codebase</li>
+</ul>
 
                     </main>
 
