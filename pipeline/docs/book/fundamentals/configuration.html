@@ -176,20 +176,256 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="configuration-basics"><a class="header" href="#configuration-basics">Configuration Basics</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
 <strong>License File:</strong> See the LICENSE file in the project root.
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>Basic configuration for running pipelines.</p>
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The pipeline system provides flexible configuration through command-line options, environment variables, and configuration files. This chapter covers the basics of configuring your pipelines.</p>
+<h2 id="command-line-interface"><a class="header" href="#command-line-interface">Command-Line Interface</a></h2>
+<p>The pipeline CLI provides several commands for managing and running pipelines.</p>
+<h3 id="basic-commands"><a class="header" href="#basic-commands">Basic Commands</a></h3>
+<h4 id="process-a-file"><a class="header" href="#process-a-file">Process a File</a></h4>
+<pre><code class="language-bash">pipeline process \
+  --input /path/to/input.txt \
+  --output /path/to/output.bin \
+  --pipeline my-pipeline
+</code></pre>
+<h4 id="create-a-pipeline"><a class="header" href="#create-a-pipeline">Create a Pipeline</a></h4>
+<pre><code class="language-bash">pipeline create \
+  --name my-pipeline \
+  --stages compression,encryption,integrity
+</code></pre>
+<h4 id="list-pipelines"><a class="header" href="#list-pipelines">List Pipelines</a></h4>
+<pre><code class="language-bash">pipeline list
+</code></pre>
+<h4 id="show-pipeline-details"><a class="header" href="#show-pipeline-details">Show Pipeline Details</a></h4>
+<pre><code class="language-bash">pipeline show my-pipeline
+</code></pre>
+<h4 id="delete-a-pipeline"><a class="header" href="#delete-a-pipeline">Delete a Pipeline</a></h4>
+<pre><code class="language-bash">pipeline delete my-pipeline --force
+</code></pre>
+<h3 id="performance-options"><a class="header" href="#performance-options">Performance Options</a></h3>
+<h4 id="cpu-threads"><a class="header" href="#cpu-threads">CPU Threads</a></h4>
+<p>Control the number of worker threads for CPU-bound operations (compression, encryption):</p>
+<pre><code class="language-bash">pipeline process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline my-pipeline \
+  --cpu-threads 8
+</code></pre>
+<p><strong>Default:</strong> Number of CPU cores - 1 (reserves one core for I/O)</p>
+<p><strong>Tips:</strong></p>
+<ul>
+<li>Too high: CPU thrashing, context switching overhead</li>
+<li>Too low: Underutilized cores, slower processing</li>
+<li>Monitor CPU saturation metrics to tune</li>
+</ul>
+<h4 id="io-threads"><a class="header" href="#io-threads">I/O Threads</a></h4>
+<p>Control the number of concurrent I/O operations:</p>
+<pre><code class="language-bash">pipeline process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline my-pipeline \
+  --io-threads 24
+</code></pre>
+<p><strong>Default:</strong> Device-specific (NVMe: 24, SSD: 12, HDD: 4)</p>
+<p><strong>Storage Type Detection:</strong></p>
+<pre><code class="language-bash">pipeline process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline my-pipeline \
+  --storage-type nvme  # or ssd, hdd
+</code></pre>
+<h4 id="channel-depth"><a class="header" href="#channel-depth">Channel Depth</a></h4>
+<p>Control backpressure in the pipeline stages:</p>
+<pre><code class="language-bash">pipeline process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline my-pipeline \
+  --channel-depth 8
+</code></pre>
+<p><strong>Default:</strong> 4</p>
+<p><strong>Tips:</strong></p>
+<ul>
+<li>Lower values: Less memory, may cause pipeline stalls</li>
+<li>Higher values: More buffering, higher memory usage</li>
+<li>Optimal value depends on chunk processing time and I/O latency</li>
+</ul>
+<h4 id="chunk-size"><a class="header" href="#chunk-size">Chunk Size</a></h4>
+<p>Configure the size of file chunks for parallel processing:</p>
+<pre><code class="language-bash">pipeline process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline my-pipeline \
+  --chunk-size-mb 10
+</code></pre>
+<p><strong>Default:</strong> Automatically determined based on file size and available resources</p>
+<h3 id="global-options"><a class="header" href="#global-options">Global Options</a></h3>
+<h4 id="verbose-logging"><a class="header" href="#verbose-logging">Verbose Logging</a></h4>
+<p>Enable detailed logging output:</p>
+<pre><code class="language-bash">pipeline --verbose process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline my-pipeline
+</code></pre>
+<h4 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h4>
+<p>Use a custom configuration file:</p>
+<pre><code class="language-bash">pipeline --config /path/to/config.toml process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline my-pipeline
+</code></pre>
 <h2 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h2>
-<p>TODO: Explain configuration files</p>
+<p>Configuration files use TOML format and allow you to save pipeline settings for reuse.</p>
+<h3 id="basic-configuration"><a class="header" href="#basic-configuration">Basic Configuration</a></h3>
+<pre><code class="language-toml">[pipeline]
+name = "my-pipeline"
+stages = ["compression", "encryption", "integrity"]
+
+[performance]
+cpu_threads = 8
+io_threads = 24
+channel_depth = 4
+
+[processing]
+chunk_size_mb = 10
+</code></pre>
+<h3 id="algorithm-configuration"><a class="header" href="#algorithm-configuration">Algorithm Configuration</a></h3>
+<pre><code class="language-toml">[stages.compression]
+algorithm = "zstd"
+
+[stages.encryption]
+algorithm = "aes-256-gcm"
+key_file = "/path/to/keyfile"
+
+[stages.integrity]
+algorithm = "sha256"
+</code></pre>
+<h3 id="complete-example"><a class="header" href="#complete-example">Complete Example</a></h3>
+<pre><code class="language-toml"># Pipeline configuration example
+[pipeline]
+name = "secure-archival"
+description = "High compression with encryption for archival"
+
+[stages.compression]
+algorithm = "brotli"
+level = 11  # Maximum compression
+
+[stages.encryption]
+algorithm = "aes-256-gcm"
+key_derivation = "argon2"
+
+[stages.integrity]
+algorithm = "blake3"
+
+[performance]
+cpu_threads = 16
+io_threads = 24
+channel_depth = 8
+storage_type = "nvme"
+
+[processing]
+chunk_size_mb = 64
+parallel_workers = 16
+</code></pre>
+<h3 id="using-configuration-files"><a class="header" href="#using-configuration-files">Using Configuration Files</a></h3>
+<pre><code class="language-bash"># Use a configuration file
+pipeline --config secure-archival.toml process \
+  --input large-dataset.tar \
+  --output large-dataset.bin
+
+# Override configuration file settings
+pipeline --config secure-archival.toml \
+  --cpu-threads 8 \
+  process --input file.txt --output file.bin
+</code></pre>
 <h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
-<p>TODO: Explain environment configuration</p>
-<h2 id="command-line-options"><a class="header" href="#command-line-options">Command-Line Options</a></h2>
-<p>TODO: Explain CLI options</p>
+<p>Environment variables provide another way to configure the pipeline:</p>
+<pre><code class="language-bash"># Set performance defaults
+export PIPELINE_CPU_THREADS=8
+export PIPELINE_IO_THREADS=24
+export PIPELINE_CHANNEL_DEPTH=8
+
+# Set default chunk size
+export PIPELINE_CHUNK_SIZE_MB=10
+
+# Enable verbose logging
+export PIPELINE_VERBOSE=true
+
+# Run pipeline
+pipeline process --input file.txt --output file.bin --pipeline my-pipeline
+</code></pre>
+<h2 id="configuration-priority"><a class="header" href="#configuration-priority">Configuration Priority</a></h2>
+<p>When the same setting is configured in multiple places, the following priority applies (highest to lowest):</p>
+<ol>
+<li><strong>Command-line arguments</strong> - Explicit flags like <code>--cpu-threads</code></li>
+<li><strong>Environment variables</strong> - <code>PIPELINE_*</code> variables</li>
+<li><strong>Configuration file</strong> - Settings from <code>--config</code> file</li>
+<li><strong>Default values</strong> - Built-in intelligent defaults</li>
+</ol>
+<p>Example:</p>
+<pre><code class="language-bash"># Config file says cpu_threads = 8
+# Environment says PIPELINE_CPU_THREADS=12
+# Command line says --cpu-threads=16
+
+# Result: Uses 16 (command-line wins)
+</code></pre>
+<h2 id="performance-tuning-guidelines"><a class="header" href="#performance-tuning-guidelines">Performance Tuning Guidelines</a></h2>
+<h3 id="for-maximum-speed"><a class="header" href="#for-maximum-speed">For Maximum Speed</a></h3>
+<ul>
+<li>Use LZ4 compression</li>
+<li>Use ChaCha20-Poly1305 encryption</li>
+<li>Increase CPU threads to match cores</li>
+<li>Use large chunks (32-64 MB)</li>
+<li>Higher channel depth (8-16)</li>
+</ul>
+<pre><code class="language-bash">pipeline process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline speed-pipeline \
+  --cpu-threads 16 \
+  --chunk-size-mb 64 \
+  --channel-depth 16
+</code></pre>
+<h3 id="for-maximum-compression"><a class="header" href="#for-maximum-compression">For Maximum Compression</a></h3>
+<ul>
+<li>Use Brotli compression</li>
+<li>Smaller chunks for better compression ratio</li>
+<li>More CPU threads for parallel compression</li>
+</ul>
+<pre><code class="language-bash">pipeline process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline compression-pipeline \
+  --cpu-threads 16 \
+  --chunk-size-mb 4
+</code></pre>
+<h3 id="for-resource-constrained-systems"><a class="header" href="#for-resource-constrained-systems">For Resource-Constrained Systems</a></h3>
+<ul>
+<li>Reduce CPU and I/O threads</li>
+<li>Smaller chunks</li>
+<li>Lower channel depth</li>
+</ul>
+<pre><code class="language-bash">pipeline process \
+  --input file.txt \
+  --output file.bin \
+  --pipeline minimal-pipeline \
+  --cpu-threads 2 \
+  --io-threads 4 \
+  --chunk-size-mb 2 \
+  --channel-depth 2
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you understand configuration, you're ready to:</p>
+<ul>
+<li><a href="first-run.html">Run Your First Pipeline</a> - Step-by-step tutorial</li>
+<li><a href="stages.html">Learn About Stages</a> - Deep dive into pipeline stages</li>
+<li><a href="../architecture/overview.html">Explore Architecture</a> - Understand the system design</li>
+</ul>
 
                     </main>
 

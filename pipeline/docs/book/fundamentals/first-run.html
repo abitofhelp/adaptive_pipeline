@@ -176,20 +176,297 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="running-your-first-pipeline"><a class="header" href="#running-your-first-pipeline">Running Your First Pipeline</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
 <strong>License File:</strong> See the LICENSE file in the project root.
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>Step-by-step guide to running your first pipeline.</p>
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
 <h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
-<p>TODO: List prerequisites</p>
-<h2 id="example-pipeline"><a class="header" href="#example-pipeline">Example Pipeline</a></h2>
-<p>TODO: Add complete example</p>
-<h2 id="understanding-results"><a class="header" href="#understanding-results">Understanding Results</a></h2>
-<p>TODO: Explain output</p>
+<p>Before running your first pipeline, ensure you have:</p>
+<ul>
+<li>
+<p><strong>Pipeline binary</strong> - Built and available in your PATH</p>
+<pre><code class="language-bash">cargo build --release
+cp target/release/pipeline /usr/local/bin/  # or add to PATH
+</code></pre>
+</li>
+<li>
+<p><strong>Test file</strong> - A sample file to process</p>
+<pre><code class="language-bash">echo "Hello, Pipeline World!" &gt; test.txt
+</code></pre>
+</li>
+<li>
+<p><strong>Permissions</strong> - Read/write access to input and output directories</p>
+</li>
+</ul>
+<h2 id="quick-start-5-minutes"><a class="header" href="#quick-start-5-minutes">Quick Start (5 minutes)</a></h2>
+<p>Let's run a simple compression and encryption pipeline in 3 steps:</p>
+<h3 id="step-1-create-a-pipeline"><a class="header" href="#step-1-create-a-pipeline">Step 1: Create a Pipeline</a></h3>
+<pre><code class="language-bash">pipeline create \
+  --name my-first-pipeline \
+  --stages compression,encryption
+</code></pre>
+<p>You should see output like:</p>
+<pre><code>✓ Created pipeline: my-first-pipeline
+  Stages: compression (zstd), encryption (aes-256-gcm)
+</code></pre>
+<h3 id="step-2-process-a-file"><a class="header" href="#step-2-process-a-file">Step 2: Process a File</a></h3>
+<pre><code class="language-bash">pipeline process \
+  --input test.txt \
+  --output test.bin \
+  --pipeline my-first-pipeline
+</code></pre>
+<p>You should see progress output:</p>
+<pre><code>Processing: test.txt
+Pipeline: my-first-pipeline
+  Stage 1/2: Compression (zstd)... ✓
+  Stage 2/2: Encryption (aes-256-gcm)... ✓
+Output: test.bin (24 bytes)
+Time: 0.05s
+</code></pre>
+<h3 id="step-3-restore-the-file"><a class="header" href="#step-3-restore-the-file">Step 3: Restore the File</a></h3>
+<pre><code class="language-bash">pipeline restore \
+  --input test.bin \
+  --output restored.txt
+</code></pre>
+<p>Verify the restoration:</p>
+<pre><code class="language-bash">diff test.txt restored.txt
+# No output = files are identical ✓
+</code></pre>
+<h2 id="detailed-walkthrough"><a class="header" href="#detailed-walkthrough">Detailed Walkthrough</a></h2>
+<p>Let's explore each step in more detail.</p>
+<h3 id="creating-pipelines"><a class="header" href="#creating-pipelines">Creating Pipelines</a></h3>
+<h4 id="basic-pipeline"><a class="header" href="#basic-pipeline">Basic Pipeline</a></h4>
+<pre><code class="language-bash">pipeline create \
+  --name basic \
+  --stages compression
+</code></pre>
+<p>This creates a simple compression-only pipeline using default settings (zstd compression).</p>
+<h4 id="secure-pipeline"><a class="header" href="#secure-pipeline">Secure Pipeline</a></h4>
+<pre><code class="language-bash">pipeline create \
+  --name secure \
+  --stages compression,encryption,integrity
+</code></pre>
+<p>This creates a complete security pipeline with:</p>
+<ul>
+<li>Compression (reduces size)</li>
+<li>Encryption (protects data)</li>
+<li>Integrity verification (detects tampering)</li>
+</ul>
+<h4 id="save-pipeline-configuration"><a class="header" href="#save-pipeline-configuration">Save Pipeline Configuration</a></h4>
+<pre><code class="language-bash">pipeline create \
+  --name archival \
+  --stages compression,encryption \
+  --output archival-pipeline.toml
+</code></pre>
+<p>This saves the pipeline configuration to a file for reuse.</p>
+<h3 id="processing-files"><a class="header" href="#processing-files">Processing Files</a></h3>
+<h4 id="basic-processing"><a class="header" href="#basic-processing">Basic Processing</a></h4>
+<pre><code class="language-bash"># Process a file
+pipeline process \
+  --input large-file.log \
+  --output large-file.bin \
+  --pipeline secure
+</code></pre>
+<h4 id="with-performance-options"><a class="header" href="#with-performance-options">With Performance Options</a></h4>
+<pre><code class="language-bash"># Process with custom settings
+pipeline process \
+  --input large-file.log \
+  --output large-file.bin \
+  --pipeline secure \
+  --cpu-threads 8 \
+  --chunk-size-mb 32
+</code></pre>
+<h4 id="with-verbose-logging"><a class="header" href="#with-verbose-logging">With Verbose Logging</a></h4>
+<pre><code class="language-bash"># See detailed progress
+pipeline --verbose process \
+  --input large-file.log \
+  --output large-file.bin \
+  --pipeline secure
+</code></pre>
+<h3 id="restoring-files"><a class="header" href="#restoring-files">Restoring Files</a></h3>
+<p>The pipeline automatically detects the processing stages from the output file's metadata:</p>
+<pre><code class="language-bash"># Restore automatically reverses all stages
+pipeline restore \
+  --input large-file.bin \
+  --output restored-file.log
+</code></pre>
+<p>The system will:</p>
+<ol>
+<li>Read metadata from the file header</li>
+<li>Apply stages in reverse order</li>
+<li>Verify integrity if available</li>
+<li>Restore original file</li>
+</ol>
+<h3 id="managing-pipelines"><a class="header" href="#managing-pipelines">Managing Pipelines</a></h3>
+<h4 id="list-all-pipelines"><a class="header" href="#list-all-pipelines">List All Pipelines</a></h4>
+<pre><code class="language-bash">pipeline list
+</code></pre>
+<p>Output:</p>
+<pre><code>Available Pipelines:
+  - my-first-pipeline (compression, encryption)
+  - secure (compression, encryption, integrity)
+  - archival (compression, encryption)
+</code></pre>
+<h4 id="show-pipeline-details"><a class="header" href="#show-pipeline-details">Show Pipeline Details</a></h4>
+<pre><code class="language-bash">pipeline show secure
+</code></pre>
+<p>Output:</p>
+<pre><code>Pipeline: secure
+  Stage 1: Compression (zstd)
+  Stage 2: Encryption (aes-256-gcm)
+  Stage 3: Integrity (sha256)
+Created: 2025-01-04 10:30:00
+</code></pre>
+<h4 id="delete-a-pipeline"><a class="header" href="#delete-a-pipeline">Delete a Pipeline</a></h4>
+<pre><code class="language-bash">pipeline delete my-first-pipeline --force
+</code></pre>
+<h2 id="understanding-output"><a class="header" href="#understanding-output">Understanding Output</a></h2>
+<h3 id="successful-processing"><a class="header" href="#successful-processing">Successful Processing</a></h3>
+<p>When processing completes successfully:</p>
+<pre><code>Processing: test.txt
+Pipeline: my-first-pipeline
+  Stage 1/2: Compression (zstd)... ✓
+  Stage 2/2: Encryption (aes-256-gcm)... ✓
+
+Statistics:
+  Input size:  1,024 KB
+  Output size: 512 KB
+  Compression ratio: 50%
+  Processing time: 0.15s
+  Throughput: 6.8 MB/s
+
+Output: test.bin
+</code></pre>
+<h3 id="performance-metrics"><a class="header" href="#performance-metrics">Performance Metrics</a></h3>
+<p>With <code>--verbose</code> flag, you'll see detailed metrics:</p>
+<pre><code>Pipeline Execution Metrics:
+  Chunks processed: 64
+  Parallel workers: 8
+  Average chunk time: 2.3ms
+  CPU utilization: 87%
+  I/O wait: 3%
+
+Stage Breakdown:
+  Compression: 0.08s (53%)
+  Encryption: 0.05s (33%)
+  I/O: 0.02s (14%)
+</code></pre>
+<h3 id="error-messages"><a class="header" href="#error-messages">Error Messages</a></h3>
+<h4 id="file-not-found"><a class="header" href="#file-not-found">File Not Found</a></h4>
+<pre><code>Error: Input file not found: test.txt
+  Check the file path and try again
+</code></pre>
+<h4 id="permission-denied"><a class="header" href="#permission-denied">Permission Denied</a></h4>
+<pre><code>Error: Permission denied: /protected/output.bin
+  Ensure you have write access to the output directory
+</code></pre>
+<h4 id="invalid-pipeline"><a class="header" href="#invalid-pipeline">Invalid Pipeline</a></h4>
+<pre><code>Error: Pipeline not found: nonexistent
+  Use 'pipeline list' to see available pipelines
+</code></pre>
+<h2 id="common-scenarios"><a class="header" href="#common-scenarios">Common Scenarios</a></h2>
+<h3 id="scenario-1-compress-large-log-files"><a class="header" href="#scenario-1-compress-large-log-files">Scenario 1: Compress Large Log Files</a></h3>
+<pre><code class="language-bash"># Create compression pipeline
+pipeline create --name logs --stages compression
+
+# Process log files
+pipeline process \
+  --input app.log \
+  --output app.log.bin \
+  --pipeline logs \
+  --chunk-size-mb 64
+
+# Compression ratio is typically 70-90% for text logs
+</code></pre>
+<h3 id="scenario-2-secure-sensitive-files"><a class="header" href="#scenario-2-secure-sensitive-files">Scenario 2: Secure Sensitive Files</a></h3>
+<pre><code class="language-bash"># Create secure pipeline with all protections
+pipeline create --name sensitive --stages compression,encryption,integrity
+
+# Process sensitive file
+pipeline process \
+  --input customer-data.csv \
+  --output customer-data.bin \
+  --pipeline sensitive
+
+# File is now compressed, encrypted, and tamper-evident
+</code></pre>
+<h3 id="scenario-3-high-performance-batch-processing"><a class="header" href="#scenario-3-high-performance-batch-processing">Scenario 3: High-Performance Batch Processing</a></h3>
+<pre><code class="language-bash"># Process multiple files with optimized settings
+for file in data/*.csv; do
+  pipeline process \
+    --input "$file" \
+    --output "processed/$(basename $file).bin" \
+    --pipeline fast \
+    --cpu-threads 16 \
+    --chunk-size-mb 128 \
+    --channel-depth 16
+done
+</code></pre>
+<h3 id="scenario-4-restore-and-verify"><a class="header" href="#scenario-4-restore-and-verify">Scenario 4: Restore and Verify</a></h3>
+<pre><code class="language-bash"># Restore file
+pipeline restore \
+  --input customer-data.bin \
+  --output customer-data-restored.csv
+
+# Verify restoration
+sha256sum customer-data.csv customer-data-restored.csv
+# Both checksums should match
+</code></pre>
+<h2 id="testing-your-pipeline"><a class="header" href="#testing-your-pipeline">Testing Your Pipeline</a></h2>
+<h3 id="create-test-data"><a class="header" href="#create-test-data">Create Test Data</a></h3>
+<pre><code class="language-bash"># Create a test file
+dd if=/dev/urandom of=test-10mb.bin bs=1M count=10
+
+# Calculate original checksum
+sha256sum test-10mb.bin &gt; original.sha256
+</code></pre>
+<h3 id="process-and-restore"><a class="header" href="#process-and-restore">Process and Restore</a></h3>
+<pre><code class="language-bash"># Process the file
+pipeline process \
+  --input test-10mb.bin \
+  --output test-10mb.processed \
+  --pipeline my-first-pipeline
+
+# Restore the file
+pipeline restore \
+  --input test-10mb.processed \
+  --output test-10mb.restored
+</code></pre>
+<h3 id="verify-integrity"><a class="header" href="#verify-integrity">Verify Integrity</a></h3>
+<pre><code class="language-bash"># Verify restored file matches original
+sha256sum -c original.sha256
+# Should output: test-10mb.bin: OK
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Congratulations! You've run your first pipeline. Now you can:</p>
+<ul>
+<li>
+<p><strong>Explore Advanced Features</strong></p>
+<ul>
+<li><a href="../architecture/overview.html">Architecture Overview</a> - Understand the system design</li>
+<li><a href="../implementation/compression.html">Implementation Details</a> - Learn about algorithms</li>
+<li><a href="../advanced/performance.html">Performance Tuning</a> - Optimize for your use case</li>
+</ul>
+</li>
+<li>
+<p><strong>Learn More About Configuration</strong></p>
+<ul>
+<li><a href="configuration.html">Configuration Guide</a> - Detailed configuration options</li>
+<li><a href="stages.html">Stage Types</a> - Available processing stages</li>
+</ul>
+</li>
+<li>
+<p><strong>Build Custom Pipelines</strong></p>
+<ul>
+<li>Experiment with different stage combinations</li>
+<li>Test different algorithms for your workload</li>
+<li>Benchmark performance with your data</li>
+</ul>
+</li>
+</ul>
 
                     </main>
 

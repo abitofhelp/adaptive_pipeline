@@ -176,20 +176,250 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="pipeline-stages"><a class="header" href="#pipeline-stages">Pipeline Stages</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
 <strong>License File:</strong> See the LICENSE file in the project root.
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>Understanding how stages work together.</p>
-<h2 id="available-stages"><a class="header" href="#available-stages">Available Stages</a></h2>
-<p>TODO: List available stages</p>
-<h2 id="stage-order"><a class="header" href="#stage-order">Stage Order</a></h2>
-<p>TODO: Explain stage ordering</p>
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
+<h2 id="what-is-a-stage"><a class="header" href="#what-is-a-stage">What is a Stage?</a></h2>
+<p>A <strong>pipeline stage</strong> is a single processing operation that transforms data in a specific way. Each stage performs one well-defined task, like compressing data, encrypting it, or verifying its integrity.</p>
+<p>Think of stages like workstations on an assembly line. Each workstation has specialized tools and performs one specific operation. The product moves from one workstation to the next until it's complete.</p>
+<h2 id="stage-types"><a class="header" href="#stage-types">Stage Types</a></h2>
+<p>Our pipeline supports three main categories of stages:</p>
+<h3 id="1-compression-stages"><a class="header" href="#1-compression-stages">1. Compression Stages</a></h3>
+<p>Compression stages reduce the size of your data. This is useful for:</p>
+<ul>
+<li>Saving disk space</li>
+<li>Reducing network bandwidth</li>
+<li>Faster file transfers</li>
+<li>Lower storage costs</li>
+</ul>
+<p><strong>Available Compression Algorithms:</strong></p>
+<ul>
+<li>
+<p><strong>Brotli</strong> - Best compression ratio, slower speed</p>
+<ul>
+<li>Best for: Text files, web content, logs</li>
+<li>Performance: Excellent compression, moderate speed</li>
+<li>Memory: Higher memory usage</li>
+</ul>
+</li>
+<li>
+<p><strong>Gzip</strong> - General-purpose compression</p>
+<ul>
+<li>Best for: General files, wide compatibility</li>
+<li>Performance: Good balance of speed and ratio</li>
+<li>Memory: Moderate memory usage</li>
+</ul>
+</li>
+<li>
+<p><strong>Zstandard (zstd)</strong> - Modern, fast compression</p>
+<ul>
+<li>Best for: Large files, real-time compression</li>
+<li>Performance: Excellent speed and ratio</li>
+<li>Memory: Efficient memory usage</li>
+</ul>
+</li>
+<li>
+<p><strong>LZ4</strong> - Extremely fast compression</p>
+<ul>
+<li>Best for: Real-time applications, live data streams</li>
+<li>Performance: Fastest compression, moderate ratio</li>
+<li>Memory: Low memory usage</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-encryption-stages"><a class="header" href="#2-encryption-stages">2. Encryption Stages</a></h3>
+<p>Encryption stages protect your data by making it unreadable without the correct key. This is essential for:</p>
+<ul>
+<li>Protecting sensitive information</li>
+<li>Compliance with security regulations</li>
+<li>Secure data transmission</li>
+<li>Privacy protection</li>
+</ul>
+<p><strong>Available Encryption Algorithms:</strong></p>
+<ul>
+<li>
+<p><strong>AES-256-GCM</strong> - Industry standard encryption</p>
+<ul>
+<li>Key Size: 256 bits (32 bytes)</li>
+<li>Security: FIPS approved, very strong</li>
+<li>Performance: Excellent with AES-NI hardware support</li>
+<li>Authentication: Built-in integrity verification</li>
+</ul>
+</li>
+<li>
+<p><strong>ChaCha20-Poly1305</strong> - Modern stream cipher</p>
+<ul>
+<li>Key Size: 256 bits (32 bytes)</li>
+<li>Security: Strong, constant-time implementation</li>
+<li>Performance: Consistent across all platforms</li>
+<li>Authentication: Built-in integrity verification</li>
+</ul>
+</li>
+<li>
+<p><strong>AES-128-GCM</strong> - Faster AES variant</p>
+<ul>
+<li>Key Size: 128 bits (16 bytes)</li>
+<li>Security: Still very secure, slightly faster</li>
+<li>Performance: Faster than AES-256</li>
+<li>Authentication: Built-in integrity verification</li>
+</ul>
+</li>
+</ul>
+<h3 id="3-integrity-verification-stages"><a class="header" href="#3-integrity-verification-stages">3. Integrity Verification Stages</a></h3>
+<p>Integrity stages ensure your data hasn't been corrupted or tampered with. They create a unique "fingerprint" of your data called a checksum or hash.</p>
+<p><strong>Available Hashing Algorithms:</strong></p>
+<ul>
+<li>
+<p><strong>SHA-256</strong> - Industry standard hashing</p>
+<ul>
+<li>Output: 256 bits (32 bytes)</li>
+<li>Security: Cryptographically secure</li>
+<li>Performance: Good balance</li>
+<li>Use Case: General integrity verification</li>
+</ul>
+</li>
+<li>
+<p><strong>SHA-512</strong> - Stronger SHA variant</p>
+<ul>
+<li>Output: 512 bits (64 bytes)</li>
+<li>Security: Stronger than SHA-256</li>
+<li>Performance: Good on 64-bit systems</li>
+<li>Use Case: High-security applications</li>
+</ul>
+</li>
+<li>
+<p><strong>BLAKE3</strong> - Modern, high-performance hashing</p>
+<ul>
+<li>Output: 256 bits (32 bytes)</li>
+<li>Security: Strong security properties</li>
+<li>Performance: Very fast</li>
+<li>Use Case: High-performance applications</li>
+</ul>
+</li>
+</ul>
 <h2 id="stage-configuration"><a class="header" href="#stage-configuration">Stage Configuration</a></h2>
-<p>TODO: Explain per-stage configuration</p>
+<p>Each stage has a configuration that specifies how it should process data:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pipeline_domain::{PipelineStage, Algorithm};
+
+// Example: Compression stage
+let compression_stage = PipelineStage::new(
+    "compress".to_string(),
+    Algorithm::zstd(),
+    1, // stage order
+)?;
+
+// Example: Encryption stage
+let encryption_stage = PipelineStage::new(
+    "encrypt".to_string(),
+    Algorithm::aes_256_gcm(),
+    2, // stage order
+)?;
+
+// Example: Integrity verification stage
+let integrity_stage = PipelineStage::new(
+    "verify".to_string(),
+    Algorithm::sha256(),
+    3, // stage order
+)?;
+<span class="boring">}</span></code></pre></pre>
+<h2 id="stage-execution-order"><a class="header" href="#stage-execution-order">Stage Execution Order</a></h2>
+<p>Stages execute in the order you define them. The output of one stage becomes the input to the next stage.</p>
+<p><strong>Recommended Order for Processing:</strong></p>
+<ol>
+<li>Compress (reduce size first)</li>
+<li>Encrypt (protect compressed data)</li>
+<li>Verify integrity (create checksum of encrypted data)</li>
+</ol>
+<p><strong>For Restoration (reverse order):</strong></p>
+<ol>
+<li>Verify integrity (check encrypted data)</li>
+<li>Decrypt (recover compressed data)</li>
+<li>Decompress (restore original file)</li>
+</ol>
+<pre><code class="language-text">Processing Pipeline:
+Input File → Compress → Encrypt → Verify → Output File
+
+Restoration Pipeline:
+Input File → Verify → Decrypt → Decompress → Output File
+</code></pre>
+<h2 id="combining-stages"><a class="header" href="#combining-stages">Combining Stages</a></h2>
+<p>You can combine stages in different ways depending on your needs:</p>
+<h3 id="maximum-security"><a class="header" href="#maximum-security">Maximum Security</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>vec![
+    PipelineStage::new("compress", Algorithm::brotli(), 1)?,
+    PipelineStage::new("encrypt", Algorithm::aes_256_gcm(), 2)?,
+    PipelineStage::new("verify", Algorithm::blake3(), 3)?,
+]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="maximum-speed"><a class="header" href="#maximum-speed">Maximum Speed</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>vec![
+    PipelineStage::new("compress", Algorithm::lz4(), 1)?,
+    PipelineStage::new("encrypt", Algorithm::chacha20_poly1305(), 2)?,
+]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="balanced-approach"><a class="header" href="#balanced-approach">Balanced Approach</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>vec![
+    PipelineStage::new("compress", Algorithm::zstd(), 1)?,
+    PipelineStage::new("encrypt", Algorithm::aes_256_gcm(), 2)?,
+    PipelineStage::new("verify", Algorithm::sha256(), 3)?,
+]
+<span class="boring">}</span></code></pre></pre>
+<h2 id="parallel-processing"><a class="header" href="#parallel-processing">Parallel Processing</a></h2>
+<p>Stages process file chunks in parallel for better performance:</p>
+<pre><code class="language-text">File Split into Chunks:
+┌──────┬──────┬──────┬──────┐
+│Chunk1│Chunk2│Chunk3│Chunk4│
+└──┬───┴──┬───┴──┬───┴──┬───┘
+   │      │      │      │
+   ▼      ▼      ▼      ▼
+   ┌──────┬──────┬──────┬──────┐
+   │Stage1│Stage1│Stage1│Stage1│ (Parallel)
+   └──┬───┴──┬───┴──┬───┴──┬───┘
+      ▼      ▼      ▼      ▼
+   ┌──────┬──────┬──────┬──────┐
+   │Stage2│Stage2│Stage2│Stage2│ (Parallel)
+   └──┬───┴──┬───┴──┬───┴──┬───┘
+      │      │      │      │
+      ▼      ▼      ▼      ▼
+   Combined Output File
+</code></pre>
+<p>This parallel processing allows the pipeline to utilize multiple CPU cores for faster throughput.</p>
+<h2 id="stage-validation"><a class="header" href="#stage-validation">Stage Validation</a></h2>
+<p>The pipeline validates stages at creation time:</p>
+<ul>
+<li><strong>Algorithm compatibility</strong>: Ensures compression algorithms are only used in compression stages</li>
+<li><strong>Stage order</strong>: Verifies stages have unique, sequential order numbers</li>
+<li><strong>Configuration validity</strong>: Checks all stage parameters are valid</li>
+<li><strong>Dependency checks</strong>: Ensures restoration pipelines match processing pipelines</li>
+</ul>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// This will fail - wrong algorithm for stage type
+PipelineStage::new(
+    "compress",
+    Algorithm::aes_256_gcm(), // Encryption algorithm!
+    1
+) // ❌ Error: Algorithm not compatible with stage type
+<span class="boring">}</span></code></pre></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Now that you understand pipeline stages, you can learn about:</p>
+<ul>
+<li><a href="configuration.html">Configuration</a> - How to configure pipelines and stages</li>
+<li><a href="first-run.html">Your First Pipeline</a> - Run your first pipeline</li>
+<li><a href="../architecture/overview.html">Architecture Overview</a> - Deeper dive into the architecture</li>
+</ul>
 
                     </main>
 
