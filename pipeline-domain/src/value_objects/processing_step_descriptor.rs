@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Processing Step Descriptor Value Object
 //!
 //! This module defines the processing step descriptor value object for the
@@ -223,7 +222,6 @@ use std::collections::HashMap;
 /// - Must match the pattern: `^[a-zA-Z0-9_-]+$`
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Algorithm(String);
 
@@ -253,7 +251,6 @@ impl Algorithm {
     /// - Invalid characters (only alphanumeric, `-`, `_` allowed)
     ///
     /// # Examples
-    ///
     pub fn new(value: &str) -> Result<Self, PipelineError> {
         let trimmed = value.trim();
         if trimmed.is_empty() {

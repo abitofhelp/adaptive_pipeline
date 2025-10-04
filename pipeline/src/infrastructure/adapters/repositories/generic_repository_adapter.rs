@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Generic Repository Adapter
 //!
 //! This module provides a generic, in-memory repository adapter implementation

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Pipeline Requirements Value Object
 //!
 //! This module provides the [`PipelineRequirements`] value object for

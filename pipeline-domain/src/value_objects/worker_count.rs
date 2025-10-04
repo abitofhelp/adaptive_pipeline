@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Worker Count Value Object - Parallel Processing Optimization Infrastructure
 //!
 //! This module provides a comprehensive worker count value object that
@@ -240,7 +239,6 @@ impl WorkerCount {
     /// `WorkerCount` with value clamped to [`MIN_WORKERS`, `MAX_WORKERS`]
     ///
     /// # Examples
-    ///
     pub fn new(count: usize) -> Self {
         Self {
             count: count.clamp(Self::MIN_WORKERS, Self::MAX_WORKERS),
@@ -261,7 +259,8 @@ impl WorkerCount {
     ///
     /// # Purpose
     /// Provides empirically-optimized worker allocation based on comprehensive
-    /// benchmark results. Maximizes throughput while minimizing coordination overhead.
+    /// benchmark results. Maximizes throughput while minimizing coordination
+    /// overhead.
     ///
     /// # Why
     /// File size-based optimization provides:
@@ -293,7 +292,6 @@ impl WorkerCount {
     /// Optimal `WorkerCount` for the given file size (empirically validated)
     ///
     /// # Examples
-    ///
     pub fn optimal_for_file_size(file_size: u64) -> Self {
         let optimal_count = match file_size {
             // Tiny files: Minimize overhead, single-threaded or minimal parallelism

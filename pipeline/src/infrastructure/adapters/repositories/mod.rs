@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! Repository adapters for the adaptive pipeline system.
 //!
 //! This module contains adapter implementations that bridge domain repository

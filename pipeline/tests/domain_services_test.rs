@@ -33,12 +33,13 @@ use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
 use tokio::time::Instant;
 
+use pipeline::infrastructure::adapters::compression_service_adapter::CompressionServiceImpl;
+use pipeline::infrastructure::adapters::encryption_service_adapter::EncryptionServiceImpl;
+use pipeline::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
 use pipeline_domain::entities::security_context::{SecurityContext, SecurityLevel};
 use pipeline_domain::entities::ProcessingContext;
 use pipeline_domain::services::checksum_service::{ChecksumProcessor, ChecksumService};
-use pipeline_domain::services::compression_service::{
-    CompressionAlgorithm, CompressionConfig, CompressionService,
-};
+use pipeline_domain::services::compression_service::{CompressionAlgorithm, CompressionConfig, CompressionService};
 use pipeline_domain::services::encryption_service::{
     EncryptionAlgorithm, EncryptionConfig, EncryptionService, KeyMaterial,
 };
@@ -51,9 +52,6 @@ use pipeline_domain::value_objects::encryption_key_id::EncryptionKeyId;
 use pipeline_domain::value_objects::file_chunk::FileChunk;
 use pipeline_domain::value_objects::file_chunk_id::FileChunkId;
 use pipeline_domain::PipelineError;
-use pipeline::infrastructure::adapters::compression_service_adapter::CompressionServiceImpl;
-use pipeline::infrastructure::adapters::encryption_service_adapter::EncryptionServiceImpl;
-use pipeline::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
 
 // ============================================================================
 // DOMAIN SERVICES TEST FRAMEWORK IMPLEMENTATION

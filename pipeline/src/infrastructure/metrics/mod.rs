@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! Metrics Module
 //!
 //! This module is part of the Infrastructure layer, providing metrics

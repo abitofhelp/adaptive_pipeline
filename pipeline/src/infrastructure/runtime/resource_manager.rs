@@ -7,12 +7,14 @@
 
 //! # Global Resource Manager
 //!
-//! This module provides centralized resource governance across the entire application,
-//! preventing resource oversubscription when processing multiple files concurrently.
+//! This module provides centralized resource governance across the entire
+//! application, preventing resource oversubscription when processing multiple
+//! files concurrently.
 //!
 //! ## Architecture Pattern: Two-Level Resource Governance
 //!
-//! **Problem:** Without global limits, multiple concurrent files can overwhelm the system:
+//! **Problem:** Without global limits, multiple concurrent files can overwhelm
+//! the system:
 //! - 10 files × 8 workers/file = 80 concurrent tasks on an 8-core machine
 //! - Result: CPU oversubscription, cache thrashing, poor throughput
 //!
@@ -58,10 +60,8 @@
 //! - **Future:** Can add hard cap in Phase 3
 
 use pipeline_domain::PipelineError;
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use tokio::sync::{Semaphore, SemaphorePermit};
 
 /// Storage device type for I/O queue depth optimization
@@ -98,10 +98,10 @@ pub struct ResourceConfig {
 impl Default for ResourceConfig {
     fn default() -> Self {
         Self {
-            cpu_tokens: None,  // Will use cores - 1
-            io_tokens: None,   // Will use device-specific
+            cpu_tokens: None, // Will use cores - 1
+            io_tokens: None,  // Will use device-specific
             storage_type: StorageType::Auto,
-            memory_limit: None,  // No limit by default
+            memory_limit: None, // No limit by default
         }
     }
 }
@@ -134,7 +134,8 @@ pub struct GlobalResourceManager {
     ///
     /// **Purpose:** Prevent CPU oversubscription
     /// **Typical value:** cores - 1
-    /// **Educational:** This is a "counting semaphore" that allows N concurrent operations
+    /// **Educational:** This is a "counting semaphore" that allows N concurrent
+    /// operations
     cpu_tokens: Arc<Semaphore>,
 
     /// I/O operation tokens (semaphore permits)
@@ -185,26 +186,23 @@ impl GlobalResourceManager {
     /// ```
     pub fn new(config: ResourceConfig) -> Result<Self, PipelineError> {
         // Detect available CPU cores
-        let available_cores = std::thread::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(4);  // Conservative fallback
+        let available_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4); // Conservative fallback
 
         // Educational: Why cores - 1?
         // Leave one core for OS, I/O threads, and system tasks
         // Prevents complete CPU saturation which hurts overall system responsiveness
-        let cpu_token_count = config.cpu_tokens
-            .unwrap_or_else(|| (available_cores - 1).max(1));
+        let cpu_token_count = config.cpu_tokens.unwrap_or_else(|| (available_cores - 1).max(1));
 
         // Educational: Device-specific I/O queue depths
         // Different storage devices have different optimal concurrency levels
-        let io_token_count = config.io_tokens
+        let io_token_count = config
+            .io_tokens
             .unwrap_or_else(|| Self::detect_optimal_io_tokens(config.storage_type));
 
         // Educational: Memory capacity detection
         // On most systems, we can query available RAM
         // For now, use a conservative default if not specified
-        let memory_capacity = config.memory_limit
-            .unwrap_or(40 * 1024 * 1024 * 1024);  // 40GB default
+        let memory_capacity = config.memory_limit.unwrap_or(40 * 1024 * 1024 * 1024); // 40GB default
 
         Ok(Self {
             cpu_tokens: Arc::new(Semaphore::new(cpu_token_count)),
@@ -270,7 +268,8 @@ impl GlobalResourceManager {
     /// ## Backpressure
     ///
     /// If all CPU tokens are in use, this method **waits** until one becomes
-    /// available. This creates natural backpressure and prevents oversubscription.
+    /// available. This creates natural backpressure and prevents
+    /// oversubscription.
     pub async fn acquire_cpu(&self) -> Result<SemaphorePermit<'_>, PipelineError> {
         self.cpu_tokens
             .acquire()
@@ -379,8 +378,7 @@ impl GlobalResourceManager {
 ///     // ...
 /// }
 /// ```
-static RESOURCE_MANAGER_CELL: std::sync::OnceLock<GlobalResourceManager> =
-    std::sync::OnceLock::new();
+static RESOURCE_MANAGER_CELL: std::sync::OnceLock<GlobalResourceManager> = std::sync::OnceLock::new();
 
 /// Initialize the global resource manager with custom configuration
 ///
@@ -402,8 +400,8 @@ static RESOURCE_MANAGER_CELL: std::sync::OnceLock<GlobalResourceManager> =
 /// - Already initialized (called twice)
 /// - Configuration is invalid (e.g., 0 CPU threads)
 pub fn init_resource_manager(config: ResourceConfig) -> Result<(), String> {
-    let manager = GlobalResourceManager::new(config)
-        .map_err(|e| format!("Failed to create resource manager: {}", e))?;
+    let manager =
+        GlobalResourceManager::new(config).map_err(|e| format!("Failed to create resource manager: {}", e))?;
 
     RESOURCE_MANAGER_CELL
         .set(manager)
@@ -469,7 +467,8 @@ mod tests {
         let manager = GlobalResourceManager::new(ResourceConfig {
             cpu_tokens: Some(2),
             ..Default::default()
-        }).unwrap();
+        })
+        .unwrap();
 
         // Initially 2 available
         assert_eq!(manager.cpu_tokens_available(), 2);
@@ -492,7 +491,8 @@ mod tests {
         let manager = GlobalResourceManager::new(ResourceConfig {
             io_tokens: Some(4),
             ..Default::default()
-        }).unwrap();
+        })
+        .unwrap();
 
         assert_eq!(manager.io_tokens_available(), 4);
 

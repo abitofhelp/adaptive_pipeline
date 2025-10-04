@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Compression Service Implementation
 //!
 //! This module is part of the Infrastructure layer, providing concrete
@@ -104,8 +103,9 @@ use pipeline_domain::services::{
 };
 use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
 
-// NOTE: Domain traits are now synchronous. This implementation is sync and CPU-bound.
-// For async contexts, wrap this implementation with AsyncCompressionAdapter.
+// NOTE: Domain traits are now synchronous. This implementation is sync and
+// CPU-bound. For async contexts, wrap this implementation with
+// AsyncCompressionAdapter.
 
 /// Concrete implementation of the compression service for the adaptive pipeline
 /// system
@@ -131,7 +131,6 @@ use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
 /// shared state.
 ///
 /// # Examples
-///
 pub struct CompressionServiceImpl {
     // Configuration and state
 }
@@ -154,13 +153,11 @@ impl CompressionServiceImpl {
 
         compressor
             .write_all(data)
-            .map_err(|e| PipelineError::CompressionError(format!("Brotli compression failed: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::CompressionError(format!("Brotli compression failed: {}", e)))?;
 
         compressor
             .flush()
-            .map_err(|e| PipelineError::CompressionError(format!("Brotli flush failed: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::CompressionError(format!("Brotli flush failed: {}", e)))?;
 
         drop(compressor);
         Ok(output)
@@ -173,8 +170,7 @@ impl CompressionServiceImpl {
 
         decompressor
             .read_to_end(&mut output)
-            .map_err(|e| PipelineError::CompressionError(format!("Brotli decompression failed: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::CompressionError(format!("Brotli decompression failed: {}", e)))?;
 
         Ok(output)
     }
@@ -187,8 +183,7 @@ impl CompressionServiceImpl {
 
         encoder
             .read_to_end(&mut output)
-            .map_err(|e| PipelineError::CompressionError(format!("Gzip compression failed: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::CompressionError(format!("Gzip compression failed: {}", e)))?;
 
         Ok(output)
     }
@@ -200,8 +195,7 @@ impl CompressionServiceImpl {
 
         decoder
             .read_to_end(&mut output)
-            .map_err(|e| PipelineError::CompressionError(format!("Gzip decompression failed: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::CompressionError(format!("Gzip decompression failed: {}", e)))?;
 
         Ok(output)
     }

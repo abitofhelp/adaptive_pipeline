@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Pipeline Repository Interface
 //!
 //! This module defines the repository pattern interface for pipeline

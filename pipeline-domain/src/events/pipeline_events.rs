@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Pipeline Domain Events
 //!
 //! This module defines domain events for the pipeline processing system,

@@ -36,7 +36,13 @@ use pipeline::*;
 fn normalize_pipeline_name(name: &str) -> String {
     name.to_lowercase()
         // Replace common separators with hyphens
-        .replace([' ', '_', '.', '/', '\\', ':', ';', ',', '|', '&', '+', '=', '!', '?', '*', '%', '#', '@', '$', '^', '(', ')', '[', ']', '{', '}', '<', '>', '"', '\'', '`', '~'], "-")
+        .replace(
+            [
+                ' ', '_', '.', '/', '\\', ':', ';', ',', '|', '&', '+', '=', '!', '?', '*', '%', '#', '@', '$', '^',
+                '(', ')', '[', ']', '{', '}', '<', '>', '"', '\'', '`', '~',
+            ],
+            "-",
+        )
         // Remove any remaining non-alphanumeric, non-hyphen characters
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
@@ -67,7 +73,9 @@ fn validate_pipeline_name(name: &str) -> anyhow::Result<String> {
     }
 
     // Check for reserved names
-    let reserved_names = ["help", "list", "show", "create", "delete", "process", "restore", "validate"];
+    let reserved_names = [
+        "help", "list", "show", "create", "delete", "process", "restore", "validate",
+    ];
     if reserved_names.contains(&normalized.as_str()) {
         return Err(anyhow::anyhow!(
             "Pipeline name '{}' is reserved. Please choose a different name.",

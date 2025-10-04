@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File I/O Service Implementation
 //!
 //! This module is part of the Infrastructure layer, providing concrete
@@ -155,7 +154,6 @@ use pipeline_domain::{FileChunk, PipelineError};
 /// - **Configuration**: Runtime configuration updates supported
 ///
 /// # Examples
-///
 pub struct FileIOServiceImpl {
     config: RwLock<FileIOConfig>,
     stats: RwLock<FileIOStats>,
@@ -256,14 +254,12 @@ impl FileIOService for FileIOServiceImpl {
         let chunk_size = options.chunk_size.unwrap_or(self.config.read().default_chunk_size);
         let mut file = fs::File::open(path)
             .await
-            .map_err(|e| PipelineError::IoError(format!("Failed to open file {}: {}", path.display(), e)))
-            ?;
+            .map_err(|e| PipelineError::IoError(format!("Failed to open file {}: {}", path.display(), e)))?;
 
         if let Some(offset) = options.start_offset {
             file.seek(SeekFrom::Start(offset))
                 .await
-                .map_err(|e| PipelineError::IoError(format!("Failed to seek to offset {}: {}", offset, e)))
-                ?;
+                .map_err(|e| PipelineError::IoError(format!("Failed to seek to offset {}: {}", offset, e)))?;
         }
 
         let mut chunks = Vec::new();
@@ -283,8 +279,7 @@ impl FileIOService for FileIOServiceImpl {
             let bytes_read = file
                 .read(&mut buffer[..bytes_to_read])
                 .await
-                .map_err(|e| PipelineError::IoError(format!("Failed to read from file: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::IoError(format!("Failed to read from file: {}", e)))?;
 
             if bytes_read == 0 {
                 break;
@@ -338,8 +333,7 @@ impl FileIOService for FileIOServiceImpl {
         let file_size = metadata.len();
 
         let file = File::open(path)
-            .map_err(|e| PipelineError::IoError(format!("Failed to open file for mmap {}: {}", path.display(), e)))
-            ?;
+            .map_err(|e| PipelineError::IoError(format!("Failed to open file for mmap {}: {}", path.display(), e)))?;
 
         let mmap = unsafe {
             MmapOptions::new()
@@ -350,15 +344,13 @@ impl FileIOService for FileIOServiceImpl {
         let chunk_size = options.chunk_size.unwrap_or(self.config.read().default_chunk_size);
         let start_offset = options.start_offset.unwrap_or(0);
 
-        let chunks = self
-            .create_chunks_from_mmap(
-                &mmap,
-                chunk_size,
-                options.calculate_checksums,
-                start_offset,
-                options.max_bytes,
-            )
-            ?;
+        let chunks = self.create_chunks_from_mmap(
+            &mmap,
+            chunk_size,
+            options.calculate_checksums,
+            start_offset,
+            options.max_bytes,
+        )?;
 
         let bytes_read = chunks.iter().map(|c| c.data_len() as u64).sum();
 
@@ -398,8 +390,7 @@ impl FileIOService for FileIOServiceImpl {
             if let Some(parent) = path.parent() {
                 fs::create_dir_all(parent)
                     .await
-                    .map_err(|e| PipelineError::IoError(format!("Failed to create directories: {}", e)))
-                    ?;
+                    .map_err(|e| PipelineError::IoError(format!("Failed to create directories: {}", e)))?;
             }
         }
 
@@ -408,8 +399,7 @@ impl FileIOService for FileIOServiceImpl {
         } else {
             fs::File::create(path).await
         }
-        .map_err(|e| PipelineError::IoError(format!("Failed to create/open file {}: {}", path.display(), e)))
-        ?;
+        .map_err(|e| PipelineError::IoError(format!("Failed to create/open file {}: {}", path.display(), e)))?;
 
         let mut total_written = 0u64;
         let mut file_hasher = ring::digest::Context::new(&ring::digest::SHA256);
@@ -418,8 +408,7 @@ impl FileIOService for FileIOServiceImpl {
             let data = chunk.data();
             file.write_all(data)
                 .await
-                .map_err(|e| PipelineError::IoError(format!("Failed to write chunk: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::IoError(format!("Failed to write chunk: {}", e)))?;
 
             if options.calculate_checksums {
                 file_hasher.update(data);
@@ -431,8 +420,7 @@ impl FileIOService for FileIOServiceImpl {
         if options.sync {
             file.sync_all()
                 .await
-                .map_err(|e| PipelineError::IoError(format!("Failed to sync file: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::IoError(format!("Failed to sync file: {}", e)))?;
         }
 
         let checksum = if options.calculate_checksums {
@@ -531,8 +519,7 @@ impl FileIOService for FileIOServiceImpl {
     async fn list_directory(&self, path: &Path) -> Result<Vec<FileInfo>, PipelineError> {
         let mut entries = fs::read_dir(path)
             .await
-            .map_err(|e| PipelineError::IoError(format!("Failed to read directory {}: {}", path.display(), e)))
-            ?;
+            .map_err(|e| PipelineError::IoError(format!("Failed to read directory {}: {}", path.display(), e)))?;
 
         let mut files = Vec::new();
         while let Some(entry) = entries
@@ -543,8 +530,7 @@ impl FileIOService for FileIOServiceImpl {
             let metadata = entry
                 .metadata()
                 .await
-                .map_err(|e| PipelineError::IoError(format!("Failed to get entry metadata: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::IoError(format!("Failed to get entry metadata: {}", e)))?;
 
             if metadata.is_file() {
                 files.push(FileInfo {
@@ -592,8 +578,7 @@ impl FileIOService for FileIOServiceImpl {
                     ..Default::default()
                 },
             )
-            .await
-            ?;
+            .await?;
 
         let mut hasher = ring::digest::Context::new(&ring::digest::SHA256);
         for chunk in &read_result.chunks {
@@ -612,15 +597,13 @@ impl FileIOService for FileIOServiceImpl {
         let chunk_size = options.chunk_size.unwrap_or(self.config.read().default_chunk_size);
         let file = fs::File::open(path)
             .await
-            .map_err(|e| PipelineError::IoError(format!("Failed to open file {}: {}", path.display(), e)))
-            ?;
+            .map_err(|e| PipelineError::IoError(format!("Failed to open file {}: {}", path.display(), e)))?;
 
         let file = if let Some(offset) = options.start_offset {
             let mut f = file;
             f.seek(std::io::SeekFrom::Start(offset))
                 .await
-                .map_err(|e| PipelineError::IoError(format!("Failed to seek to offset {}: {}", offset, e)))
-                ?;
+                .map_err(|e| PipelineError::IoError(format!("Failed to seek to offset {}: {}", offset, e)))?;
             f
         } else {
             file
@@ -704,12 +687,9 @@ impl FileIOService for FileIOServiceImpl {
         // Create parent directories if needed
         if options.create_dirs {
             if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent)
-                    .await
-                    .map_err(|e| {
-                        PipelineError::IoError(format!("Failed to create directories for {}: {}", path.display(), e))
-                    })
-                    ?;
+                fs::create_dir_all(parent).await.map_err(|e| {
+                    PipelineError::IoError(format!("Failed to create directories for {}: {}", path.display(), e))
+                })?;
             }
         }
 
@@ -730,20 +710,17 @@ impl FileIOService for FileIOServiceImpl {
                 .open(path)
                 .await
         }
-        .map_err(|e| PipelineError::IoError(format!("Failed to open file {} for writing: {}", path.display(), e)))
-        ?;
+        .map_err(|e| PipelineError::IoError(format!("Failed to open file {} for writing: {}", path.display(), e)))?;
 
         let mut file = file;
         file.write_all(chunk.data())
             .await
-            .map_err(|e| PipelineError::IoError(format!("Failed to write chunk to {}: {}", path.display(), e)))
-            ?;
+            .map_err(|e| PipelineError::IoError(format!("Failed to write chunk to {}: {}", path.display(), e)))?;
 
         if options.sync {
             file.sync_all()
                 .await
-                .map_err(|e| PipelineError::IoError(format!("Failed to sync file {}: {}", path.display(), e)))
-                ?;
+                .map_err(|e| PipelineError::IoError(format!("Failed to sync file {}: {}", path.display(), e)))?;
         }
 
         let bytes_written = chunk.data().len() as u64;
@@ -803,11 +780,7 @@ mod tests {
         // Test writing
         let copy_path = temp_path.with_extension("copy");
         let write_result = service
-            .write_file_data(
-                &copy_path,
-                &test_data,
-                WriteOptions::default(),
-            )
+            .write_file_data(&copy_path, &test_data, WriteOptions::default())
             .await
             .unwrap();
 
@@ -822,7 +795,8 @@ mod tests {
         // Create a temporary file with enough data to trigger memory mapping
         let temp_file = NamedTempFile::new().unwrap();
         let temp_path = temp_file.path().to_path_buf();
-        // Create 3MB of test data to ensure memory mapping is used and we have multiple chunks
+        // Create 3MB of test data to ensure memory mapping is used and we have multiple
+        // chunks
         let test_data = vec![0u8; 3 * 1024 * 1024]; // 3MB of data
 
         // Write test data asynchronously

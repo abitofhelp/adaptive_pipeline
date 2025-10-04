@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Infrastructure Repository Layer
 //!
 //! This module provides concrete implementations of domain repository

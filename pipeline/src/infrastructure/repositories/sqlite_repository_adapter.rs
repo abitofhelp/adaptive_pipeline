@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # SQLite Repository Adapter
 //!
 //! This module provides an adapter that bridges between the domain repository
@@ -134,9 +133,9 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use pipeline_domain::PipelineError;
 use crate::infrastructure::repositories::generic_repository::{Repository, RepositoryEntity};
 use crate::infrastructure::repositories::sqlite_repository::{SqliteEntity, SqliteRepository};
+use pipeline_domain::PipelineError;
 
 /// Adapter that bridges between domain Repository trait and SQLite
 /// implementation
@@ -193,7 +192,7 @@ where
     pub fn into_sqlite_repository(self) -> SqliteRepository<T> {
         self.sqlite_repo
     }
-    
+
     /// Ensures the table exists, creating it if necessary
     pub async fn ensure_table_exists(&self) -> Result<(), PipelineError> {
         self.sqlite_repo.ensure_table_exists().await

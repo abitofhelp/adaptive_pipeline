@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # DateTime Compliance Service
 //!
 //! This module provides RFC3339 datetime compliance utilities and validation
@@ -194,7 +193,6 @@ use serde::{Deserialize, Serialize};
 /// - **Round-trip Testing**: Ensures serialization/deserialization consistency
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DateTimeTest {
     pub timestamp: DateTime<Utc>,
@@ -219,8 +217,7 @@ impl DateTimeTest {
     /// Verifies that serialization produces RFC3339 format
     pub fn verify_rfc3339_compliance(&self) -> Result<(), String> {
         // Serialize to JSON
-        let json = serde_json::to_string(self)
-            .map_err(|e| format!("Serialization failed: {}", e))?;
+        let json = serde_json::to_string(self).map_err(|e| format!("Serialization failed: {}", e))?;
 
         // Check that the timestamp is in RFC3339 format
         // RFC3339 format: YYYY-MM-DDTHH:MM:SS.sssZ or YYYY-MM-DDTHH:MM:SS.sss+/-HH:MM
@@ -232,8 +229,8 @@ impl DateTimeTest {
         }
 
         // Deserialize back to verify round-trip compatibility
-        let _deserialized: DateTimeTest = serde_json::from_str(&json)
-            .map_err(|e| format!("Deserialization failed: {}", e))?;
+        let _deserialized: DateTimeTest =
+            serde_json::from_str(&json).map_err(|e| format!("Deserialization failed: {}", e))?;
 
         Ok(())
     }

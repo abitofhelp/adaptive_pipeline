@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # DateTime Serde Module
 //!
 //! This module provides RFC3339-compliant serialization and deserialization
@@ -214,7 +213,6 @@ use serde::{Deserialize, Deserializer, Serializer};
 /// Returns the serializer's Ok type on success, or a serialization error.
 ///
 /// # Examples
-///
 pub fn serialize<S>(dt: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -226,8 +224,8 @@ where
 /// Deserializes an RFC3339 datetime string to `DateTime<Utc>`
 ///
 /// This function provides RFC3339-compliant deserialization for `DateTime<Utc>`
-/// values. It parses an RFC3339 formatted string and converts it to a UTC datetime,
-/// handling timezone conversions automatically.
+/// values. It parses an RFC3339 formatted string and converts it to a UTC
+/// datetime, handling timezone conversions automatically.
 ///
 /// # Why This Exists
 ///
@@ -275,18 +273,19 @@ where
 
 /// Optional DateTime RFC3339 serialization module
 ///
-/// This submodule provides serialization/deserialization for `Option<DateTime<Utc>>`
-/// fields. It's useful when datetime fields are optional (may be null/absent).
+/// This submodule provides serialization/deserialization for
+/// `Option<DateTime<Utc>>` fields. It's useful when datetime fields are
+/// optional (may be null/absent).
 ///
 /// # When to Use This
 ///
 /// Use this module when you have optional datetime fields like:
 /// - `completed_at`: May be None if processing hasn't finished
-/// - `deleted_at`: None for active records, Some(timestamp) for soft-deleted records
+/// - `deleted_at`: None for active records, Some(timestamp) for soft-deleted
+///   records
 /// - `last_accessed_at`: May be None if never accessed
 ///
 /// # Examples
-///
 pub mod optional {
     use super::*;
 
@@ -319,7 +318,8 @@ pub mod optional {
         }
     }
 
-    /// Deserializes an optional RFC3339 datetime string to `Option<DateTime<Utc>>`
+    /// Deserializes an optional RFC3339 datetime string to
+    /// `Option<DateTime<Utc>>`
     ///
     /// # Arguments
     ///

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File Path Value Object
 //!
 //! This module provides a generic, type-safe file path value object for the
@@ -426,8 +425,8 @@ impl<T: PathCategory> FilePath<T> {
     /// Creates a new file path with category-specific validation
     /// # Purpose
     /// Creates a type-safe file path with compile-time category enforcement.
-    /// Uses phantom types to prevent mixing different path categories at compile time.
-    /// # Why
+    /// Uses phantom types to prevent mixing different path categories at
+    /// compile time. # Why
     /// Type-safe paths provide:
     /// - Compile-time prevention of input/output path mixing
     /// - Category-specific validation rules
@@ -651,10 +650,9 @@ impl OutputPath {
         let output_path = Self::new(path)?;
         if let Some(parent) = output_path.path.parent() {
             if !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| {
-                        PipelineError::InvalidConfiguration(format!("Failed to create parent directory: {}", e))
-                    })?;
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    PipelineError::InvalidConfiguration(format!("Failed to create parent directory: {}", e))
+                })?;
             }
         }
         Ok(output_path)

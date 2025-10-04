@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Algorithm Value Object
 //!
 //! This module defines the algorithm value object for the adaptive pipeline
@@ -204,9 +203,9 @@
 //! - **Security Analysis**: Automated security analysis
 //! - **Plugin System**: Plugin system for custom algorithms
 
-use serde::{ Deserialize, Serialize };
-use std::fmt::{ self, Display };
-use std::cmp::{ PartialOrd, Ord };
+use serde::{Deserialize, Serialize};
+use std::cmp::{Ord, PartialOrd};
+use std::fmt::{self, Display};
 
 use crate::PipelineError;
 
@@ -234,9 +233,9 @@ pub struct Algorithm(String);
 impl Algorithm {
     /// Creates a new algorithm with validated name
     /// # Purpose
-    /// Creates an `Algorithm` value object after validating the algorithm name against
-    /// strict format rules. This ensures all algorithm instances are valid and type-safe.
-    /// # Why
+    /// Creates an `Algorithm` value object after validating the algorithm name
+    /// against strict format rules. This ensures all algorithm instances
+    /// are valid and type-safe. # Why
     /// Algorithm names must follow a consistent format for:
     /// - Cross-language compatibility (Rust, Go, JSON)
     /// - Database storage validation
@@ -269,8 +268,8 @@ impl Algorithm {
 
     /// Creates an algorithm from a string slice
     /// # Purpose
-    /// Convenience constructor that accepts a string slice instead of an owned String.
-    /// Internally converts to String and delegates to `new()`.
+    /// Convenience constructor that accepts a string slice instead of an owned
+    /// String. Internally converts to String and delegates to `new()`.
     /// # Arguments
     /// * `name` - String slice containing the algorithm name
     /// # Returns
@@ -299,8 +298,8 @@ impl Algorithm {
     /// Used for algorithm validation and compatibility checks.
     /// # Why
     /// Compression algorithms require specific stage configurations and have
-    /// different performance characteristics than encryption or hashing algorithms.
-    /// # Returns
+    /// different performance characteristics than encryption or hashing
+    /// algorithms. # Returns
     /// * `true` - Algorithm is one of: brotli, gzip, zstd, lz4, deflate
     /// * `false` - Algorithm is not a compression algorithm
     /// # Examples
@@ -332,17 +331,21 @@ impl Algorithm {
     /// Determines whether the algorithm belongs to the hashing category.
     /// Used for integrity validation and stage compatibility checks.
     /// # Why
-    /// Hashing algorithms are one-way functions used for integrity verification,
-    /// with different properties than compression or encryption algorithms.
-    /// # Returns
-    /// * `true` - Algorithm is one of: sha256, sha512, sha3-256, blake3, md5, sha1
+    /// Hashing algorithms are one-way functions used for integrity
+    /// verification, with different properties than compression or
+    /// encryption algorithms. # Returns
+    /// * `true` - Algorithm is one of: sha256, sha512, sha3-256, blake3, md5,
+    ///   sha1
     /// * `false` - Algorithm is not a hashing algorithm
     /// # Note
-    /// MD5 and SHA1 are included for backward compatibility but are not recommended
-    /// for security-critical applications.
+    /// MD5 and SHA1 are included for backward compatibility but are not
+    /// recommended for security-critical applications.
     /// # Examples
     pub fn is_hashing(&self) -> bool {
-        matches!(self.0.as_str(), "sha256" | "sha512" | "sha3-256" | "blake3" | "md5" | "sha1")
+        matches!(
+            self.0.as_str(),
+            "sha256" | "sha512" | "sha3-256" | "blake3" | "md5" | "sha1"
+        )
     }
 
     /// Checks if this is a custom algorithm
@@ -358,8 +361,7 @@ impl Algorithm {
     /// * `false` - Algorithm is a predefined standard algorithm
     /// # Examples
     pub fn is_custom(&self) -> bool {
-        self.0.starts_with("custom-") ||
-            (!self.is_compression() && !self.is_encryption() && !self.is_hashing())
+        self.0.starts_with("custom-") || (!self.is_compression() && !self.is_encryption() && !self.is_hashing())
     }
 
     /// Gets the algorithm category
@@ -388,58 +390,46 @@ impl Algorithm {
     /// Validates the algorithm name format
     fn validate_name(name: &str) -> Result<(), PipelineError> {
         if name.is_empty() {
-            return Err(
-                PipelineError::InvalidConfiguration("Algorithm name cannot be empty".to_string())
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Algorithm name cannot be empty".to_string(),
+            ));
         }
 
         if name.len() > 64 {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "Algorithm name cannot exceed 64 characters".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Algorithm name cannot exceed 64 characters".to_string(),
+            ));
         }
 
         // Algorithm names should be lowercase with hyphens and numbers
-        if !name.chars().all(|c| c.is_ascii_lowercase() || c == '-' || c.is_ascii_digit()) {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "Algorithm name must contain only lowercase letters, hyphens, and digits".to_string()
-                )
-            );
+        if !name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c == '-' || c.is_ascii_digit())
+        {
+            return Err(PipelineError::InvalidConfiguration(
+                "Algorithm name must contain only lowercase letters, hyphens, and digits".to_string(),
+            ));
         }
 
         // Cannot start or end with hyphen
         if name.starts_with('-') || name.ends_with('-') {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "Algorithm name cannot start or end with hyphen".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Algorithm name cannot start or end with hyphen".to_string(),
+            ));
         }
 
         // Cannot start with a digit
-        if
-            name
-                .chars()
-                .next()
-                .is_some_and(|c| c.is_ascii_digit())
-        {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "Algorithm name cannot start with a digit".to_string()
-                )
-            );
+        if name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+            return Err(PipelineError::InvalidConfiguration(
+                "Algorithm name cannot start with a digit".to_string(),
+            ));
         }
 
         // Cannot have consecutive hyphens
         if name.contains("--") {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "Algorithm name cannot contain consecutive hyphens".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Algorithm name cannot contain consecutive hyphens".to_string(),
+            ));
         }
 
         Ok(())
@@ -450,9 +440,9 @@ impl Algorithm {
     /// Re-validates the algorithm name format. Useful for ensuring algorithm
     /// integrity after deserialization or when working with external data.
     /// # Why
-    /// While algorithms are validated on creation, this method allows revalidation
-    /// after deserialization or when algorithm constraints change.
-    /// # Returns
+    /// While algorithms are validated on creation, this method allows
+    /// revalidation after deserialization or when algorithm constraints
+    /// change. # Returns
     /// * `Ok(())` - Algorithm name is valid
     /// * `Err(PipelineError::InvalidConfiguration)` - Name validation failed
     /// # Errors
@@ -559,8 +549,8 @@ impl Algorithm {
     /// Creates a ChaCha20-Poly1305 encryption algorithm
     /// # Purpose
     /// Factory method for ChaCha20 stream cipher with Poly1305 MAC.
-    /// Modern authenticated encryption with excellent performance on mobile/embedded.
-    /// # Returns
+    /// Modern authenticated encryption with excellent performance on
+    /// mobile/embedded. # Returns
     /// Validated `Algorithm` instance for ChaCha20-Poly1305
     /// # Examples
     pub fn chacha20_poly1305() -> Self {
@@ -634,7 +624,12 @@ pub mod algorithm_utils {
     /// Vector containing: brotli, gzip, zstd, lz4
     /// # Examples
     pub fn compression_algorithms() -> Vec<Algorithm> {
-        vec![Algorithm::brotli(), Algorithm::gzip(), Algorithm::zstd(), Algorithm::lz4()]
+        vec![
+            Algorithm::brotli(),
+            Algorithm::gzip(),
+            Algorithm::zstd(),
+            Algorithm::lz4(),
+        ]
     }
 
     /// Gets all supported encryption algorithms
@@ -661,9 +656,9 @@ pub mod algorithm_utils {
 
     /// Validates algorithm compatibility with stage type
     /// # Purpose
-    /// Ensures an algorithm is compatible with its intended processing stage type.
-    /// Prevents misconfiguration like using compression algorithms for encryption stages.
-    /// # Why
+    /// Ensures an algorithm is compatible with its intended processing stage
+    /// type. Prevents misconfiguration like using compression algorithms
+    /// for encryption stages. # Why
     /// Early validation of algorithm-stage compatibility:
     /// - Prevents runtime errors in processing pipelines
     /// - Ensures type safety across pipeline configuration
@@ -677,53 +672,47 @@ pub mod algorithm_utils {
     ///   - "custom" - Accepts any algorithm
     /// # Returns
     /// * `Ok(())` - Algorithm is compatible with stage type
-    /// * `Err(PipelineError::InvalidConfiguration)` - Incompatible or unknown stage type
+    /// * `Err(PipelineError::InvalidConfiguration)` - Incompatible or unknown
+    ///   stage type
     /// # Errors
     /// Returns `PipelineError::InvalidConfiguration` when:
     /// - Algorithm doesn't match required stage type category
     /// - Stage type is unknown/unsupported
     /// # Examples
-    pub fn validate_compatibility(
-        algorithm: &Algorithm,
-        stage_type: &str
-    ) -> Result<(), PipelineError> {
+    pub fn validate_compatibility(algorithm: &Algorithm, stage_type: &str) -> Result<(), PipelineError> {
         match stage_type.to_lowercase().as_str() {
             "compression" => {
                 if !algorithm.is_compression() {
-                    return Err(
-                        PipelineError::InvalidConfiguration(
-                            format!("Algorithm '{}' is not compatible with compression stage", algorithm)
-                        )
-                    );
+                    return Err(PipelineError::InvalidConfiguration(format!(
+                        "Algorithm '{}' is not compatible with compression stage",
+                        algorithm
+                    )));
                 }
             }
             "encryption" => {
                 if !algorithm.is_encryption() {
-                    return Err(
-                        PipelineError::InvalidConfiguration(
-                            format!("Algorithm '{}' is not compatible with encryption stage", algorithm)
-                        )
-                    );
+                    return Err(PipelineError::InvalidConfiguration(format!(
+                        "Algorithm '{}' is not compatible with encryption stage",
+                        algorithm
+                    )));
                 }
             }
             "hashing" => {
                 if !algorithm.is_hashing() {
-                    return Err(
-                        PipelineError::InvalidConfiguration(
-                            format!("Algorithm '{}' is not compatible with hashing stage", algorithm)
-                        )
-                    );
+                    return Err(PipelineError::InvalidConfiguration(format!(
+                        "Algorithm '{}' is not compatible with hashing stage",
+                        algorithm
+                    )));
                 }
             }
             "custom" => {
                 // Custom stages can use any algorithm
             }
             _ => {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!("Unknown stage type: {}", stage_type)
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Unknown stage type: {}",
+                    stage_type
+                )));
             }
         }
         Ok(())
@@ -737,11 +726,11 @@ mod tests {
     //
     // Tests cover creation, validation, categorization, and serialization.
 
+    use crate::value_objects::algorithm::AlgorithmCategory;
+    use crate::value_objects::Algorithm;
     use serde_json;
     use std::collections::HashMap;
-    use std::path::{ Path, PathBuf };
-    use crate::value_objects::Algorithm;
-    use crate::value_objects::algorithm::AlgorithmCategory;
+    use std::path::{Path, PathBuf};
 
     /// Tests Algorithm creation with valid input values.
     /// Validates that:
@@ -774,7 +763,7 @@ mod tests {
             "custom-algo-v2",
             "algo123",
             "a", // Single character
-            "very-long-algorithm-name-with-many-hyphens-and-numbers123"
+            "very-long-algorithm-name-with-many-hyphens-and-numbers123",
         ];
 
         for name in valid_algorithms {
@@ -816,7 +805,7 @@ mod tests {
             ("has\"doublequotes", "contains double quotes"),
             ("\t\n\r", "whitespace characters"),
             ("--double-hyphen", "consecutive hyphens"),
-            ("123-starts-with-number", "starts with number")
+            ("123-starts-with-number", "starts with number"),
         ];
 
         for (name, reason) in invalid_algorithms {
@@ -1053,11 +1042,15 @@ mod tests {
             Algorithm::brotli(),
             Algorithm::gzip(),
             Algorithm::lz4(),
-            Algorithm::zstd()
+            Algorithm::zstd(),
         ];
 
         for algo in compression_algos {
-            assert!(algo.is_compression(), "Algorithm '{}' should be compression", algo.name());
+            assert!(
+                algo.is_compression(),
+                "Algorithm '{}' should be compression",
+                algo.name()
+            );
             assert_eq!(algo.category(), AlgorithmCategory::Compression);
         }
 
@@ -1065,7 +1058,7 @@ mod tests {
         let encryption_algos = vec![
             Algorithm::aes_128_cbc(),
             Algorithm::aes_256_gcm(),
-            Algorithm::chacha20_poly1305()
+            Algorithm::chacha20_poly1305(),
         ];
 
         for algo in encryption_algos {
@@ -1130,10 +1123,10 @@ mod tests {
 
         // Test edge cases for validation
         let edge_cases = vec![
-            "a", // Single character
-            "algo1", // Ends with number
-            "1algo", // Starts with number (should be invalid)
-            "algo-1-2-3" // Multiple numbers with hyphens
+            "a",          // Single character
+            "algo1",      // Ends with number
+            "1algo",      // Starts with number (should be invalid)
+            "algo-1-2-3", // Multiple numbers with hyphens
         ];
 
         for case in edge_cases {

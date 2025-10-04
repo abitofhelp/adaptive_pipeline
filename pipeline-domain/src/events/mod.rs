@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Events
 //!
 //! This module contains the domain events system that implements event-driven
@@ -173,7 +172,6 @@
 //! ### Integration Testing
 //!
 //! Test event handling with real event stores and handlers:
-//!
 
 pub mod generic_event;
 pub mod pipeline_events;

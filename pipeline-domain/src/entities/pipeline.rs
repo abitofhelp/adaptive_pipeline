@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Pipeline Entity
 //!
 //! The `Pipeline` entity represents the core business object for file
@@ -54,8 +53,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // Import for generic repository support
-// Note: These traits should be defined in domain/repositories, not infrastructure
-// use crate::repositories::RepositoryEntity;
+// Note: These traits should be defined in domain/repositories, not
+// infrastructure use crate::repositories::RepositoryEntity;
 // use crate::repositories::SqliteEntity;
 
 /// Data Transfer Object for reconstituting a Pipeline from database storage.
@@ -112,8 +111,8 @@ pub struct PipelineData {
 /// ### Creating a New Pipeline
 ///
 /// ```
-/// use pipeline_domain::entities::{pipeline::Pipeline, pipeline_stage::PipelineStage};
-/// use pipeline_domain::entities::pipeline_stage::{StageType, StageConfiguration};
+/// use pipeline_domain::entities::pipeline::Pipeline;
+/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// // Create user-defined stages
@@ -122,20 +121,20 @@ pub struct PipelineData {
 ///     StageType::Compression,
 ///     StageConfiguration::new("zstd".to_string(), HashMap::new(), true),
 ///     0,
-/// ).unwrap();
+/// )
+/// .unwrap();
 ///
 /// let encryption = PipelineStage::new(
 ///     "encrypt".to_string(),
 ///     StageType::Encryption,
 ///     StageConfiguration::new("aes256gcm".to_string(), HashMap::new(), false),
 ///     1,
-/// ).unwrap();
+/// )
+/// .unwrap();
 ///
 /// // Create pipeline (checksum stages added automatically)
-/// let pipeline = Pipeline::new(
-///     "Secure Backup".to_string(),
-///     vec![compression, encryption],
-/// ).unwrap();
+/// let pipeline =
+///     Pipeline::new("Secure Backup".to_string(), vec![compression, encryption]).unwrap();
 ///
 /// assert_eq!(pipeline.name(), "Secure Backup");
 /// // Pipeline has 4 stages: input_checksum + 2 user stages + output_checksum
@@ -145,8 +144,8 @@ pub struct PipelineData {
 /// ### Modifying Pipeline Configuration
 ///
 /// ```
-/// use pipeline_domain::entities::{pipeline::Pipeline, pipeline_stage::PipelineStage};
-/// use pipeline_domain::entities::pipeline_stage::{StageType, StageConfiguration};
+/// use pipeline_domain::entities::pipeline::Pipeline;
+/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// let stage = PipelineStage::new(
@@ -154,12 +153,10 @@ pub struct PipelineData {
 ///     StageType::Transform,
 ///     StageConfiguration::default(),
 ///     0,
-/// ).unwrap();
+/// )
+/// .unwrap();
 ///
-/// let mut pipeline = Pipeline::new(
-///     "Data Pipeline".to_string(),
-///     vec![stage],
-/// ).unwrap();
+/// let mut pipeline = Pipeline::new("Data Pipeline".to_string(), vec![stage]).unwrap();
 ///
 /// // Add configuration parameters
 /// let mut config = HashMap::new();
@@ -167,34 +164,37 @@ pub struct PipelineData {
 /// config.insert("compression_level".to_string(), "6".to_string());
 /// pipeline.update_configuration(config);
 ///
-/// assert_eq!(pipeline.configuration().get("output_format"), Some(&"json".to_string()));
+/// assert_eq!(
+///     pipeline.configuration().get("output_format"),
+///     Some(&"json".to_string())
+/// );
 /// ```
 ///
 /// ### Adding Stages Dynamically
 ///
 /// ```
-/// use pipeline_domain::entities::{pipeline::Pipeline, pipeline_stage::PipelineStage};
-/// use pipeline_domain::entities::pipeline_stage::{StageType, StageConfiguration};
+/// use pipeline_domain::entities::pipeline::Pipeline;
+/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 ///
 /// let initial_stage = PipelineStage::new(
 ///     "compress".to_string(),
 ///     StageType::Compression,
 ///     StageConfiguration::default(),
 ///     0,
-/// ).unwrap();
+/// )
+/// .unwrap();
 ///
-/// let mut pipeline = Pipeline::new(
-///     "Processing Pipeline".to_string(),
-///     vec![initial_stage],
-/// ).unwrap();
+/// let mut pipeline =
+///     Pipeline::new("Processing Pipeline".to_string(), vec![initial_stage]).unwrap();
 ///
 /// // Add a new encryption stage
 /// let encryption_stage = PipelineStage::new(
 ///     "encrypt".to_string(),
 ///     StageType::Encryption,
 ///     StageConfiguration::default(),
-///     0,  // order will be adjusted
-/// ).unwrap();
+///     0, // order will be adjusted
+/// )
+/// .unwrap();
 ///
 /// pipeline.add_stage(encryption_stage).unwrap();
 ///
@@ -325,15 +325,16 @@ impl Pipeline {
     /// # Example
     ///
     /// ```
-    /// use pipeline_domain::entities::{pipeline::Pipeline, pipeline_stage::PipelineStage};
-    /// use pipeline_domain::entities::pipeline_stage::{StageType, StageConfiguration};
+    /// use pipeline_domain::entities::pipeline::Pipeline;
+    /// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
     ///
     /// let compression = PipelineStage::new(
     ///     "compress".to_string(),
     ///     StageType::Compression,
     ///     StageConfiguration::default(),
     ///     0,
-    /// ).unwrap();
+    /// )
+    /// .unwrap();
     ///
     /// let pipeline = Pipeline::new("My Pipeline".to_string(), vec![compression]).unwrap();
     ///
@@ -417,16 +418,15 @@ impl Pipeline {
 
     /// Gets the unique identifier for this pipeline
     ///
-    /// The pipeline ID is immutable and persists throughout the entity's lifetime.
-    /// This ID is used for database lookups, API references, and maintaining
-    /// entity identity across system boundaries.
+    /// The pipeline ID is immutable and persists throughout the entity's
+    /// lifetime. This ID is used for database lookups, API references, and
+    /// maintaining entity identity across system boundaries.
     ///
     /// # Returns
     ///
     /// A reference to the pipeline's unique identifier
     ///
     /// # Examples
-    ///
     pub fn id(&self) -> &PipelineId {
         &self.id
     }
@@ -441,7 +441,6 @@ impl Pipeline {
     /// The pipeline name as a string slice
     ///
     /// # Examples
-    ///
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -463,7 +462,6 @@ impl Pipeline {
     /// An immutable slice containing all pipeline stages in execution order
     ///
     /// # Examples
-    ///
     pub fn stages(&self) -> &[PipelineStage] {
         &self.stages
     }
@@ -482,7 +480,6 @@ impl Pipeline {
     /// An immutable reference to the configuration HashMap
     ///
     /// # Examples
-    ///
     pub fn configuration(&self) -> &HashMap<String, String> {
         &self.configuration
     }
@@ -500,7 +497,6 @@ impl Pipeline {
     /// An immutable reference to the pipeline's metrics
     ///
     /// # Examples
-    ///
     pub fn metrics(&self) -> &ProcessingMetrics {
         &self.metrics
     }
@@ -516,7 +512,6 @@ impl Pipeline {
     /// Reference to the UTC creation timestamp
     ///
     /// # Examples
-    ///
     pub fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
         &self.created_at
     }
@@ -540,7 +535,6 @@ impl Pipeline {
     /// Reference to the UTC timestamp of the last update
     ///
     /// # Examples
-    ///
     pub fn updated_at(&self) -> &chrono::DateTime<chrono::Utc> {
         &self.updated_at
     }
@@ -593,7 +587,6 @@ impl Pipeline {
     /// - `false` if the pipeline is active
     ///
     /// # Examples
-    ///
     pub fn archived(&self) -> bool {
         self.archived
     }
@@ -610,7 +603,8 @@ impl Pipeline {
     /// - **Clear semantics**: No ambiguity about what happens to old values
     /// - **Simplicity**: No complex merge logic needed
     /// - **Explicit control**: Caller decides exact final state
-    /// - **Immutability pattern**: Aligns with functional programming principles
+    /// - **Immutability pattern**: Aligns with functional programming
+    ///   principles
     ///
     /// # Arguments
     ///
@@ -629,7 +623,6 @@ impl Pipeline {
     ///
     ///
     /// ## Updating Individual Keys
-    ///
     pub fn update_configuration(&mut self, config: HashMap<String, String>) {
         self.configuration = config;
         self.updated_at = chrono::Utc::now();
@@ -637,9 +630,9 @@ impl Pipeline {
 
     /// Adds a new processing stage to the pipeline
     ///
-    /// Appends a stage to the end of the pipeline's stage sequence. The new stage
-    /// must be compatible with the last existing stage according to compatibility
-    /// rules (e.g., compression should precede encryption).
+    /// Appends a stage to the end of the pipeline's stage sequence. The new
+    /// stage must be compatible with the last existing stage according to
+    /// compatibility rules (e.g., compression should precede encryption).
     ///
     /// # Why Compatibility Checking?
     ///
@@ -647,12 +640,13 @@ impl Pipeline {
     /// - **Correct ordering**: Stages execute in a logical sequence
     /// - **Data integrity**: Each stage can process the previous stage's output
     /// - **Performance**: Optimal stage ordering (compress before encrypt)
-    /// - **Correctness**: Prevents invalid combinations (e.g., double compression)
+    /// - **Correctness**: Prevents invalid combinations (e.g., double
+    ///   compression)
     ///
     /// # Arguments
     ///
-    /// * `stage` - The pipeline stage to add. Must be compatible with the current
-    ///   last stage.
+    /// * `stage` - The pipeline stage to add. Must be compatible with the
+    ///   current last stage.
     ///
     /// # Returns
     ///
@@ -673,7 +667,6 @@ impl Pipeline {
     /// - Updates the `updated_at` timestamp
     ///
     /// # Examples
-    ///
     pub fn add_stage(&mut self, stage: PipelineStage) -> Result<(), PipelineError> {
         // Validate stage compatibility
         if let Some(last_stage) = self.stages.last() {
@@ -711,7 +704,8 @@ impl Pipeline {
     /// # Returns
     ///
     /// - `Ok(PipelineStage)` - The removed stage
-    /// - `Err(PipelineError)` - If index is invalid or removal would leave pipeline empty
+    /// - `Err(PipelineError)` - If index is invalid or removal would leave
+    ///   pipeline empty
     ///
     /// # Errors
     ///
@@ -726,7 +720,6 @@ impl Pipeline {
     /// - Updates the `updated_at` timestamp
     ///
     /// # Examples
-    ///
     pub fn remove_stage(&mut self, index: usize) -> Result<PipelineStage, PipelineError> {
         if index >= self.stages.len() {
             return Err(PipelineError::InvalidConfiguration(
@@ -772,7 +765,6 @@ impl Pipeline {
     /// - Updates the `updated_at` timestamp
     ///
     /// # Examples
-    ///
     pub fn update_metrics(&mut self, metrics: ProcessingMetrics) {
         self.metrics = metrics;
         self.updated_at = chrono::Utc::now();
@@ -780,9 +772,9 @@ impl Pipeline {
 
     /// Validates the complete pipeline configuration for correctness
     ///
-    /// Performs comprehensive validation of the pipeline's configuration including
-    /// stage count, stage compatibility, and ordering rules. This should be called
-    /// before attempting to execute the pipeline.
+    /// Performs comprehensive validation of the pipeline's configuration
+    /// including stage count, stage compatibility, and ordering rules. This
+    /// should be called before attempting to execute the pipeline.
     ///
     /// # What is Validated?
     ///
@@ -846,11 +838,13 @@ impl Pipeline {
     ///
     /// # Returns
     ///
-    /// Returns `Ok(Pipeline)` if the data is valid, or `Err(PipelineError)` if validation fails.
+    /// Returns `Ok(Pipeline)` if the data is valid, or `Err(PipelineError)` if
+    /// validation fails.
     ///
     /// # Errors
     ///
-    /// * `PipelineError::InvalidConfiguration` - If name is empty or no stages provided
+    /// * `PipelineError::InvalidConfiguration` - If name is empty or no stages
+    ///   provided
     pub fn from_database(data: PipelineData) -> Result<Self, PipelineError> {
         if data.name.is_empty() {
             return Err(PipelineError::InvalidConfiguration(
@@ -879,7 +873,8 @@ impl Pipeline {
 
 // Implementation for generic repository support
 // This allows Pipeline to be used with the generic InMemoryRepository<T>
-// TODO: These traits should be defined in domain/repositories, not referenced from infrastructure
+// TODO: These traits should be defined in domain/repositories, not referenced
+// from infrastructure
 /*
 impl RepositoryEntity for Pipeline {
     type Id = PipelineId;

@@ -38,7 +38,8 @@
 //! }
 //! ```
 
-use std::sync::{ atomic::{ AtomicU64, AtomicUsize, Ordering }, Arc, Mutex };
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// Simple histogram for latency distribution tracking
@@ -78,7 +79,8 @@ impl Histogram {
     /// Record a value in milliseconds
     pub fn record(&self, value_ms: u64) {
         // Find appropriate bucket
-        let bucket_idx = self.bucket_boundaries
+        let bucket_idx = self
+            .bucket_boundaries
             .iter()
             .position(|&boundary| value_ms < boundary)
             .unwrap_or(self.bucket_boundaries.len());
@@ -88,10 +90,7 @@ impl Histogram {
 
     /// Get total count across all buckets
     pub fn count(&self) -> u64 {
-        self.buckets
-            .iter()
-            .map(|b| b.load(Ordering::Relaxed))
-            .sum()
+        self.buckets.iter().map(|b| b.load(Ordering::Relaxed)).sum()
     }
 
     /// Get rough percentile estimate
@@ -189,7 +188,8 @@ pub struct ConcurrencyMetrics {
 
     // === Channel Queue Metrics ===
     /// Current depth of CPU worker channel (gauge)
-    /// Educational: Reveals backpressure - high depth means workers can't keep up
+    /// Educational: Reveals backpressure - high depth means workers can't keep
+    /// up
     cpu_queue_depth: AtomicUsize,
 
     /// Maximum CPU queue depth observed (gauge)
@@ -267,24 +267,15 @@ impl ConcurrencyMetrics {
 
     /// Get CPU wait time percentile
     pub fn cpu_wait_p50(&self) -> u64 {
-        self.cpu_wait_histogram
-            .lock()
-            .map(|h| h.percentile(50.0))
-            .unwrap_or(0)
+        self.cpu_wait_histogram.lock().map(|h| h.percentile(50.0)).unwrap_or(0)
     }
 
     pub fn cpu_wait_p95(&self) -> u64 {
-        self.cpu_wait_histogram
-            .lock()
-            .map(|h| h.percentile(95.0))
-            .unwrap_or(0)
+        self.cpu_wait_histogram.lock().map(|h| h.percentile(95.0)).unwrap_or(0)
     }
 
     pub fn cpu_wait_p99(&self) -> u64 {
-        self.cpu_wait_histogram
-            .lock()
-            .map(|h| h.percentile(99.0))
-            .unwrap_or(0)
+        self.cpu_wait_histogram.lock().map(|h| h.percentile(99.0)).unwrap_or(0)
     }
 
     // === I/O Metrics ===
@@ -315,24 +306,15 @@ impl ConcurrencyMetrics {
     }
 
     pub fn io_wait_p50(&self) -> u64 {
-        self.io_wait_histogram
-            .lock()
-            .map(|h| h.percentile(50.0))
-            .unwrap_or(0)
+        self.io_wait_histogram.lock().map(|h| h.percentile(50.0)).unwrap_or(0)
     }
 
     pub fn io_wait_p95(&self) -> u64 {
-        self.io_wait_histogram
-            .lock()
-            .map(|h| h.percentile(95.0))
-            .unwrap_or(0)
+        self.io_wait_histogram.lock().map(|h| h.percentile(95.0)).unwrap_or(0)
     }
 
     pub fn io_wait_p99(&self) -> u64 {
-        self.io_wait_histogram
-            .lock()
-            .map(|h| h.percentile(99.0))
-            .unwrap_or(0)
+        self.io_wait_histogram.lock().map(|h| h.percentile(99.0)).unwrap_or(0)
     }
 
     // === Memory Metrics ===
@@ -389,7 +371,8 @@ impl ConcurrencyMetrics {
     ///
     /// Queue depth reveals whether workers can keep up with the reader:
     /// - Depth near 0: Workers are faster than reader (good!)
-    /// - Depth near capacity: Workers are bottleneck (increase workers or optimize stages)
+    /// - Depth near capacity: Workers are bottleneck (increase workers or
+    ///   optimize stages)
     /// - Depth at capacity: Reader is blocked (severe backpressure)
     pub fn update_cpu_queue_depth(&self, depth: usize) {
         self.cpu_queue_depth.store(depth, Ordering::Relaxed);
@@ -397,14 +380,12 @@ impl ConcurrencyMetrics {
         // Track maximum depth observed
         let mut current_max = self.cpu_queue_depth_max.load(Ordering::Relaxed);
         while depth > current_max {
-            match
-                self.cpu_queue_depth_max.compare_exchange_weak(
-                    current_max,
-                    depth,
-                    Ordering::Relaxed,
-                    Ordering::Relaxed
-                )
-            {
+            match self.cpu_queue_depth_max.compare_exchange_weak(
+                current_max,
+                depth,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
                 Ok(_) => {
                     break;
                 }
@@ -486,19 +467,15 @@ impl ConcurrencyMetrics {
 ///
 /// Initialized from RESOURCE_MANAGER values on first access.
 /// This ensures metrics match actual resource configuration.
-pub static CONCURRENCY_METRICS: std::sync::LazyLock<Arc<ConcurrencyMetrics>> = std::sync::LazyLock::new(
-    || {
-        use crate::infrastructure::runtime::RESOURCE_MANAGER;
+pub static CONCURRENCY_METRICS: std::sync::LazyLock<Arc<ConcurrencyMetrics>> = std::sync::LazyLock::new(|| {
+    use crate::infrastructure::runtime::RESOURCE_MANAGER;
 
-        Arc::new(
-            ConcurrencyMetrics::new(
-                RESOURCE_MANAGER.cpu_tokens_total(),
-                RESOURCE_MANAGER.io_tokens_total(),
-                RESOURCE_MANAGER.memory_capacity()
-            )
-        )
-    }
-);
+    Arc::new(ConcurrencyMetrics::new(
+        RESOURCE_MANAGER.cpu_tokens_total(),
+        RESOURCE_MANAGER.io_tokens_total(),
+        RESOURCE_MANAGER.memory_capacity(),
+    ))
+});
 
 #[cfg(test)]
 mod tests {

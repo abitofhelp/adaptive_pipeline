@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # SQLite Pipeline Repository Adapter
 //!
 //! This module provides a concrete adapter implementation of the pipeline
@@ -241,21 +240,26 @@ impl SqlitePipelineRepository {
     /// Creates a new structured pipeline repository with database connection
     ///
     /// This constructor establishes a connection pool to the SQLite database,
-    /// which will be used for all subsequent repository operations. The connection
-    /// pool provides efficient resource management and supports concurrent access.
+    /// which will be used for all subsequent repository operations. The
+    /// connection pool provides efficient resource management and supports
+    /// concurrent access.
     ///
     /// # Why Connection Pooling?
     ///
     /// Connection pooling is used because:
     /// 1. **Performance**: Reusing connections is faster than creating new ones
-    /// 2. **Resource Management**: Limits the number of open database connections
-    /// 3. **Concurrency**: Allows multiple operations to share connections safely
-    /// 4. **Reliability**: Automatically handles connection failures and retries
+    /// 2. **Resource Management**: Limits the number of open database
+    ///    connections
+    /// 3. **Concurrency**: Allows multiple operations to share connections
+    ///    safely
+    /// 4. **Reliability**: Automatically handles connection failures and
+    ///    retries
     ///
     /// # Arguments
     ///
     /// * `database_path` - Path to the SQLite database file, or special values:
-    ///   - `:memory:` or `sqlite::memory:` for in-memory database (useful for testing)
+    ///   - `:memory:` or `sqlite::memory:` for in-memory database (useful for
+    ///     testing)
     ///   - Any file path like `"data/pipelines.db"` for persistent storage
     ///
     /// # Returns
@@ -295,10 +299,7 @@ impl SqlitePipelineRepository {
         let pool = crate::infrastructure::repositories::schema::initialize_database(&database_url)
             .await
             .map_err(|e| {
-                PipelineError::database_error(format!(
-                    "Failed to initialize database '{}': {}",
-                    database_path, e
-                ))
+                PipelineError::database_error(format!("Failed to initialize database '{}': {}", database_path, e))
             })?;
 
         debug!("Successfully connected to structured SQLite database");
@@ -307,15 +308,18 @@ impl SqlitePipelineRepository {
 
     /// Saves a pipeline to the database with ACID transaction guarantees
     ///
-    /// This method persists a complete pipeline entity to the database, including
-    /// all associated data: configuration parameters, stages, and stage parameters.
-    /// The entire operation is wrapped in a database transaction to ensure
-    /// atomicity - either all data is saved successfully, or none of it is.
+    /// This method persists a complete pipeline entity to the database,
+    /// including all associated data: configuration parameters, stages, and
+    /// stage parameters. The entire operation is wrapped in a database
+    /// transaction to ensure atomicity - either all data is saved
+    /// successfully, or none of it is.
     ///
     /// # Why ACID Transactions?
     ///
-    /// ACID (Atomicity, Consistency, Isolation, Durability) transactions ensure:
-    /// 1. **Atomicity**: All-or-nothing - if any part fails, everything rolls back
+    /// ACID (Atomicity, Consistency, Isolation, Durability) transactions
+    /// ensure:
+    /// 1. **Atomicity**: All-or-nothing - if any part fails, everything rolls
+    ///    back
     /// 2. **Consistency**: Database constraints are always maintained
     /// 3. **Isolation**: Concurrent operations don't interfere with each other
     /// 4. **Durability**: Once committed, data survives system crashes
@@ -323,15 +327,16 @@ impl SqlitePipelineRepository {
     /// # What Gets Saved?
     ///
     /// The method saves to multiple related tables:
-    /// - **pipelines**: Main pipeline record (id, name, archived status, timestamps)
+    /// - **pipelines**: Main pipeline record (id, name, archived status,
+    ///   timestamps)
     /// - **pipeline_configuration**: Key-value configuration parameters
     /// - **pipeline_stages**: Processing stages with their configurations
     /// - **stage_parameters**: Parameters for each stage
     ///
     /// # Arguments
     ///
-    /// * `entity` - The pipeline entity to save. Must be a complete, valid pipeline
-    ///   with all required fields populated.
+    /// * `entity` - The pipeline entity to save. Must be a complete, valid
+    ///   pipeline with all required fields populated.
     ///
     /// # Returns
     ///
@@ -341,7 +346,8 @@ impl SqlitePipelineRepository {
     /// # Errors
     ///
     /// This function returns an error if:
-    /// - A pipeline with the same ID already exists (unique constraint violation)
+    /// - A pipeline with the same ID already exists (unique constraint
+    ///   violation)
     /// - Database connection is lost during the operation
     /// - Any SQL query fails (syntax error, constraint violation, etc.)
     /// - Transaction cannot be started or committed
@@ -354,13 +360,14 @@ impl SqlitePipelineRepository {
     ///
     /// # Thread Safety
     ///
-    /// This method is safe to call concurrently from multiple tasks. The database
-    /// connection pool handles concurrent access, and transaction isolation
-    /// prevents interference between concurrent saves.
+    /// This method is safe to call concurrently from multiple tasks. The
+    /// database connection pool handles concurrent access, and transaction
+    /// isolation prevents interference between concurrent saves.
     ///
     /// # Performance
     ///
-    /// - **Complexity**: O(n + m) where n = number of config entries, m = number of stages
+    /// - **Complexity**: O(n + m) where n = number of config entries, m =
+    ///   number of stages
     /// - **Database Writes**: Multiple INSERT statements within one transaction
     /// - **Network**: Single round-trip for transaction commit
     /// - **Locking**: Row-level locks acquired during transaction
@@ -375,8 +382,7 @@ impl SqlitePipelineRepository {
             .pool
             .begin()
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to start transaction: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to start transaction: {}", e)))?;
 
         // Insert main pipeline record
         let pipeline_query = r#"
@@ -392,8 +398,7 @@ impl SqlitePipelineRepository {
             .bind(entity.updated_at().to_rfc3339())
             .execute(&mut *tx)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to insert pipeline: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to insert pipeline: {}", e)))?;
 
         // Insert pipeline configuration
         for (key, value) in entity.configuration() {
@@ -410,8 +415,7 @@ impl SqlitePipelineRepository {
                 .bind(entity.updated_at().to_rfc3339())
                 .execute(&mut *tx)
                 .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to insert configuration: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::database_error(format!("Failed to insert configuration: {}", e)))?;
         }
 
         // Insert pipeline stages
@@ -438,8 +442,7 @@ impl SqlitePipelineRepository {
                 .bind(stage.updated_at().to_rfc3339())
                 .execute(&mut *tx)
                 .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to insert stage: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::database_error(format!("Failed to insert stage: {}", e)))?;
 
             // Insert stage parameters
             for (param_key, param_value) in &stage.configuration().parameters {
@@ -456,8 +459,7 @@ impl SqlitePipelineRepository {
                     .bind(stage.updated_at().to_rfc3339())
                     .execute(&mut *tx)
                     .await
-                    .map_err(|e| PipelineError::database_error(format!("Failed to insert stage parameter: {}", e)))
-                    ?;
+                    .map_err(|e| PipelineError::database_error(format!("Failed to insert stage parameter: {}", e)))?;
             }
         }
 
@@ -468,8 +470,7 @@ impl SqlitePipelineRepository {
         // Commit transaction - ensures ACID compliance
         tx.commit()
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to commit transaction: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to commit transaction: {}", e)))?;
 
         println!(
             "DEBUG: Successfully saved pipeline with ACID transaction: {}",
@@ -501,8 +502,7 @@ impl SqlitePipelineRepository {
             .pool
             .begin()
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to begin transaction: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to begin transaction: {}", e)))?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let id_str = id.to_string();
@@ -520,8 +520,7 @@ impl SqlitePipelineRepository {
             .bind(&id_str)
             .execute(&mut *tx)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline stages: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline stages: {}", e)))?;
 
         println!("DEBUG: Archived {} stages", stages_result.rows_affected());
 
@@ -541,8 +540,7 @@ impl SqlitePipelineRepository {
             .bind(&id_str)
             .execute(&mut *tx)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to archive stage parameters: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to archive stage parameters: {}", e)))?;
 
         println!("DEBUG: Archived {} stage parameters", params_result.rows_affected());
 
@@ -559,8 +557,7 @@ impl SqlitePipelineRepository {
             .bind(&id_str)
             .execute(&mut *tx)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline configuration: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline configuration: {}", e)))?;
 
         println!("DEBUG: Archived {} config entries", config_result.rows_affected());
 
@@ -577,8 +574,7 @@ impl SqlitePipelineRepository {
             .bind(&id_str)
             .execute(&mut *tx)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline: {}", e)))?;
 
         let success = result.rows_affected() > 0;
         println!(
@@ -590,14 +586,12 @@ impl SqlitePipelineRepository {
         if success {
             tx.commit()
                 .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to commit archive transaction: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::database_error(format!("Failed to commit archive transaction: {}", e)))?;
             println!("DEBUG: Transaction committed successfully");
         } else {
             tx.rollback()
                 .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to rollback archive transaction: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::database_error(format!("Failed to rollback archive transaction: {}", e)))?;
             println!("DEBUG: Transaction rolled back");
         }
 
@@ -613,8 +607,7 @@ impl SqlitePipelineRepository {
         let rows = sqlx::query(query)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to query pipelines: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to query pipelines: {}", e)))?;
 
         let mut pipelines = Vec::new();
         for row in rows {
@@ -645,18 +638,14 @@ impl SqlitePipelineRepository {
         let rows = sqlx::query(query)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to query pipelines: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to query pipelines: {}", e)))?;
 
         let mut pipelines = Vec::new();
         for row in rows {
             let id_str: String = row.get("id");
             let pipeline_id = PipelineId::from_string(&id_str)?;
 
-            if let Some(pipeline) = self
-                .load_pipeline_from_db_with_archived(pipeline_id, true)
-                .await?
-            {
+            if let Some(pipeline) = self.load_pipeline_from_db_with_archived(pipeline_id, true).await? {
                 pipelines.push(pipeline);
             }
         }
@@ -672,8 +661,7 @@ impl SqlitePipelineRepository {
             .bind(id.to_string())
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to check pipeline existence: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to check pipeline existence: {}", e)))?;
 
         Ok(result.is_some())
     }
@@ -687,8 +675,7 @@ impl SqlitePipelineRepository {
             .bind(name)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to find pipeline by name: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to find pipeline by name: {}", e)))?;
 
         if let Some(row) = row {
             let id_str: String = row.get("id");
@@ -708,8 +695,7 @@ impl SqlitePipelineRepository {
             .bind(offset as i64)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to query paginated pipelines: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to query paginated pipelines: {}", e)))?;
 
         let mut pipelines = Vec::new();
         for row in rows {
@@ -729,8 +715,7 @@ impl SqlitePipelineRepository {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM pipelines WHERE archived = false")
             .fetch_one(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to count pipelines: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to count pipelines: {}", e)))?;
 
         Ok(count as usize)
     }
@@ -754,8 +739,7 @@ impl SqlitePipelineRepository {
             .bind(value)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to find pipelines by config: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to find pipelines by config: {}", e)))?;
 
         let mut pipelines = Vec::new();
         for row in rows {
@@ -795,8 +779,7 @@ impl SqlitePipelineRepository {
             .bind(id.to_string())
             .execute(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to restore pipeline: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to restore pipeline: {}", e)))?;
 
         Ok(result.rows_affected() > 0)
     }
@@ -823,8 +806,7 @@ impl SqlitePipelineRepository {
             .bind(id.to_string())
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to load pipeline: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to load pipeline: {}", e)))?;
 
         let pipeline_row = match pipeline_row {
             Some(row) => row,
@@ -850,8 +832,7 @@ impl SqlitePipelineRepository {
             .bind(id.to_string())
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to load configuration: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to load configuration: {}", e)))?;
 
         let mut configuration = HashMap::new();
         for row in config_rows {
@@ -872,8 +853,7 @@ impl SqlitePipelineRepository {
             .bind(id.to_string())
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to load stages: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::database_error(format!("Failed to load stages: {}", e)))?;
 
         let mut stages = Vec::new();
         for row in stage_rows {
@@ -891,8 +871,7 @@ impl SqlitePipelineRepository {
             // Parse stage type
             let stage_type = stage_type_str
                 .parse::<StageType>()
-                .map_err(|e| PipelineError::SerializationError(format!("Invalid stage type: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::SerializationError(format!("Invalid stage type: {}", e)))?;
 
             // Build stage configuration
             let stage_config = StageConfiguration {

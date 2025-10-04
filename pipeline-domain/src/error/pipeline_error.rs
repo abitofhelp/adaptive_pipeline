@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Error System
 //!
 //! This module provides a comprehensive, hierarchical error system for the
@@ -140,7 +139,6 @@ use thiserror::Error;
 /// - **Recoverable**: Some errors indicate retry-able conditions
 ///
 /// ## Error Handling Strategy
-///
 #[derive(Error, Debug, Clone)]
 pub enum PipelineError {
     #[error("Invalid configuration: {0}")]
@@ -312,9 +310,10 @@ impl From<serde_json::Error> for PipelineError {
     }
 }
 
-// NOTE: TOML and YAML error conversions removed - serialization format is infrastructure concern
-// If infrastructure needs these conversions, implement them in the infrastructure layer
-// The domain only needs JSON serialization for configuration parameters
+// NOTE: TOML and YAML error conversions removed - serialization format is
+// infrastructure concern If infrastructure needs these conversions, implement
+// them in the infrastructure layer The domain only needs JSON serialization for
+// configuration parameters
 
 // impl From<toml::de::Error> for PipelineError {
 //     fn from(err: toml::de::Error) -> Self {

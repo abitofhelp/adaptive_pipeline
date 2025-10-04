@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Chunk Size Value Object
 //!
 //! This module provides a type-safe representation of chunk sizes used
@@ -189,7 +188,6 @@ use serde::{Deserialize, Serialize};
 /// - **Default Size**: 1MB (balanced for most use cases)
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ChunkSize {
     bytes: usize,
@@ -226,7 +224,6 @@ impl ChunkSize {
     /// - Size exceeds `MAX_SIZE` (512MB)
     ///
     /// # Examples
-    ///
     pub fn new(bytes: usize) -> Result<Self, PipelineError> {
         if bytes < Self::MIN_SIZE {
             return Err(PipelineError::InvalidConfiguration(format!(
@@ -261,7 +258,6 @@ impl ChunkSize {
     /// * `Err(PipelineError)` - If resulting size is out of bounds
     ///
     /// # Examples
-    ///
     pub fn from_kb(kb: usize) -> Result<Self, PipelineError> {
         Self::new(kb * 1024)
     }
@@ -280,7 +276,6 @@ impl ChunkSize {
     /// * `Err(PipelineError)` - If resulting size is out of bounds
     ///
     /// # Examples
-    ///
     pub fn from_mb(mb: usize) -> Result<Self, PipelineError> {
         Self::new(mb * 1024 * 1024)
     }

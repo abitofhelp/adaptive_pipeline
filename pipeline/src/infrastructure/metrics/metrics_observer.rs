@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Metrics Observer for Pipeline Processing
 //!
 //! This module provides a metrics observer that integrates with the pipeline
@@ -119,9 +118,9 @@ use std::sync::Arc;
 use std::time::Instant;
 use tracing::debug;
 
+use crate::infrastructure::metrics::metrics_service::MetricsService;
 use pipeline_domain::services::pipeline_service::ProcessingObserver;
 use pipeline_domain::ProcessingMetrics;
-use crate::infrastructure::metrics::metrics_service::MetricsService;
 
 /// Metrics observer that collects and reports pipeline processing metrics to
 /// Prometheus.

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Stage Executor Adapter Implementation
 //!
 //! This module provides a concrete adapter implementation of the stage executor
@@ -101,13 +100,13 @@
 //! This adapter bridges the domain `StageExecutor` interface with concrete
 //! infrastructure services, following the Dependency Inversion Principle.
 
+use async_trait::async_trait;
+use parking_lot::RwLock;
 use pipeline_domain::entities::ProcessingContext;
 use pipeline_domain::repositories::stage_executor::{ResourceRequirements, StageExecutor};
 use pipeline_domain::services::{CompressionService, EncryptionService};
 use pipeline_domain::value_objects::FileChunk;
 use pipeline_domain::PipelineError;
-use async_trait::async_trait;
-use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -135,7 +134,6 @@ use std::sync::Arc;
 /// - **State Protection**: Internal state is protected with appropriate locks
 ///
 /// ## Usage
-///
 #[allow(dead_code)]
 pub struct BasicStageExecutorAdapterAdapter {
     /// Compression service for handling compression stages
@@ -296,9 +294,9 @@ impl StageExecutor for BasicStageExecutorAdapterAdapter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pipeline_domain::entities::{PipelineStage, ProcessingContext, SecurityContext, StageType, StageConfiguration};
-    use pipeline_domain::value_objects::{FileChunk, StageId};
     use crate::infrastructure::adapters::{CompressionServiceImpl, EncryptionServiceImpl};
+    use pipeline_domain::entities::{PipelineStage, ProcessingContext, SecurityContext, StageConfiguration, StageType};
+    use pipeline_domain::value_objects::{FileChunk, StageId};
     use std::collections::HashMap;
 
     #[tokio::test]
@@ -323,7 +321,7 @@ mod tests {
         let mut parameters = HashMap::new();
         parameters.insert("algorithm".to_string(), "brotli".to_string());
         parameters.insert("level".to_string(), "6".to_string());
-        
+
         let config = StageConfiguration::new("brotli".to_string(), parameters, false);
         let stage = PipelineStage::new("compression".to_string(), StageType::Compression, config, 0).unwrap();
 

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Infrastructure Adapters Module
 //!
 //! This module contains concrete implementations of domain interfaces (ports),

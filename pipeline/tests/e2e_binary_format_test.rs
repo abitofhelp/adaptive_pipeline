@@ -29,9 +29,9 @@
 use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
 
+use pipeline::infrastructure::services::{BinaryFormatService, BinaryFormatServiceImpl, BinaryFormatWriter};
 use pipeline_domain::value_objects::{ChunkFormat, FileHeader};
 use pipeline_domain::PipelineError;
-use pipeline::infrastructure::services::{BinaryFormatService, BinaryFormatServiceImpl, BinaryFormatWriter};
 
 /// Tests complete .adapipe file format roundtrip workflow.
 ///

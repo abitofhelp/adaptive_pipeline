@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Compression Service
 //!
 //! This module provides domain-level compression services for the adaptive
@@ -88,8 +87,9 @@
 
 use crate::{FileChunk, PipelineError, ProcessingContext};
 
-// NOTE: Domain traits are synchronous. Async execution is an infrastructure concern.
-// Infrastructure can provide async adapters that wrap sync implementations.
+// NOTE: Domain traits are synchronous. Async execution is an infrastructure
+// concern. Infrastructure can provide async adapters that wrap sync
+// implementations.
 
 /// Compression algorithms supported by the adaptive pipeline system
 ///
@@ -107,7 +107,6 @@ use crate::{FileChunk, PipelineError, ProcessingContext};
 /// - **Custom**: User-defined algorithms for specialized requirements
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, PartialEq)]
 pub enum CompressionAlgorithm {
     Brotli,
@@ -141,7 +140,6 @@ pub enum CompressionAlgorithm {
 /// - More CPU utilization
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CompressionLevel {
     /// Fastest compression with minimal ratio optimization

@@ -69,9 +69,7 @@ impl UnixPlatform {
 
         match (total, available) {
             (Some(t), Some(a)) => Ok((t, a)),
-            _ => Err(PlatformError::Other(
-                "Failed to parse memory info".to_string(),
-            )),
+            _ => Err(PlatformError::Other("Failed to parse memory info".to_string())),
         }
     }
 

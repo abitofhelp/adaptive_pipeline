@@ -7,7 +7,8 @@
 
 //! # Exit Code Management
 //!
-//! Provides standardized Unix exit codes following BSD `sysexits.h` conventions.
+//! Provides standardized Unix exit codes following BSD `sysexits.h`
+//! conventions.
 //!
 //! ## Exit Code Conventions
 //!
@@ -248,8 +249,8 @@ impl From<ExitCode> for std::process::ExitCode {
 
 /// Maps application error messages to Unix exit codes (sysexits.h standard)
 ///
-/// This function analyzes error messages and maps them to appropriate exit codes.
-/// It's designed to work with the pipeline's error messages.
+/// This function analyzes error messages and maps them to appropriate exit
+/// codes. It's designed to work with the pipeline's error messages.
 ///
 /// # Exit Code Mappings
 ///
@@ -284,7 +285,8 @@ pub fn map_error_to_exit_code(error_message: &str) -> ExitCode {
         ExitCode::DataError // 65 - data format error
     } else if error_message.contains("I/O")
         || error_message.contains("Failed to read")
-        || error_message.contains("Failed to write") {
+        || error_message.contains("Failed to write")
+    {
         ExitCode::IoError // 74 - input/output error
     } else {
         ExitCode::Error // 1 - general error
@@ -409,73 +411,41 @@ mod tests {
 
     #[test]
     fn test_map_error_file_not_found() {
-        assert_eq!(
-            map_error_to_exit_code("File not found: input.txt").as_i32(),
-            66
-        );
-        assert_eq!(
-            map_error_to_exit_code("The file does not exist").as_i32(),
-            66
-        );
+        assert_eq!(map_error_to_exit_code("File not found: input.txt").as_i32(), 66);
+        assert_eq!(map_error_to_exit_code("The file does not exist").as_i32(), 66);
     }
 
     #[test]
     fn test_map_error_invalid_data() {
-        assert_eq!(
-            map_error_to_exit_code("invalid chunk size specified").as_i32(),
-            65
-        );
-        assert_eq!(
-            map_error_to_exit_code("Invalid pipeline configuration").as_i32(),
-            65
-        );
+        assert_eq!(map_error_to_exit_code("invalid chunk size specified").as_i32(), 65);
+        assert_eq!(map_error_to_exit_code("Invalid pipeline configuration").as_i32(), 65);
     }
 
     #[test]
     fn test_map_error_io_error() {
-        assert_eq!(
-            map_error_to_exit_code("I/O error occurred").as_i32(),
-            74
-        );
-        assert_eq!(
-            map_error_to_exit_code("Failed to read from disk").as_i32(),
-            74
-        );
-        assert_eq!(
-            map_error_to_exit_code("Failed to write to output file").as_i32(),
-            74
-        );
+        assert_eq!(map_error_to_exit_code("I/O error occurred").as_i32(), 74);
+        assert_eq!(map_error_to_exit_code("Failed to read from disk").as_i32(), 74);
+        assert_eq!(map_error_to_exit_code("Failed to write to output file").as_i32(), 74);
     }
 
     #[test]
     fn test_map_error_general_error() {
-        assert_eq!(
-            map_error_to_exit_code("Unknown error occurred").as_i32(),
-            1
-        );
-        assert_eq!(
-            map_error_to_exit_code("Something went wrong").as_i32(),
-            1
-        );
+        assert_eq!(map_error_to_exit_code("Unknown error occurred").as_i32(), 1);
+        assert_eq!(map_error_to_exit_code("Something went wrong").as_i32(), 1);
     }
 
     #[test]
     fn test_map_error_case_sensitivity() {
         // Test that "Invalid" (capital I) also triggers DATAERR
-        assert_eq!(
-            map_error_to_exit_code("Invalid input provided").as_i32(),
-            65
-        );
-        assert_eq!(
-            map_error_to_exit_code("invalid input provided").as_i32(),
-            65
-        );
+        assert_eq!(map_error_to_exit_code("Invalid input provided").as_i32(), 65);
+        assert_eq!(map_error_to_exit_code("invalid input provided").as_i32(), 65);
     }
 
     #[test]
     fn test_map_error_priority() {
         // If multiple patterns match, the first one wins
-        // "Failed to initialize" contains "Failed to" but should match initialization first
+        // "Failed to initialize" contains "Failed to" but should match initialization
+        // first
         assert_eq!(
             map_error_to_exit_code("Failed to initialize with invalid data").as_i32(),
             70 // Should be EX_SOFTWARE, not EX_DATAERR
@@ -485,18 +455,9 @@ mod tests {
     #[test]
     fn test_map_error_exact_messages() {
         // Test exact error messages from the codebase
-        assert_eq!(
-            map_error_to_exit_code("Pipeline 'test' not found").as_i32(),
-            66
-        );
-        assert_eq!(
-            map_error_to_exit_code("I/O error: permission denied").as_i32(),
-            74
-        );
-        assert_eq!(
-            map_error_to_exit_code("Invalid pipeline name").as_i32(),
-            65
-        );
+        assert_eq!(map_error_to_exit_code("Pipeline 'test' not found").as_i32(), 66);
+        assert_eq!(map_error_to_exit_code("I/O error: permission denied").as_i32(), 74);
+        assert_eq!(map_error_to_exit_code("Invalid pipeline name").as_i32(), 65);
     }
 
     #[test]

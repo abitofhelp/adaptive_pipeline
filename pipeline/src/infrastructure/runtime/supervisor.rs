@@ -25,14 +25,15 @@
 //! - Structured logging for observability
 //! - No silent failures
 
+use pipeline_domain::PipelineError;
 use tokio::task::JoinHandle;
 use tracing::{debug, error};
-use pipeline_domain::PipelineError;
 
 /// Result type alias for application operations
 pub type AppResult<T> = Result<T, PipelineError>;
 
-/// Spawns a supervised task with automatic error logging and lifecycle tracking.
+/// Spawns a supervised task with automatic error logging and lifecycle
+/// tracking.
 ///
 /// ## Purpose
 ///
@@ -140,9 +141,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_spawn_supervised_success() {
-        let handle = spawn_supervised("test-success", async {
-            Ok::<i32, PipelineError>(42)
-        });
+        let handle = spawn_supervised("test-success", async { Ok::<i32, PipelineError>(42) });
 
         let result: AppResult<i32> = join_supervised(handle).await;
         assert!(result.is_ok());

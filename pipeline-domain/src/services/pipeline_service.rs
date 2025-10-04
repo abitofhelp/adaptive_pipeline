@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Pipeline Service Interface
 //!
 //! This module defines the domain service interface for pipeline processing
@@ -210,7 +209,6 @@ use std::sync::Arc;
 /// - **Error Events**: Processing errors and failure notifications
 ///
 /// # Examples
-///
 #[async_trait]
 pub trait ProcessingObserver: Send + Sync {
     /// Called when a chunk starts processing

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Services
 //!
 //! This module contains domain services that encapsulate business logic and

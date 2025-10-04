@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Generic Size Value Object
 //!
 //! This module provides a generic, type-safe size value object system for the
@@ -395,7 +394,8 @@ impl<T: SizeCategory> GenericSize<T> {
     ///
     /// # Purpose
     /// Creates a type-safe size value with category-specific validation.
-    /// Uses phantom types to prevent mixing different size categories at compile time.
+    /// Uses phantom types to prevent mixing different size categories at
+    /// compile time.
     ///
     /// # Why
     /// Type-safe sizes provide:
@@ -414,12 +414,11 @@ impl<T: SizeCategory> GenericSize<T> {
     /// # Errors
     /// Returns error when size exceeds category-specific maximum:
     /// - File sizes: 10 TB maximum
-    /// - Memory sizes: 1 TB maximum  
+    /// - Memory sizes: 1 TB maximum
     /// - Network sizes: 100 GB per transfer
     /// - Storage sizes: essentially unlimited
     ///
     /// # Examples
-    ///
     pub fn new(bytes: u64) -> Result<Self, PipelineError> {
         T::validate_size(bytes)?;
         Ok(Self {
@@ -469,7 +468,6 @@ impl<T: SizeCategory> GenericSize<T> {
     /// - Category maximum exceeded
     ///
     /// # Examples
-    ///
     pub fn from_mb(mb: u64) -> Result<Self, PipelineError> {
         let bytes = mb
             .checked_mul(1024 * 1024)

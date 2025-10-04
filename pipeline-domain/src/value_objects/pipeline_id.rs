@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Pipeline Identifier Value Object - Core Infrastructure
 //!
 //! This module provides a comprehensive pipeline identifier value object that
@@ -189,7 +188,6 @@ impl PipelineId {
     /// New `PipelineId` with current millisecond timestamp
     ///
     /// # Examples
-    ///
     pub fn new() -> Self {
         Self(GenericId::new())
     }
@@ -235,7 +233,6 @@ impl PipelineId {
     /// - Validation rules fail
     ///
     /// # Examples
-    ///
     pub fn from_string(s: &str) -> Result<Self, PipelineError> {
         Ok(Self(GenericId::from_string(s)?))
     }
@@ -266,7 +263,6 @@ impl PipelineId {
     /// - Migration from timestamp-based systems
     ///
     /// # Examples
-    ///
     pub fn from_timestamp_ms(timestamp_ms: u64) -> Self {
         Self(GenericId::from_timestamp_ms(timestamp_ms).unwrap_or_else(|_| GenericId::new()))
     }

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Stage Parameters Value Object - Pipeline Configuration Infrastructure
 //!
 //! This module provides a comprehensive stage parameters value object that

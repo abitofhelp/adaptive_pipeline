@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Repositories
 //!
 //! This module contains repository interfaces that define the contracts for

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Processing Context Entity
 //!
 //! The `ProcessingContext` entity maintains runtime state and context
@@ -155,23 +154,23 @@ pub struct ProcessingContext {
 impl ProcessingContext {
     /// Creates a new processing context for pipeline execution
     ///
-    /// Initializes a new context with default configuration values and empty state.
-    /// The context starts with zero processed bytes and will track progress
-    /// throughout the pipeline execution.
+    /// Initializes a new context with default configuration values and empty
+    /// state. The context starts with zero processed bytes and will track
+    /// progress throughout the pipeline execution.
     ///
     /// # Arguments
     ///
     /// * `input_path` - Path to the input file being processed
     /// * `output_path` - Path where the processed output will be written
     /// * `file_size` - Total size of the input file in bytes
-    /// * `security_context` - Security context for authorization and access control
+    /// * `security_context` - Security context for authorization and access
+    ///   control
     ///
     /// # Returns
     ///
     /// A new `ProcessingContext` with initialized state
     ///
     /// # Examples
-    ///
     pub fn new(input_path: PathBuf, output_path: PathBuf, file_size: u64, security_context: SecurityContext) -> Self {
         let now = chrono::Utc::now();
 
@@ -407,7 +406,6 @@ impl ProcessingContext {
     /// Progress as a percentage (0.0 to 100.0)
     ///
     /// # Examples
-    ///
     pub fn progress_percentage(&self) -> f64 {
         if self.file_size == 0 {
             return 0.0;

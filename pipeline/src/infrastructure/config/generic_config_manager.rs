@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Generic Configuration Manager
 //!
 //! This module provides a generic, reusable configuration management system
@@ -161,9 +160,9 @@
 //! - **Configuration Analytics**: Analytics and monitoring of configuration
 //!   usage
 
+use async_trait::async_trait;
 use pipeline_domain::error::PipelineError;
 use pipeline_domain::services::datetime_serde;
-use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -192,7 +191,6 @@ use std::sync::{Arc, RwLock};
 /// - Have a stable lifetime (`'static`)
 ///
 /// # Examples
-///
 pub trait ConfigValidation: Clone + Debug + Send + Sync + 'static {
     /// Validates the configuration and returns detailed validation results
     fn validate(&self) -> ConfigValidationResult;
@@ -452,8 +450,7 @@ where
             let mut config = self
                 .config
                 .write()
-                .map_err(|e| PipelineError::InternalError(format!("Failed to write config: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::InternalError(format!("Failed to write config: {}", e)))?;
             *config = new_config.clone();
         }
 
@@ -493,15 +490,9 @@ where
         for source in &self.sources {
             if source.exists().await {
                 let config_data = source.load().await?;
-                let config: T = serde_json::from_str(&config_data)
-                    .map_err(|e| {
-                        PipelineError::InternalError(format!(
-                            "Failed to parse config from {}: {}",
-                            source.source_id(),
-                            e
-                        ))
-                    })
-                    ?;
+                let config: T = serde_json::from_str(&config_data).map_err(|e| {
+                    PipelineError::InternalError(format!("Failed to parse config from {}: {}", source.source_id(), e))
+                })?;
 
                 merged_config = Some(match merged_config {
                     Some(_existing) => {
@@ -516,8 +507,7 @@ where
 
         if let Some(config) = merged_config {
             self.update_config(config, "Loaded from sources".to_string(), changed_by)
-                .await
-                ?;
+                .await?;
         }
 
         Ok(())
@@ -527,8 +517,7 @@ where
     pub async fn save_to_source(&self) -> Result<(), PipelineError> {
         let config = self.get_config()?;
         let config_data = serde_json::to_string_pretty(&config)
-            .map_err(|e| PipelineError::InternalError(format!("Failed to serialize config: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to serialize config: {}", e)))?;
 
         for source in &self.sources {
             if let Ok(()) = source.save(&config_data).await {

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Async Checksum Adapter
 //!
 //! This module provides an async adapter for the synchronous `ChecksumService`
@@ -52,7 +51,8 @@ use std::sync::Arc;
 /// ## Design Rationale
 ///
 /// - **Domain Purity**: Domain traits remain sync and portable
-/// - **Infrastructure Flexibility**: Async execution is an implementation detail
+/// - **Infrastructure Flexibility**: Async execution is an implementation
+///   detail
 /// - **Non-Blocking**: Uses `spawn_blocking` for CPU-intensive operations
 /// - **Zero-Cost When Sync**: No overhead if used in sync contexts
 pub struct AsyncChecksumAdapter<T: ChecksumService + 'static> {
@@ -79,11 +79,9 @@ impl<T: ChecksumService + 'static> AsyncChecksumAdapter<T> {
         let mut context_clone = context.clone();
         let stage_name = stage_name.to_string();
 
-        tokio::task::spawn_blocking(move || {
-            service.process_chunk(chunk, &mut context_clone, &stage_name)
-        })
-        .await
-        .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+        tokio::task::spawn_blocking(move || service.process_chunk(chunk, &mut context_clone, &stage_name))
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
     /// Processes multiple chunks in parallel (infrastructure concern)
@@ -103,9 +101,8 @@ impl<T: ChecksumService + 'static> AsyncChecksumAdapter<T> {
             let mut context_clone = context.clone();
             let stage_name = stage_name.to_string();
 
-            let task = tokio::task::spawn_blocking(move || {
-                service.process_chunk(chunk, &mut context_clone, &stage_name)
-            });
+            let task =
+                tokio::task::spawn_blocking(move || service.process_chunk(chunk, &mut context_clone, &stage_name));
 
             tasks.push(task);
         }

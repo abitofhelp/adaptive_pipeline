@@ -5,14 +5,15 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! Example UUID conversion:
 
+use crate::entities::pipeline::pipeline_id_to_uuid;
+use crate::events::{
+    PipelineCreatedEvent, PipelineUpdatedEvent, ProcessingCompletedEvent, ProcessingFailedEvent, ProcessingStartedEvent,
+};
+use crate::{Pipeline, PipelineError, PipelineEvent, ProcessingContext, ProcessingMetrics, SecurityContext};
 use std::collections::HashMap;
 use uuid::Uuid;
-use crate::{Pipeline, PipelineEvent, PipelineError, ProcessingContext, ProcessingMetrics, SecurityContext};
-use crate::events::{PipelineCreatedEvent, PipelineUpdatedEvent, ProcessingStartedEvent, ProcessingCompletedEvent, ProcessingFailedEvent};
-use crate::entities::pipeline::pipeline_id_to_uuid;
 ///
 /// ### Managing Processing Operations
 ///

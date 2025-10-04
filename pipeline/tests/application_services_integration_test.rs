@@ -29,13 +29,14 @@ use tokio::fs;
 
 use pipeline::application::commands::RestoreFileCommand;
 // TODO: FileRestorationApplicationService was removed during refactoring
-// use pipeline::application::services::{FileRestorationApplicationService, FileRestorationApplicationServiceImpl};
+// use pipeline::application::services::{FileRestorationApplicationService,
+// FileRestorationApplicationServiceImpl};
+use pipeline::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
 use pipeline_domain::entities::pipeline::Pipeline;
 use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 use pipeline_domain::services::file_io_service::FileIOConfig;
 use pipeline_domain::value_objects::binary_file_format::FileHeader;
 use pipeline_domain::PipelineError;
-use pipeline::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
 
 // ============================================================================
 // APPLICATION SERVICES INTEGRATION TEST FRAMEWORK

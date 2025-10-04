@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File Chunk Identifier Value Object - Processing Infrastructure
 //!
 //! This module provides a comprehensive file chunk identifier value object that
@@ -273,7 +272,8 @@ impl FileChunkId {
     ///
     /// # Purpose
     /// Generates a unique, time-ordered file chunk identifier using ULID.
-    /// Each chunk ID captures the exact moment of chunk creation for processing order.
+    /// Each chunk ID captures the exact moment of chunk creation for processing
+    /// order.
     ///
     /// # Why
     /// Time-ordered chunk IDs provide:
@@ -286,7 +286,6 @@ impl FileChunkId {
     /// New `FileChunkId` with current millisecond timestamp
     ///
     /// # Examples
-    ///
     pub fn new() -> Self {
         Self(GenericId::new())
     }

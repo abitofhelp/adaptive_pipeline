@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Chunk Processor Adapters
 //!
 //! This module provides adapter implementations that bridge domain services
@@ -136,6 +135,7 @@
 //! - **Caching**: Intelligent caching of processing results
 //! - **Load Balancing**: Load balancing across multiple service instances
 
+use async_trait::async_trait;
 use pipeline_domain::services::compression_service::{
     CompressionAlgorithm, CompressionConfig, CompressionLevel, CompressionService,
 };
@@ -144,7 +144,6 @@ use pipeline_domain::services::encryption_service::{
 };
 use pipeline_domain::services::file_processor_service::ChunkProcessor;
 use pipeline_domain::{FileChunk, PipelineError, ProcessingContext, SecurityContext};
-use async_trait::async_trait;
 use std::sync::Arc;
 
 /// Generic adapter that wraps any service as a ChunkProcessor
@@ -220,9 +219,9 @@ impl ChunkProcessor for CompressionChunkAdapter {
         );
 
         // Use the compression service to compress the chunk (now sync)
-        let compressed_chunk = self
-            .service
-            .compress_chunk(chunk.clone(), &compression_config, &mut processing_context)?;
+        let compressed_chunk =
+            self.service
+                .compress_chunk(chunk.clone(), &compression_config, &mut processing_context)?;
 
         // Return the compressed chunk (already processed by the service)
         Ok(compressed_chunk)
@@ -278,14 +277,12 @@ impl ChunkProcessor for EncryptionChunkAdapter {
         };
 
         // Use the encryption service to encrypt the chunk (now sync)
-        let encrypted_chunk = self
-            .service
-            .encrypt_chunk(
-                chunk.clone(),
-                &encryption_config,
-                &key_material,
-                &mut processing_context,
-            )?;
+        let encrypted_chunk = self.service.encrypt_chunk(
+            chunk.clone(),
+            &encryption_config,
+            &key_material,
+            &mut processing_context,
+        )?;
 
         // Return the encrypted chunk (already processed by the service)
         Ok(encrypted_chunk)

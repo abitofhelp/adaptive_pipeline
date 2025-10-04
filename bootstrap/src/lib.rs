@@ -124,21 +124,21 @@
 //! - `app_runner` - Application lifecycle management
 
 // Re-export modules
-pub mod platform;
+pub mod cli; // Now a module directory with parser and validator
+pub mod config;
 pub mod exit_code;
 pub mod logger;
-pub mod signals;
-pub mod config;
-pub mod cli;  // Now a module directory with parser and validator
+pub mod platform;
 pub mod shutdown;
+pub mod signals;
 
 // Future modules (to be implemented)
 // pub mod composition_root;
 // pub mod app_runner;
 
 // Re-export commonly used types
-pub use cli::{ValidatedCli, ValidatedCommand, parse_and_validate};
-pub use exit_code::{ExitCode, map_error_to_exit_code, result_to_exit_code};
+pub use cli::{parse_and_validate, ValidatedCli, ValidatedCommand};
+pub use exit_code::{map_error_to_exit_code, result_to_exit_code, ExitCode};
 
 /// Bootstrap and parse CLI arguments
 ///

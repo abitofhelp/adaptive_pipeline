@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Infrastructure Services Module
 //!
 //! This module contains infrastructure-specific services that don't fit into
@@ -21,6 +20,4 @@ pub mod binary_format_service;
 pub mod progress_indicator_service;
 
 // Re-export service implementations
-pub use binary_format_service::{
-    BinaryFormatService, BinaryFormatServiceImpl, BinaryFormatWriter,
-};
+pub use binary_format_service::{BinaryFormatService, BinaryFormatServiceImpl, BinaryFormatWriter};

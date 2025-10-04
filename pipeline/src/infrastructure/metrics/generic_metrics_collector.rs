@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Generic Metrics Collector
 //!
 //! This module provides a generic, reusable metrics collection system for the
@@ -161,9 +160,9 @@
 //! - **Real-time Dashboards**: Real-time metrics visualization
 //! - **Advanced Analytics**: Advanced statistical analysis capabilities
 
+use async_trait::async_trait;
 use pipeline_domain::error::PipelineError;
 use pipeline_domain::services::datetime_serde;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -197,7 +196,6 @@ use std::time::{Duration, Instant};
 /// - Have a stable lifetime (`'static`)
 ///
 /// # Examples
-///
 pub trait CollectibleMetrics: Clone + Debug + Send + Sync + Default + 'static {
     /// Resets all metrics to their initial state
     fn reset(&mut self);
@@ -324,8 +322,7 @@ where
         let mut active_ops = self
             .active_operations
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))?;
 
         active_ops.insert(operation_id, Instant::now());
         Ok(())
@@ -342,8 +339,7 @@ where
             let mut active_ops = self
                 .active_operations
                 .write()
-                .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))?;
 
             active_ops.remove(&operation_id)
         };
@@ -368,8 +364,7 @@ where
         let mut entries = self
             .entries
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write entries: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to write entries: {}", e)))?;
 
         entries.push(entry);
 
@@ -392,8 +387,7 @@ where
             let mut active_ops = self
                 .active_operations
                 .write()
-                .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))?;
 
             active_ops.remove(&operation_id)
         };
@@ -414,8 +408,7 @@ where
         let mut aggregated = self
             .aggregated_metrics
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e)))?;
 
         aggregated.merge(metrics);
         Ok(())
@@ -464,20 +457,17 @@ where
         let mut entries = self
             .entries
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write entries: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to write entries: {}", e)))?;
 
         let mut aggregated = self
             .aggregated_metrics
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e)))?;
 
         let mut active_ops = self
             .active_operations
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))?;
 
         entries.clear();
         aggregated.reset();
@@ -576,9 +566,7 @@ where
 #[macro_export]
 macro_rules! metrics_collector {
     ($metrics_type:ty, $name:expr) => {
-        $crate::infrastructure::metrics::GenericMetricsCollector::<$metrics_type>::new(
-            $name.to_string(),
-        )
+        $crate::infrastructure::metrics::GenericMetricsCollector::<$metrics_type>::new($name.to_string())
     };
 }
 

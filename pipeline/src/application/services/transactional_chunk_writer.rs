@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Transactional Chunk Writer Entity
 //!
 //! The `TransactionalChunkWriter` entity provides ACID-compliant chunk writing
@@ -188,8 +187,7 @@ impl TransactionalChunkWriter {
         // Create temporary file for writing
         let temp_file = tokio::fs::File::create(&temp_path)
             .await
-            .map_err(|e| PipelineError::io_error(format!("Failed to create temporary file: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::io_error(format!("Failed to create temporary file: {}", e)))?;
 
         Ok(Self {
             temp_file: Arc::new(Mutex::new(temp_file)),
@@ -247,17 +245,12 @@ impl TransactionalChunkWriter {
             file_guard
                 .seek(SeekFrom::Start(file_position))
                 .await
-                .map_err(|e| PipelineError::io_error(format!("Failed to seek to position {}: {}", file_position, e)))
-                ?;
+                .map_err(|e| PipelineError::io_error(format!("Failed to seek to position {}: {}", file_position, e)))?;
 
             // Write the chunk bytes at the current position
-            file_guard
-                .write_all(&chunk_bytes)
-                .await
-                .map_err(|e| {
-                    PipelineError::io_error(format!("Failed to write chunk at position {}: {}", file_position, e))
-                })
-                ?;
+            file_guard.write_all(&chunk_bytes).await.map_err(|e| {
+                PipelineError::io_error(format!("Failed to write chunk at position {}: {}", file_position, e))
+            })?;
         }
 
         // Update tracking information in thread-safe manner
@@ -295,8 +288,7 @@ impl TransactionalChunkWriter {
             file_guard
                 .sync_data()
                 .await
-                .map_err(|e| PipelineError::io_error(format!("Failed to sync data for checkpoint: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::io_error(format!("Failed to sync data for checkpoint: {}", e)))?;
         }
 
         // Update last checkpoint counter using atomic operation
@@ -341,8 +333,7 @@ impl TransactionalChunkWriter {
             file_guard
                 .sync_all()
                 .await
-                .map_err(|e| PipelineError::io_error(format!("Failed to sync file before commit: {}", e)))
-                ?;
+                .map_err(|e| PipelineError::io_error(format!("Failed to sync file before commit: {}", e)))?;
         }
 
         // Close the temporary file by dropping the Arc<Mutex<File>>
@@ -352,8 +343,7 @@ impl TransactionalChunkWriter {
         // This is the commit point - either succeeds completely or fails completely
         tokio::fs::rename(&self.temp_path, &self.final_path)
             .await
-            .map_err(|e| PipelineError::io_error(format!("Failed to commit transaction (rename): {}", e)))
-            ?;
+            .map_err(|e| PipelineError::io_error(format!("Failed to commit transaction (rename): {}", e)))?;
 
         let bytes_written = self.bytes_written.load(Ordering::Relaxed);
         debug!(
@@ -378,12 +368,9 @@ impl TransactionalChunkWriter {
 
         // Remove temporary file if it exists
         if self.temp_path.exists() {
-            tokio::fs::remove_file(&self.temp_path)
-                .await
-                .map_err(|e| {
-                    PipelineError::io_error(format!("Failed to remove temporary file during rollback: {}", e))
-                })
-                ?;
+            tokio::fs::remove_file(&self.temp_path).await.map_err(|e| {
+                PipelineError::io_error(format!("Failed to remove temporary file during rollback: {}", e))
+            })?;
         }
 
         let completed_count = self.completed_chunks.lock().await.len();

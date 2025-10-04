@@ -80,9 +80,7 @@ impl ConsoleLogger {
 
     /// Create a new console logger with custom prefix
     pub fn with_prefix(prefix: impl Into<String>) -> Self {
-        Self {
-            prefix: prefix.into(),
-        }
+        Self { prefix: prefix.into() }
     }
 }
 

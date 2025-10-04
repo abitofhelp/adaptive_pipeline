@@ -9,18 +9,18 @@
 //!
 //! Kept as documentation for developers migrating older constructors.
 
-
 #![allow(dead_code)]
 
-use sqlx::SqlitePool;
 use pipeline_domain::PipelineError;
+use sqlx::SqlitePool;
 
 pub struct SqlitePipelineRepository {
     pool: SqlitePool,
 }
 
 impl SqlitePipelineRepository {
-    /// Creates a new structured pipeline repository with automatic schema initialization
+    /// Creates a new structured pipeline repository with automatic schema
+    /// initialization
     ///
     /// This constructor:
     /// 1. Creates the database file if it doesn't exist
@@ -30,7 +30,8 @@ impl SqlitePipelineRepository {
     /// # Why This Approach?
     ///
     /// - **Auto-initialization**: No manual database creation required
-    /// - **Version tracking**: Migrations are tracked in `_sqlx_migrations` table
+    /// - **Version tracking**: Migrations are tracked in `_sqlx_migrations`
+    ///   table
     /// - **Idempotent**: Safe to call multiple times, migrations run only once
     /// - **Production-ready**: Same code works in dev, test, and production
     ///
@@ -75,10 +76,7 @@ impl SqlitePipelineRepository {
         let pool = crate::infrastructure::repositories::schema::initialize_database(&database_url)
             .await
             .map_err(|e| {
-                PipelineError::database_error(format!(
-                    "Failed to initialize database '{}': {}",
-                    database_path, e
-                ))
+                PipelineError::database_error(format!("Failed to initialize database '{}': {}", database_path, e))
             })?;
 
         debug!("Successfully initialized SQLite database with schema");
@@ -177,9 +175,7 @@ mod integration_tests {
     #[tokio::test]
     async fn test_new_creates_database_automatically() {
         // Should work even if database doesn't exist
-        let repo = SqlitePipelineRepository::new("./test_auto_created.db")
-            .await
-            .unwrap();
+        let repo = SqlitePipelineRepository::new("./test_auto_created.db").await.unwrap();
 
         // Database should be usable immediately
         // (This would fail with old approach)
@@ -187,18 +183,14 @@ mod integration_tests {
 
     #[tokio::test]
     async fn test_in_memory_database() {
-        let repo = SqlitePipelineRepository::new(":memory:")
-            .await
-            .unwrap();
+        let repo = SqlitePipelineRepository::new(":memory:").await.unwrap();
 
         // In-memory database is perfect for testing
     }
 
     #[tokio::test]
     async fn test_migrations_run_automatically() {
-        let repo = SqlitePipelineRepository::new("./test_migrations.db")
-            .await
-            .unwrap();
+        let repo = SqlitePipelineRepository::new("./test_migrations.db").await.unwrap();
 
         // Verify schema exists by querying pipelines table
         // (This would fail if migrations didn't run)

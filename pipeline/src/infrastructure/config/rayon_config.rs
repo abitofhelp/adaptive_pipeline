@@ -14,8 +14,10 @@
 //!
 //! The Rayon pool manager provides:
 //!
-//! - **CPU-Bound Pool**: Optimized for CPU-intensive operations like compression, encryption
-//! - **Mixed Workload Pool**: Balanced for operations with both CPU and I/O components
+//! - **CPU-Bound Pool**: Optimized for CPU-intensive operations like
+//!   compression, encryption
+//! - **Mixed Workload Pool**: Balanced for operations with both CPU and I/O
+//!   components
 //! - **Adaptive Sizing**: Integrates with WorkerCount optimization strategies
 //! - **Thread Naming**: Clear thread naming for debugging and profiling
 //!
@@ -32,7 +34,8 @@
 //! });
 //! ```
 
-use pipeline_domain::{error::PipelineError, value_objects::WorkerCount};
+use pipeline_domain::error::PipelineError;
+use pipeline_domain::value_objects::WorkerCount;
 use std::sync::Arc;
 
 /// Rayon thread pool manager for different workload types
@@ -79,9 +82,7 @@ impl RayonPoolManager {
             .num_threads(cpu_worker_count.count())
             .thread_name(|i| format!("rayon-cpu-{}", i))
             .build()
-            .map_err(|e| {
-                PipelineError::InternalError(format!("Failed to create CPU-bound pool: {}", e))
-            })?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to create CPU-bound pool: {}", e)))?;
 
         // Mixed workload pool: Use fewer threads to avoid contention
         let mixed_worker_count = (available_cores / 2).max(WorkerCount::MIN_WORKERS);
@@ -90,9 +91,7 @@ impl RayonPoolManager {
             .num_threads(mixed_worker_count)
             .thread_name(|i| format!("rayon-mixed-{}", i))
             .build()
-            .map_err(|e| {
-                PipelineError::InternalError(format!("Failed to create mixed workload pool: {}", e))
-            })?;
+            .map_err(|e| PipelineError::InternalError(format!("Failed to create mixed workload pool: {}", e)))?;
 
         Ok(Self {
             cpu_bound_pool: Arc::new(cpu_bound_pool),
@@ -138,7 +137,8 @@ impl RayonPoolManager {
 /// pre-configured thread pools throughout the application.
 ///
 /// # Panics
-/// Will panic if Rayon pools cannot be initialized (should never happen in normal operation)
+/// Will panic if Rayon pools cannot be initialized (should never happen in
+/// normal operation)
 #[allow(clippy::expect_used)]
 pub static RAYON_POOLS: std::sync::LazyLock<RayonPoolManager> =
     std::sync::LazyLock::new(|| RayonPoolManager::new().expect("Failed to initialize Rayon pools"));
@@ -167,10 +167,9 @@ mod tests {
     fn test_pool_sizing() {
         let manager = RayonPoolManager::new().unwrap();
 
-        // CPU pool should have more threads than mixed pool (or equal if very few cores)
-        let available_cores = std::thread::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(4);
+        // CPU pool should have more threads than mixed pool (or equal if very few
+        // cores)
+        let available_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
 
         if available_cores >= 4 {
             assert!(manager.cpu_thread_count() >= manager.mixed_thread_count());

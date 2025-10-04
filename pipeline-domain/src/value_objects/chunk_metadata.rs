@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Chunk Metadata Value Object
 //!
 //! This module defines the chunk metadata value object for the adaptive
@@ -207,7 +206,6 @@ use crate::PipelineError;
 /// - **Extensible Attributes**: Custom metadata through key-value attributes
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChunkMetadata {
     /// Size of the chunk in bytes

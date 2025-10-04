@@ -17,12 +17,12 @@
 //! cargo test application_layer_integration_test
 //! ```
 
-use std::sync::Arc;
 use pipeline::application::commands::RestoreFileCommand;
+use std::sync::Arc;
 // TODO: FileRestorationApplicationService was removed during refactoring
 // use pipeline::application::services::FileRestorationApplicationServiceImpl;
-use pipeline_domain::services::file_io_service::FileIOConfig;
 use pipeline::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+use pipeline_domain::services::file_io_service::FileIOConfig;
 use std::path::PathBuf;
 use tempfile::TempDir;
 

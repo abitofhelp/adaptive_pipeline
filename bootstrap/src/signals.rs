@@ -27,8 +27,8 @@
 //!
 //! ```rust,no_run
 //! use bootstrap::signals::{SystemSignals, UnixSignalHandler};
-//! use std::sync::Arc;
 //! use std::sync::atomic::{AtomicBool, Ordering};
+//! use std::sync::Arc;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -232,8 +232,8 @@ pub fn create_signal_handler() -> Box<dyn SystemSignals> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_noop_signal_handler() {

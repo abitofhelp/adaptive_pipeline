@@ -40,8 +40,7 @@ impl WindowsPlatform {
     #[cfg(windows)]
     fn get_memory_info_impl() -> Result<(u64, u64), PlatformError> {
         use std::mem;
-        use winapi::um::sysinfoapi::GlobalMemoryStatusEx;
-        use winapi::um::sysinfoapi::MEMORYSTATUSEX;
+        use winapi::um::sysinfoapi::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
 
         unsafe {
             let mut mem_status: MEMORYSTATUSEX = mem::zeroed();
@@ -50,9 +49,7 @@ impl WindowsPlatform {
             if GlobalMemoryStatusEx(&mut mem_status) != 0 {
                 Ok((mem_status.ullTotalPhys, mem_status.ullAvailPhys))
             } else {
-                Err(PlatformError::Other(
-                    "GlobalMemoryStatusEx failed".to_string(),
-                ))
+                Err(PlatformError::Other("GlobalMemoryStatusEx failed".to_string()))
             }
         }
     }
@@ -167,10 +164,7 @@ impl Platform for WindowsPlatform {
     fn is_executable(&self, path: &Path) -> bool {
         if let Some(ext) = path.extension() {
             let ext_lower = ext.to_string_lossy().to_lowercase();
-            matches!(
-                ext_lower.as_str(),
-                "exe" | "bat" | "cmd" | "com" | "ps1" | "msi"
-            )
+            matches!(ext_lower.as_str(), "exe" | "bat" | "cmd" | "com" | "ps1" | "msi")
         } else {
             false
         }

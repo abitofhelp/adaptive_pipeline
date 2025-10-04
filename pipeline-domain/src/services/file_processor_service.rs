@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File Processor Service Interface
 //!
 //! This module defines the domain service interface for file processing
@@ -154,9 +153,10 @@ use std::path::Path;
 // Note: FileIOService imports moved to infrastructure layer to maintain Clean
 // Architecture
 
-// NOTE: FileProcessorService is async (infrastructure port - involves I/O operations).
-// ChunkProcessor is synchronous (domain service - CPU-bound processing).
-// See file_io_service.rs for explanation of I/O-bound vs CPU-bound async decisions.
+// NOTE: FileProcessorService is async (infrastructure port - involves I/O
+// operations). ChunkProcessor is synchronous (domain service - CPU-bound
+// processing). See file_io_service.rs for explanation of I/O-bound vs CPU-bound
+// async decisions.
 
 /// Configuration for file processing operations
 ///
@@ -174,7 +174,6 @@ use std::path::Path;
 /// - **Storage**: Temporary file and directory management
 ///
 /// # Examples
-///
 #[derive(Debug, Clone)]
 pub struct FileProcessorConfig {
     /// Maximum file size to process (in bytes)

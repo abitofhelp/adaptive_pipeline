@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Infrastructure Logging
 //!
 //! This module provides comprehensive logging and observability capabilities
@@ -17,7 +16,8 @@
 //! The logging infrastructure provides:
 //!
 //! - **Structured Logging**: JSON-formatted logs with contextual information
-//! - **Log Levels**: Configurable severity levels (error, warn, info, debug, trace)
+//! - **Log Levels**: Configurable severity levels (error, warn, info, debug,
+//!   trace)
 //! - **Distributed Tracing**: Trace requests across services and components
 //! - **Log Aggregation**: Integration with log aggregation systems
 //! - **Performance Monitoring**: Low-overhead logging for production
@@ -111,7 +111,6 @@
 //!
 //!
 //! ### With Error Handling
-//!
 
 pub mod observability_service;
 pub use observability_service::*;

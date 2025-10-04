@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Processing Context Identifier Value Object - Request Tracing Infrastructure
 //!
 //! This module provides a comprehensive processing context identifier value

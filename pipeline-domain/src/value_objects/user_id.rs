@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # User ID Value Object - Authentication and Authorization Infrastructure
 //!
 //! This module provides a comprehensive user identifier value object that
@@ -199,8 +198,9 @@ impl UserId {
     /// Creates a new user ID with format validation
     ///
     /// # Purpose
-    /// Creates a type-safe user identifier with comprehensive format validation.
-    /// Supports email, username, UUID, and system account formats.
+    /// Creates a type-safe user identifier with comprehensive format
+    /// validation. Supports email, username, UUID, and system account
+    /// formats.
     ///
     /// # Why
     /// Type-safe user IDs provide:
@@ -223,7 +223,6 @@ impl UserId {
     /// - Contains invalid characters
     ///
     /// # Examples
-    ///
     pub fn new(user_id: String) -> Result<Self, PipelineError> {
         Self::validate_format(&user_id)?;
         Ok(Self(user_id))
@@ -298,10 +297,10 @@ impl UserId {
     /// * `domain` - Domain to check (case-insensitive)
     ///
     /// # Returns
-    /// `true` if user's email domain matches (case-insensitive), `false` otherwise
+    /// `true` if user's email domain matches (case-insensitive), `false`
+    /// otherwise
     ///
     /// # Examples
-    ///
     pub fn belongs_to_domain(&self, domain: &str) -> bool {
         self.email_domain().is_some_and(|d| d.eq_ignore_ascii_case(domain))
     }
@@ -310,7 +309,8 @@ impl UserId {
     ///
     /// # Purpose
     /// Identifies service accounts and system users for special handling.
-    /// System users typically have elevated permissions and different audit requirements.
+    /// System users typically have elevated permissions and different audit
+    /// requirements.
     ///
     /// # Why
     /// System user detection enables:
@@ -323,7 +323,6 @@ impl UserId {
     /// `true` if user ID starts with: `system-`, `service-`, `bot-`, or `api-`
     ///
     /// # Examples
-    ///
     pub fn is_system_user(&self) -> bool {
         self.0.starts_with("system-")
             || self.0.starts_with("service-")

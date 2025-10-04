@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Processing Metrics Entities
 //!
 //! This module contains entities for collecting, tracking, and analyzing

@@ -54,18 +54,18 @@ const MAX_PATH_LENGTH: usize = 4096;
 
 /// Dangerous patterns that indicate potential attacks
 const DANGEROUS_PATTERNS: &[&str] = &[
-    "..",     // Path traversal
-    "~",      // Home directory
-    "$",      // Variable expansion
-    "`",      // Command substitution
-    ";",      // Command chaining
-    "&",      // Background/AND
-    "|",      // Pipe
-    ">",      // Redirect output
-    "<",      // Redirect input
-    "\n",     // Newline
-    "\r",     // Carriage return
-    "\0",     // Null byte
+    "..", // Path traversal
+    "~",  // Home directory
+    "$",  // Variable expansion
+    "`",  // Command substitution
+    ";",  // Command chaining
+    "&",  // Background/AND
+    "|",  // Pipe
+    ">",  // Redirect output
+    "<",  // Redirect input
+    "\n", // Newline
+    "\r", // Carriage return
+    "\0", // Null byte
 ];
 
 /// Protected system directories
@@ -156,9 +156,7 @@ impl SecureArgParser {
         // 3. Validate each value using validation methods below
         // 4. Build and return AppConfig
 
-        Ok(AppConfig::builder()
-            .app_name("adaptive-pipeline")
-            .build())
+        Ok(AppConfig::builder().app_name("adaptive-pipeline").build())
     }
 
     /// Validate a single argument for security issues
@@ -171,7 +169,7 @@ impl SecureArgParser {
         // Length check
         if arg.len() > MAX_ARG_LENGTH {
             return Err(ParseError::ArgumentTooLong(
-                arg.chars().take(50).collect::<String>() + "..."
+                arg.chars().take(50).collect::<String>() + "...",
             ));
         }
 
@@ -207,14 +205,9 @@ impl SecureArgParser {
     pub fn validate_path(path: &str) -> Result<PathBuf, ParseError> {
         // Basic validation
         Self::validate_argument(path).map_err(|e| match e {
-            ParseError::ArgumentTooLong(_) => {
-                ParseError::InvalidPath(format!("Path too long: {}", path))
-            }
+            ParseError::ArgumentTooLong(_) => ParseError::InvalidPath(format!("Path too long: {}", path)),
             ParseError::DangerousPattern { pattern, .. } => {
-                ParseError::InvalidPath(format!(
-                    "Path contains dangerous pattern '{}': {}",
-                    pattern, path
-                ))
+                ParseError::InvalidPath(format!("Path contains dangerous pattern '{}': {}", pattern, path))
             }
             other => other,
         })?;
@@ -223,15 +216,13 @@ impl SecureArgParser {
         let path_obj = Path::new(path);
 
         // Try to canonicalize (resolves .., symlinks, etc.)
-        let canonical = path_obj
-            .canonicalize()
-            .map_err(|e| {
-                if !path_obj.exists() {
-                    ParseError::PathNotFound(path.to_string())
-                } else {
-                    ParseError::InvalidPath(format!("{}: {}", path, e))
-                }
-            })?;
+        let canonical = path_obj.canonicalize().map_err(|e| {
+            if !path_obj.exists() {
+                ParseError::PathNotFound(path.to_string())
+            } else {
+                ParseError::InvalidPath(format!("{}: {}", path, e))
+            }
+        })?;
 
         // Length check on canonical path
         if canonical.to_string_lossy().len() > MAX_PATH_LENGTH {
@@ -257,12 +248,7 @@ impl SecureArgParser {
     }
 
     /// Validate a number argument
-    pub fn validate_number<T>(
-        arg_name: &str,
-        value: &str,
-        min: Option<T>,
-        max: Option<T>,
-    ) -> Result<T, ParseError>
+    pub fn validate_number<T>(arg_name: &str, value: &str, min: Option<T>, max: Option<T>) -> Result<T, ParseError>
     where
         T: std::str::FromStr + PartialOrd + std::fmt::Display,
     {

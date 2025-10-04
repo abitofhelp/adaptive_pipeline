@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Stage Executor Interface
 //!
 //! This module defines the interface for executing pipeline stages and managing

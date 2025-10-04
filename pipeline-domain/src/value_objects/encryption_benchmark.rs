@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Encryption Benchmark Value Object
 //!
 //! This module provides the [`EncryptionBenchmark`] value object for capturing
@@ -47,7 +46,8 @@
 //!
 //! ### Throughput Analysis
 //!
-//! Throughput measurements provide insight into sustained data processing rates:
+//! Throughput measurements provide insight into sustained data processing
+//! rates:
 //!
 //! - **High Throughput (>200 MB/s)**: Excellent for large file processing
 //! - **Medium Throughput (50-200 MB/s)**: Good for general-purpose encryption
@@ -109,7 +109,6 @@
 //! - Identify performance regressions
 //! - Correlate performance with system changes
 //! - Compare algorithm performance across versions
-//!
 use crate::services::datetime_serde;
 use crate::services::encryption_service::EncryptionAlgorithm;
 use serde::{Deserialize, Serialize};

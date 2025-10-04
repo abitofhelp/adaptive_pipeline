@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Progress Indicator Service
 //!
 //! This module provides a real-time progress indicator for user feedback during

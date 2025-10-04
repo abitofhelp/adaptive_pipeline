@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Binary File Format Value Object
 //!
 //! This module defines the binary file format specification for the Adaptive
@@ -336,8 +335,9 @@ impl FileHeader {
     /// Creates a new file header with default values
     ///
     /// # Purpose
-    /// Creates a `FileHeader` for tracking processing metadata and enabling file recovery.
-    /// The header stores all information needed to validate and restore processed files.
+    /// Creates a `FileHeader` for tracking processing metadata and enabling
+    /// file recovery. The header stores all information needed to validate
+    /// and restore processed files.
     ///
     /// # Why
     /// File headers provide:
@@ -347,9 +347,11 @@ impl FileHeader {
     /// - Version management for backward compatibility
     ///
     /// # Arguments
-    /// * `original_filename` - Name of the original input file (for restoration)
+    /// * `original_filename` - Name of the original input file (for
+    ///   restoration)
     /// * `original_size` - Size of the original file in bytes (for validation)
-    /// * `original_checksum` - SHA256 checksum of original file (for validation)
+    /// * `original_checksum` - SHA256 checksum of original file (for
+    ///   validation)
     ///
     /// # Returns
     /// `FileHeader` with default values:
@@ -360,7 +362,6 @@ impl FileHeader {
     /// - Empty processing steps, pipeline ID, and metadata
     ///
     /// # Examples
-    ///
     pub fn new(original_filename: String, original_size: u64, original_checksum: String) -> Self {
         Self {
             app_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -385,14 +386,14 @@ impl FileHeader {
     /// This information is used during file recovery to decompress the data.
     ///
     /// # Arguments
-    /// * `algorithm` - Name of compression algorithm (e.g., "brotli", "gzip", "zstd", "lz4")
+    /// * `algorithm` - Name of compression algorithm (e.g., "brotli", "gzip",
+    ///   "zstd", "lz4")
     /// * `level` - Compression level (algorithm-specific, typically 1-9)
     ///
     /// # Returns
     /// Updated `FileHeader` with compression step added (builder pattern)
     ///
     /// # Examples
-    ///
     pub fn add_compression_step(mut self, algorithm: &str, level: u32) -> Self {
         let mut parameters = HashMap::new();
         parameters.insert("level".to_string(), level.to_string());
@@ -504,8 +505,9 @@ impl FileHeader {
     /// Serializes the header to binary format for file footer
     ///
     /// # Purpose
-    /// Converts the header to the binary footer format that is appended to processed files.
-    /// The footer allows reading metadata from the end of files without scanning the entire file.
+    /// Converts the header to the binary footer format that is appended to
+    /// processed files. The footer allows reading metadata from the end of
+    /// files without scanning the entire file.
     ///
     /// # Why
     /// Storing metadata at the end provides:
@@ -526,7 +528,6 @@ impl FileHeader {
     /// Returns `PipelineError::SerializationError` if JSON serialization fails.
     ///
     /// # Examples
-    ///
     pub fn to_footer_bytes(&self) -> Result<Vec<u8>, PipelineError> {
         // Serialize header to JSON
         let header_json = serde_json::to_string(self)
@@ -556,8 +557,9 @@ impl FileHeader {
     /// Deserializes the header from file footer bytes
     ///
     /// # Purpose
-    /// Extracts and parses the file header from the footer at the end of a processed file.
-    /// This is the primary method for reading metadata from .adapipe files.
+    /// Extracts and parses the file header from the footer at the end of a
+    /// processed file. This is the primary method for reading metadata from
+    /// .adapipe files.
     ///
     /// # Why
     /// Reading from the footer enables:
@@ -569,7 +571,8 @@ impl FileHeader {
     /// * `file_data` - Complete file data including footer
     ///
     /// # Returns
-    /// * `Ok((FileHeader, usize))` - Parsed header and total footer size in bytes
+    /// * `Ok((FileHeader, usize))` - Parsed header and total footer size in
+    ///   bytes
     /// * `Err(PipelineError)` - Validation or parsing error
     ///
     /// # Errors
@@ -582,7 +585,6 @@ impl FileHeader {
     /// - JSON deserialization fails
     ///
     /// # Examples
-    ///
     pub fn from_footer_bytes(file_data: &[u8]) -> Result<(Self, usize), PipelineError> {
         let file_size = file_data.len();
 
@@ -642,8 +644,9 @@ impl FileHeader {
     /// Verifies the integrity of the processed output file
     ///
     /// # Purpose
-    /// Validates that the processed file data has not been corrupted or tampered with
-    /// by comparing its SHA256 checksum against the stored checksum.
+    /// Validates that the processed file data has not been corrupted or
+    /// tampered with by comparing its SHA256 checksum against the stored
+    /// checksum.
     ///
     /// # Why
     /// Integrity verification provides:
@@ -663,7 +666,6 @@ impl FileHeader {
     /// Returns `PipelineError::ValidationError` if `output_checksum` is empty.
     ///
     /// # Examples
-    ///
     pub fn verify_output_integrity(&self, file_data: &[u8]) -> Result<bool, PipelineError> {
         if self.output_checksum.is_empty() {
             return Err(PipelineError::ValidationError(
@@ -684,8 +686,8 @@ impl FileHeader {
     ///
     /// # Purpose
     /// Returns processing steps in the order they must be reversed to restore
-    /// the original file. For example, if compression then encryption was applied,
-    /// restoration must decrypt then decompress.
+    /// the original file. For example, if compression then encryption was
+    /// applied, restoration must decrypt then decompress.
     ///
     /// # Why
     /// Processing operations must be reversed in opposite order:
@@ -693,10 +695,10 @@ impl FileHeader {
     /// - Restore: Decrypt → Decompress
     ///
     /// # Returns
-    /// Vector of processing steps sorted by descending order (highest order first)
+    /// Vector of processing steps sorted by descending order (highest order
+    /// first)
     ///
     /// # Examples
-    ///
     pub fn get_restoration_steps(&self) -> Vec<&ProcessingStep> {
         let mut steps: Vec<&ProcessingStep> = self.processing_steps.iter().collect();
         steps.sort_by(|a, b| b.order.cmp(&a.order)); // Reverse order
@@ -706,8 +708,9 @@ impl FileHeader {
     /// Validates a restored file against original specifications
     ///
     /// # Purpose
-    /// Verifies that a restored file matches the original file exactly by checking
-    /// both size and SHA256 checksum. This ensures complete recovery fidelity.
+    /// Verifies that a restored file matches the original file exactly by
+    /// checking both size and SHA256 checksum. This ensures complete
+    /// recovery fidelity.
     ///
     /// # Why
     /// Restoration validation provides:
@@ -723,7 +726,6 @@ impl FileHeader {
     /// * `Ok(false)` - Restored file does not match original
     ///
     /// # Examples
-    ///
     pub fn validate_restored_file(&self, restored_data: &[u8]) -> Result<bool, PipelineError> {
         // Check size
         if restored_data.len() as u64 != self.original_size {

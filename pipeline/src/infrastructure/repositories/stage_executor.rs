@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Stage Executor Implementation
 //!
 //! This module provides a concrete implementation of the stage executor
@@ -95,14 +94,14 @@
 //! - **Service Access**: Safe concurrent access to services
 //! - **Resource Coordination**: Coordinated resource access
 
+use async_trait::async_trait;
+use byte_unit::Byte;
+use parking_lot::RwLock;
 use pipeline_domain::entities::{PipelineStage, ProcessingContext};
 use pipeline_domain::repositories::stage_executor::{ResourceRequirements, StageExecutor};
 use pipeline_domain::services::{CompressionService, EncryptionService, KeyMaterial};
 use pipeline_domain::value_objects::FileChunk;
 use pipeline_domain::PipelineError;
-use async_trait::async_trait;
-use byte_unit::Byte;
-use parking_lot::RwLock;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -601,8 +600,8 @@ impl StageExecutor for BasicStageExecutor {
 
         Ok(ResourceRequirements::new(
             memory_mb * 1024 * 1024, // Convert MB to bytes
-            1,                                // CPU cores
-            0,                                // Disk space (temporary)
+            1,                       // CPU cores
+            0,                       // Disk space (temporary)
         ))
     }
 

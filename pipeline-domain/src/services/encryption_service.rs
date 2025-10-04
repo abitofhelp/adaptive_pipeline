@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Encryption Service
 //!
 //! This module provides domain-level encryption services for the adaptive
@@ -118,8 +117,9 @@ use crate::value_objects::EncryptionBenchmark;
 use crate::{FileChunk, PipelineError, ProcessingContext, SecurityContext};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-// NOTE: Domain traits are synchronous. Async execution is an infrastructure concern.
-// Infrastructure can provide async adapters that wrap sync implementations.
+// NOTE: Domain traits are synchronous. Async execution is an infrastructure
+// concern. Infrastructure can provide async adapters that wrap sync
+// implementations.
 
 /// Encryption algorithms supported by the adaptive pipeline system
 ///
@@ -146,7 +146,6 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 /// - **Semantic Security**: Identical plaintexts produce different ciphertexts
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum EncryptionAlgorithm {
     Aes256Gcm,
@@ -189,7 +188,6 @@ pub enum EncryptionAlgorithm {
 /// | PBKDF2   | Fast  | Low          | Poor           | Poor             |
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, PartialEq)]
 pub enum KeyDerivationFunction {
     /// Argon2 - Memory-hard function resistant to GPU and ASIC attacks
@@ -373,13 +371,15 @@ impl KeyMaterial {
 ///
 /// # Note on Async
 ///
-/// For async contexts, use `AsyncEncryptionAdapter` from the infrastructure layer.
+/// For async contexts, use `AsyncEncryptionAdapter` from the infrastructure
+/// layer.
 ///
 /// # Note on Parallel Processing
 ///
-/// Parallel processing of chunks (encrypt_chunks_parallel, decrypt_chunks_parallel)
-/// is an infrastructure concern and has been removed from the domain trait.
-/// Use infrastructure adapters for batch/parallel operations.
+/// Parallel processing of chunks (encrypt_chunks_parallel,
+/// decrypt_chunks_parallel) is an infrastructure concern and has been removed
+/// from the domain trait. Use infrastructure adapters for batch/parallel
+/// operations.
 pub trait EncryptionService: Send + Sync {
     /// Encrypts a file chunk using the specified configuration and key material
     ///
@@ -427,7 +427,8 @@ pub trait EncryptionService: Send + Sync {
     /// # Note
     ///
     /// This operation uses cryptographically secure random number generation.
-    /// Execution is synchronous in domain, wrap with adapter for async contexts.
+    /// Execution is synchronous in domain, wrap with adapter for async
+    /// contexts.
     fn generate_key_material(
         &self,
         config: &EncryptionConfig,
@@ -436,7 +437,8 @@ pub trait EncryptionService: Send + Sync {
 
     /// Validates encryption configuration parameters
     ///
-    /// Checks if the configuration is valid and supported by this implementation.
+    /// Checks if the configuration is valid and supported by this
+    /// implementation.
     fn validate_config(&self, config: &EncryptionConfig) -> Result<(), PipelineError>;
 
     /// Gets list of supported encryption algorithms

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File Processor Service Implementation
 //!
 //! This module provides the concrete implementation of the file processor
@@ -200,7 +199,6 @@ use pipeline_domain::{FileChunk, PipelineError};
 /// - **Statistics Tracking**: Comprehensive processing statistics
 ///
 /// # Examples
-///
 pub struct FileProcessorServiceImpl<T: FileIOService> {
     file_io_service: Arc<T>,
     config: RwLock<FileProcessorConfig>,
@@ -240,7 +238,8 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
         }
     }
 
-    /// Processes chunks with the given processor using immutable pattern with parallel processing
+    /// Processes chunks with the given processor using immutable pattern with
+    /// parallel processing
     ///
     /// # Developer Notes
     /// This method follows DDD Value Object principles where FileChunk is
@@ -249,8 +248,13 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
     /// and prevents accidental mutations.
     ///
     /// For CPU-bound processors that don't require sequential processing,
-    /// uses Rayon for parallel processing, providing 2-3x speedup on multi-core systems.
-    fn process_chunks_with_processor(&self, chunks: &mut Vec<FileChunk>, processor: &dyn ChunkProcessor) -> Result<(), PipelineError> {
+    /// uses Rayon for parallel processing, providing 2-3x speedup on multi-core
+    /// systems.
+    fn process_chunks_with_processor(
+        &self,
+        chunks: &mut Vec<FileChunk>,
+        processor: &dyn ChunkProcessor,
+    ) -> Result<(), PipelineError> {
         use rayon::prelude::*;
 
         if processor.requires_sequential_processing() {
@@ -273,19 +277,13 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
     /// Creates a temporary file path
     fn create_temp_file_path(&self, original_path: &Path) -> std::path::PathBuf {
         let config = self.config.read();
-        let temp_dir = config
-            .temp_dir.clone()
-            .unwrap_or_else(std::env::temp_dir);
+        let temp_dir = config.temp_dir.clone().unwrap_or_else(std::env::temp_dir);
 
         let file_name = original_path
             .file_name()
             .unwrap_or_else(|| std::ffi::OsStr::new("temp_file"));
 
-        let temp_name = format!(
-            "{}.tmp.{}",
-            file_name.to_string_lossy(),
-            uuid::Uuid::new_v4()
-        );
+        let temp_name = format!("{}.tmp.{}", file_name.to_string_lossy(), uuid::Uuid::new_v4());
 
         temp_dir.join(temp_name)
     }
@@ -355,8 +353,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
 
             self.file_io_service
                 .write_file_chunks(output_path, &read_result.chunks, write_options)
-                .await
-                ?;
+                .await?;
             Some(output_path.to_path_buf())
         } else {
             // If processor modifies data but no output path specified, write back to
@@ -372,14 +369,12 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
 
             self.file_io_service
                 .write_file_chunks(&temp_path, &read_result.chunks, write_options)
-                .await
-                ?;
+                .await?;
 
             // Replace original file with processed version
             self.file_io_service
                 .move_file(&temp_path, input_path, WriteOptions::default())
-                .await
-                ?;
+                .await?;
             Some(input_path.to_path_buf())
         };
 
@@ -501,8 +496,9 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
         // Create futures for each file in the batch
         let futures: Vec<_> = file_pairs
             .iter()
-            .map(|(input_path, output_path)| {
-                async move { self.process_single_file_with_processor(input_path, output_path.as_deref(), processor).await }
+            .map(|(input_path, output_path)| async move {
+                self.process_single_file_with_processor(input_path, output_path.as_deref(), processor)
+                    .await
             })
             .collect();
 
@@ -568,8 +564,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
         let mut chunk_stream = self
             .file_io_service
             .stream_file_chunks(input_path, read_options)
-            .await
-            ?;
+            .await?;
         let mut chunks_processed = 0u64;
         let mut bytes_processed = 0u64;
         let mut is_first_chunk = true;
@@ -595,8 +590,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
             if let Some(ref output_path) = final_output_path {
                 self.file_io_service
                     .write_chunk_to_file(output_path, &chunk, write_options.clone(), is_first_chunk)
-                    .await
-                    ?;
+                    .await?;
                 is_first_chunk = false;
             }
 
@@ -608,8 +602,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
             if output_path.is_none() {
                 self.file_io_service
                     .move_file(temp_path, input_path, WriteOptions::default())
-                    .await
-                    ?;
+                    .await?;
             }
         }
 
@@ -652,9 +645,9 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pipeline_domain::ChunkSize;
-    use pipeline_domain::services::checksum_service::ChecksumProcessor;
     use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+    use pipeline_domain::services::checksum_service::ChecksumProcessor;
+    use pipeline_domain::ChunkSize;
     use std::io::Write;
     use tempfile::NamedTempFile;
 
@@ -729,7 +722,8 @@ mod tests {
         let processor = Box::new(ChecksumProcessor::sha256_processor(false));
         let result = processor_service
             .process_file(temp_file.path(), Some(output_path), processor)
-            .await.unwrap();
+            .await
+            .unwrap();
 
         assert_eq!(result.bytes_processed, test_data.len() as u64);
         assert!(result.output_path.is_some());

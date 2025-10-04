@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Encryption Service Implementation
 //!
 //! This module is part of the Infrastructure layer, providing concrete
@@ -132,8 +131,9 @@ use pipeline_domain::services::{
 use pipeline_domain::value_objects::{EncryptionBenchmark, FileChunk};
 use pipeline_domain::PipelineError;
 
-// NOTE: Domain traits are now synchronous. This implementation is sync and CPU-bound.
-// For async contexts, wrap this implementation with AsyncEncryptionAdapter.
+// NOTE: Domain traits are now synchronous. This implementation is sync and
+// CPU-bound. For async contexts, wrap this implementation with
+// AsyncEncryptionAdapter.
 
 /// Secure key material that automatically zeros sensitive data on drop
 ///
@@ -149,7 +149,6 @@ use pipeline_domain::PipelineError;
 /// - **Memory Protection**: Minimizes exposure of sensitive data
 ///
 /// # Examples
-///
 #[derive(Clone)]
 #[allow(dead_code)]
 struct SecureKey {
@@ -191,8 +190,7 @@ impl EncryptionServiceImpl {
         let mut key = vec![0u8; length];
         self.rng
             .fill(&mut key)
-            .map_err(|e| PipelineError::EncryptionError(format!("Failed to generate key: {:?}", e)))
-            ?;
+            .map_err(|e| PipelineError::EncryptionError(format!("Failed to generate key: {:?}", e)))?;
         Ok(key)
     }
 
@@ -201,24 +199,22 @@ impl EncryptionServiceImpl {
         let mut nonce = vec![0u8; length];
         self.rng
             .fill(&mut nonce)
-            .map_err(|e| PipelineError::EncryptionError(format!("Failed to generate nonce: {:?}", e)))
-            ?;
+            .map_err(|e| PipelineError::EncryptionError(format!("Failed to generate nonce: {:?}", e)))?;
         Ok(nonce)
     }
 
     /// Derives a key using Argon2
     fn derive_key_argon2(&self, password: &[u8], salt: &[u8], key_length: usize) -> Result<Vec<u8>, PipelineError> {
         let argon2 = Argon2::default();
-        let salt_string = SaltString::encode_b64(salt)
-            .map_err(|e| PipelineError::EncryptionError(format!("Invalid salt: {}", e)))
-            ?;
+        let salt_string =
+            SaltString::encode_b64(salt).map_err(|e| PipelineError::EncryptionError(format!("Invalid salt: {}", e)))?;
 
         let password_hash = argon2
             .hash_password(password, &salt_string)
-            .map_err(|e| PipelineError::EncryptionError(format!("Argon2 key derivation failed: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::EncryptionError(format!("Argon2 key derivation failed: {}", e)))?;
 
-        let hash_string = password_hash.hash
+        let hash_string = password_hash
+            .hash
             .ok_or_else(|| PipelineError::EncryptionError("Password hash missing".to_string()))?;
         let hash_bytes = hash_string.as_bytes();
         if hash_bytes.len() >= key_length {
@@ -231,16 +227,15 @@ impl EncryptionServiceImpl {
     /// Derives a key using scrypt
     fn derive_key_scrypt(&self, password: &[u8], salt: &[u8], key_length: usize) -> Result<Vec<u8>, PipelineError> {
         let scrypt = Scrypt;
-        let salt_string = ScryptSalt::encode_b64(salt)
-            .map_err(|e| PipelineError::EncryptionError(format!("Invalid salt: {}", e)))
-            ?;
+        let salt_string =
+            ScryptSalt::encode_b64(salt).map_err(|e| PipelineError::EncryptionError(format!("Invalid salt: {}", e)))?;
 
         let password_hash = scrypt
             .hash_password(password, &salt_string)
-            .map_err(|e| PipelineError::EncryptionError(format!("Scrypt key derivation failed: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::EncryptionError(format!("Scrypt key derivation failed: {}", e)))?;
 
-        let hash_string = password_hash.hash
+        let hash_string = password_hash
+            .hash
             .ok_or_else(|| PipelineError::EncryptionError("Password hash missing".to_string()))?;
         let hash_bytes = hash_string.as_bytes();
         if hash_bytes.len() >= key_length {
@@ -261,7 +256,8 @@ impl EncryptionServiceImpl {
         let mut key = vec![0u8; key_length];
         ring::pbkdf2::derive(
             ring::pbkdf2::PBKDF2_HMAC_SHA256,
-            std::num::NonZeroU32::new(iterations).ok_or_else(|| PipelineError::EncryptionError("Invalid iteration count".to_string()))?,
+            std::num::NonZeroU32::new(iterations)
+                .ok_or_else(|| PipelineError::EncryptionError("Invalid iteration count".to_string()))?,
             salt,
             password,
             &mut key,
@@ -289,8 +285,7 @@ impl EncryptionServiceImpl {
         let mut buffer = data.to_vec();
         cipher
             .encrypt_in_place(nonce_array, b"", &mut buffer)
-            .map_err(|e| PipelineError::EncryptionError(format!("AES-256-GCM encryption failed: {:?}", e)))
-            ?;
+            .map_err(|e| PipelineError::EncryptionError(format!("AES-256-GCM encryption failed: {:?}", e)))?;
 
         // Prepend nonce to encrypted data
         let mut result = nonce.to_vec();
@@ -317,8 +312,7 @@ impl EncryptionServiceImpl {
         let mut buffer = ciphertext.to_vec();
         cipher
             .decrypt_in_place(nonce_array, b"", &mut buffer)
-            .map_err(|e| PipelineError::EncryptionError(format!("AES-256-GCM decryption failed: {:?}", e)))
-            ?;
+            .map_err(|e| PipelineError::EncryptionError(format!("AES-256-GCM decryption failed: {:?}", e)))?;
 
         Ok(buffer)
     }
@@ -343,8 +337,7 @@ impl EncryptionServiceImpl {
         let mut buffer = data.to_vec();
         cipher
             .encrypt_in_place(nonce_array, b"", &mut buffer)
-            .map_err(|e| PipelineError::EncryptionError(format!("ChaCha20-Poly1305 encryption failed: {:?}", e)))
-            ?;
+            .map_err(|e| PipelineError::EncryptionError(format!("ChaCha20-Poly1305 encryption failed: {:?}", e)))?;
 
         // Prepend nonce to encrypted data
         let mut result = nonce.to_vec();
@@ -371,8 +364,7 @@ impl EncryptionServiceImpl {
         let mut buffer = ciphertext.to_vec();
         cipher
             .decrypt_in_place(nonce_array, b"", &mut buffer)
-            .map_err(|e| PipelineError::EncryptionError(format!("ChaCha20-Poly1305 decryption failed: {:?}", e)))
-            ?;
+            .map_err(|e| PipelineError::EncryptionError(format!("ChaCha20-Poly1305 decryption failed: {:?}", e)))?;
 
         Ok(buffer)
     }

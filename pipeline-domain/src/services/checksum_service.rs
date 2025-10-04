@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Checksum Service
 //!
 //! This module provides checksum and data integrity verification services for
@@ -104,8 +103,9 @@ use crate::value_objects::FileChunk;
 use crate::PipelineError;
 use sha2::{Digest, Sha256};
 
-// NOTE: Domain traits are synchronous. Async execution is an infrastructure concern.
-// Infrastructure can provide async adapters that wrap sync implementations.
+// NOTE: Domain traits are synchronous. Async execution is an infrastructure
+// concern. Infrastructure can provide async adapters that wrap sync
+// implementations.
 
 /// Domain service interface for checksum calculation and data integrity
 /// verification.
@@ -170,7 +170,8 @@ use sha2::{Digest, Sha256};
 /// to provide async interfaces when needed.
 ///
 /// Checksum calculation is CPU-bound and doesn't benefit from async I/O.
-/// For async contexts, use `AsyncChecksumAdapter` from the infrastructure layer.
+/// For async contexts, use `AsyncChecksumAdapter` from the infrastructure
+/// layer.
 pub trait ChecksumService: Send + Sync {
     /// Process a chunk and update the running checksum
     ///
@@ -298,8 +299,9 @@ impl ChecksumProcessor {
 
     /// Processes multiple chunks in parallel using Rayon
     ///
-    /// This method provides parallel checksum calculation for batches of chunks,
-    /// significantly improving performance for large file processing.
+    /// This method provides parallel checksum calculation for batches of
+    /// chunks, significantly improving performance for large file
+    /// processing.
     ///
     /// # Performance
     /// - Expected 2-4x speedup on multi-core systems
@@ -316,8 +318,8 @@ impl ChecksumProcessor {
     /// This is a sync method that uses Rayon. For async contexts, wrap in
     /// `tokio::task::spawn_blocking`.
     pub fn process_chunks_parallel(&self, chunks: &[FileChunk]) -> Result<Vec<FileChunk>, PipelineError> {
-        use rayon::prelude::*;
         use crate::services::file_processor_service::ChunkProcessor;
+        use rayon::prelude::*;
 
         chunks
             .par_iter()
@@ -366,16 +368,15 @@ impl ChunkProcessor for ChecksumProcessor {
     /// - Original chunk remains unchanged (immutability)
     fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
         // Step 1: Verify existing checksum if requested
-        if self.verify_existing
-            && chunk.checksum().is_some() {
-                let is_valid = chunk.verify_integrity()?;
-                if !is_valid {
-                    return Err(PipelineError::IntegrityError(format!(
-                        "Checksum verification failed for chunk {}",
-                        chunk.sequence_number()
-                    )));
-                }
+        if self.verify_existing && chunk.checksum().is_some() {
+            let is_valid = chunk.verify_integrity()?;
+            if !is_valid {
+                return Err(PipelineError::IntegrityError(format!(
+                    "Checksum verification failed for chunk {}",
+                    chunk.sequence_number()
+                )));
             }
+        }
 
         // Step 2: Ensure chunk has checksum (calculate if missing)
         if chunk.checksum().is_none() {

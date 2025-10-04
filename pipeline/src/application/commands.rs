@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Application Commands
 //!
 //! This module implements the Command pattern as part of the CQRS (Command
@@ -101,7 +100,6 @@
 //! ### Integration Testing
 //!
 //! Test commands with real handlers and infrastructure:
-//!
 
 use std::path::PathBuf;
 

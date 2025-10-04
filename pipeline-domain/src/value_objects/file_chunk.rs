@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File Chunk Value Object
 //!
 //! This module provides the `FileChunk` value object, which represents an
@@ -192,7 +191,8 @@ impl FileChunk {
     ///
     /// # Purpose
     /// Creates an immutable file chunk value object for pipeline processing.
-    /// Chunks are the fundamental unit of file processing in the adaptive pipeline.
+    /// Chunks are the fundamental unit of file processing in the adaptive
+    /// pipeline.
     ///
     /// # Why
     /// File chunking enables:
@@ -388,7 +388,8 @@ impl FileChunk {
             id: self.id,
             sequence_number: self.sequence_number,
             offset: self.offset,
-            size: ChunkSize::new(0).unwrap_or_else(|_| ChunkSize::default()), // Empty chunk - ChunkSize(0) should never fail, but handle it safely
+            size: ChunkSize::new(0).unwrap_or_else(|_| ChunkSize::default()), /* Empty chunk - ChunkSize(0) should
+                                                                               * never fail, but handle it safely */
             data: Vec::new(),
             checksum: None, // Clear checksum
             is_final: self.is_final,
@@ -417,7 +418,8 @@ impl FileChunk {
     /// * `Err(PipelineError::InvalidChunk)` - No checksum available
     ///
     /// # Errors
-    /// Returns `PipelineError::InvalidChunk` when the chunk has no stored checksum.
+    /// Returns `PipelineError::InvalidChunk` when the chunk has no stored
+    /// checksum.
     ///
     /// # Examples
     ///

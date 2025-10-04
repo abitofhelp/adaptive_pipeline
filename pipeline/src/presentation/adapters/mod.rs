@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! Adapters Module
 //!
 //! CLI adapter moved to bootstrap layer for proper architectural separation.

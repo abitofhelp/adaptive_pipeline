@@ -10,7 +10,8 @@
 //! Applies migrations on start-up so integration tests and services see a
 //! consistent database.
 
-use sqlx::{SqlitePool, migrate::MigrateDatabase};
+use sqlx::migrate::MigrateDatabase;
+use sqlx::SqlitePool;
 use tracing::{debug, info};
 
 /// Runs pending migrations against the provided SQLite pool.
@@ -18,9 +19,7 @@ pub async fn ensure_schema(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     debug!("Ensuring database schema is up to date");
 
     // Run migrations - sqlx will automatically track what's been applied
-    sqlx::migrate!("../migrations")
-        .run(pool)
-        .await?;
+    sqlx::migrate!("../migrations").run(pool).await?;
 
     info!("Database schema is up to date");
     Ok(())
@@ -130,12 +129,11 @@ mod tests {
         let pool = initialize_database(&db_url).await.unwrap();
 
         // Verify tables were created by checking for pipelines table
-        let result: i32 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='pipelines'"
-        )
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let result: i32 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='pipelines'")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         assert_eq!(result, 1, "Pipelines table should exist");
     }

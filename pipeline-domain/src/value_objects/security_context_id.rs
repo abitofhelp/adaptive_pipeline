@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Security Context Identifier Value Object - Security Infrastructure
 //!
 //! This module provides a comprehensive security context identifier value

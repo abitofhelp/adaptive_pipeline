@@ -5,12 +5,11 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Async Compression Adapter
 //!
-//! This module provides an async adapter for the synchronous `CompressionService`
-//! domain trait. It demonstrates the proper pattern for handling sync domain
-//! services in async infrastructure contexts.
+//! This module provides an async adapter for the synchronous
+//! `CompressionService` domain trait. It demonstrates the proper pattern for
+//! handling sync domain services in async infrastructure contexts.
 //!
 //! ## Architecture Pattern
 //!
@@ -39,8 +38,7 @@
 
 use pipeline_domain::entities::ProcessingContext;
 use pipeline_domain::services::compression_service::{
-    CompressionAlgorithm, CompressionBenchmark, CompressionConfig, CompressionPriority,
-    CompressionService,
+    CompressionAlgorithm, CompressionBenchmark, CompressionConfig, CompressionPriority, CompressionService,
 };
 use pipeline_domain::value_objects::FileChunk;
 use pipeline_domain::PipelineError;
@@ -55,7 +53,8 @@ use std::sync::Arc;
 /// ## Design Rationale
 ///
 /// - **Domain Purity**: Domain traits remain sync and portable
-/// - **Infrastructure Flexibility**: Async execution is an implementation detail
+/// - **Infrastructure Flexibility**: Async execution is an implementation
+///   detail
 /// - **Non-Blocking**: Uses `spawn_blocking` for CPU-intensive operations
 /// - **Zero-Cost When Sync**: No overhead if used in sync contexts
 pub struct AsyncCompressionAdapter<T: CompressionService + 'static> {
@@ -85,11 +84,9 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         // In practice, context updates would need to be synchronized or passed back
         let mut context_clone = context.clone();
 
-        tokio::task::spawn_blocking(move || {
-            service.compress_chunk(chunk, &config, &mut context_clone)
-        })
-        .await
-        .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+        tokio::task::spawn_blocking(move || service.compress_chunk(chunk, &config, &mut context_clone))
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
     /// Decompresses a chunk asynchronously
@@ -103,17 +100,17 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         let config = config.clone();
         let mut context_clone = context.clone();
 
-        tokio::task::spawn_blocking(move || {
-            service.decompress_chunk(chunk, &config, &mut context_clone)
-        })
-        .await
-        .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+        tokio::task::spawn_blocking(move || service.decompress_chunk(chunk, &config, &mut context_clone))
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
-    /// Compresses multiple chunks in parallel using Rayon (infrastructure concern)
+    /// Compresses multiple chunks in parallel using Rayon (infrastructure
+    /// concern)
     ///
     /// This method demonstrates how parallelization is an infrastructure
-    /// concern, not a domain concern. The domain just defines compress/decompress.
+    /// concern, not a domain concern. The domain just defines
+    /// compress/decompress.
     ///
     /// Uses Rayon's data parallelism for efficient CPU-bound batch compression,
     /// providing 3-5x speedup on multi-core systems.
@@ -164,7 +161,8 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         data_sample: &[u8],
         performance_priority: CompressionPriority,
     ) -> Result<CompressionConfig, PipelineError> {
-        self.inner.get_optimal_config(file_extension, data_sample, performance_priority)
+        self.inner
+            .get_optimal_config(file_extension, data_sample, performance_priority)
     }
 
     /// Validates config (sync operation)
@@ -187,11 +185,9 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         let algorithm = algorithm.clone();
         let test_data = test_data.to_vec();
 
-        tokio::task::spawn_blocking(move || {
-            service.benchmark_algorithm(&algorithm, &test_data)
-        })
-        .await
-        .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+        tokio::task::spawn_blocking(move || service.benchmark_algorithm(&algorithm, &test_data))
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 }
 

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Aggregates
 //!
 //! This module contains the domain aggregates - complex domain objects that
@@ -143,7 +142,6 @@
 //! ### Integration Testing
 //!
 //! Test aggregates with repositories and event stores:
-//!
 
 pub mod pipeline_aggregate;
 

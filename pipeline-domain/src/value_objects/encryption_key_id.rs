@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Encryption Key Identifier Value Object - Security Infrastructure
 //!
 //! This module provides a comprehensive encryption key identifier value object
@@ -175,8 +174,9 @@ impl EncryptionKeyId {
     /// Creates a new encryption key ID with format validation
     ///
     /// # Purpose
-    /// Creates a type-safe encryption key identifier with comprehensive format validation.
-    /// Supports structured key IDs with algorithm, version, and identifier components.
+    /// Creates a type-safe encryption key identifier with comprehensive format
+    /// validation. Supports structured key IDs with algorithm, version, and
+    /// identifier components.
     ///
     /// # Why
     /// Type-safe key IDs provide:
@@ -186,7 +186,8 @@ impl EncryptionKeyId {
     /// - Audit trail support
     ///
     /// # Arguments
-    /// * `key_id` - Key identifier string (format: `algorithm-version-identifier`)
+    /// * `key_id` - Key identifier string (format:
+    ///   `algorithm-version-identifier`)
     ///
     /// # Returns
     /// * `Ok(EncryptionKeyId)` - Valid key ID
@@ -200,7 +201,6 @@ impl EncryptionKeyId {
     /// - Missing required components
     ///
     /// # Examples
-    ///
     pub fn new(key_id: String) -> Result<Self, PipelineError> {
         Self::validate_format(&key_id)?;
         Ok(Self(key_id))
@@ -271,7 +271,8 @@ impl EncryptionKeyId {
     ///
     /// # Purpose
     /// Generates the next version of the encryption key for key rotation.
-    /// Automatically increments version number while preserving algorithm and identifier.
+    /// Automatically increments version number while preserving algorithm and
+    /// identifier.
     ///
     /// # Why
     /// Key rotation provides:
@@ -288,7 +289,6 @@ impl EncryptionKeyId {
     /// Returns error if key ID format doesn't support versioning.
     ///
     /// # Examples
-    ///
     pub fn next_version(&self) -> Result<Self, PipelineError> {
         let current_version = self.version_number().unwrap_or(0);
         let next_version = current_version + 1;

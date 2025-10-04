@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Use Cases
 //!
 //! This module implements the use cases (business workflows) of the adaptive

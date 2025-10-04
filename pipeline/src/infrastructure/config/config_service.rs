@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Configuration Service Implementation
 //!
 //! This module provides configuration management services for the adaptive
@@ -194,7 +193,6 @@ use pipeline_domain::error::PipelineError;
 /// - **Alerts**: Alerting and notification configuration
 ///
 /// # Examples
-///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObservabilityConfig {
     pub observability: ObservabilitySettings,
@@ -314,14 +312,13 @@ impl ConfigService {
             return Ok(ObservabilityConfig::default());
         }
 
-        let config_content = fs::read_to_string(config_path)
-            .await
-            .map_err(|e| PipelineError::invalid_config(format!("Failed to read config file {:?}: {}", config_path, e)))
-            ?;
+        let config_content = fs::read_to_string(config_path).await.map_err(|e| {
+            PipelineError::invalid_config(format!("Failed to read config file {:?}: {}", config_path, e))
+        })?;
 
-        let config: ObservabilityConfig = toml::from_str(&config_content)
-            .map_err(|e| PipelineError::invalid_config(format!("Failed to parse config file {:?}: {}", config_path, e)))
-            ?;
+        let config: ObservabilityConfig = toml::from_str(&config_content).map_err(|e| {
+            PipelineError::invalid_config(format!("Failed to parse config file {:?}: {}", config_path, e))
+        })?;
 
         debug!(
             "Loaded observability config from {:?}: metrics port {}, structured logging {}",
@@ -335,8 +332,7 @@ impl ConfigService {
     pub async fn load_default_observability_config() -> Result<ObservabilityConfig, PipelineError> {
         // Try to find observability.toml in current directory or parent directories
         let mut current_dir = std::env::current_dir()
-            .map_err(|e| PipelineError::invalid_config(format!("Failed to get current directory: {}", e)))
-            ?;
+            .map_err(|e| PipelineError::invalid_config(format!("Failed to get current directory: {}", e)))?;
 
         // Look for observability.toml in current directory and up to 3 parent
         // directories

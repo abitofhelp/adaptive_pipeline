@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Stage Identifier Value Object - Pipeline Stage Management Infrastructure
 //!
 //! This module provides a comprehensive stage identifier value object that
@@ -224,7 +223,6 @@ impl StageId {
     /// New `StageId` with current millisecond timestamp
     ///
     /// # Examples
-    ///
     pub fn new() -> Self {
         Self(GenericId::new())
     }
@@ -255,7 +253,6 @@ impl StageId {
     /// - Stage validation fails
     ///
     /// # Examples
-    ///
     pub fn from_string(s: &str) -> Result<Self, PipelineError> {
         Ok(Self(GenericId::from_string(s)?))
     }
@@ -308,7 +305,6 @@ impl StageId {
     /// - Timestamp is more than 1 day in the future
     ///
     /// # Examples
-    ///
     pub fn validate(&self) -> Result<(), PipelineError> {
         self.0.validate()
     }

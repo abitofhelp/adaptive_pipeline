@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File Permissions Value Objects
 //!
 //! This module provides comprehensive file permission management and validation

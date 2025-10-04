@@ -35,14 +35,14 @@ pub struct Cli {
     // === Resource Configuration Flags ===
     // Educational: These flags control the GlobalResourceManager's token allocation
     // for CPU-bound and I/O-bound operations.
-
     /// Override CPU worker thread count
     ///
-    /// Controls the number of concurrent CPU-bound operations (compression, encryption).
-    /// Default: num_cpus - 1 (reserves 1 core for I/O and coordination)
+    /// Controls the number of concurrent CPU-bound operations (compression,
+    /// encryption). Default: num_cpus - 1 (reserves 1 core for I/O and
+    /// coordination)
     ///
-    /// Educational: Setting this too high causes thrashing, too low wastes cores.
-    /// Monitor CPU saturation metrics to tune appropriately.
+    /// Educational: Setting this too high causes thrashing, too low wastes
+    /// cores. Monitor CPU saturation metrics to tune appropriately.
     #[arg(long)]
     pub cpu_threads: Option<usize>,
 
@@ -51,8 +51,9 @@ pub struct Cli {
     /// Controls the number of concurrent I/O operations (file reads/writes).
     /// Default: Device-specific (NVMe: 24, SSD: 12, HDD: 4)
     ///
-    /// Educational: This should match your storage device's queue depth for optimal
-    /// throughput. Check --storage-type if auto-detection is incorrect.
+    /// Educational: This should match your storage device's queue depth for
+    /// optimal throughput. Check --storage-type if auto-detection is
+    /// incorrect.
     #[arg(long)]
     pub io_threads: Option<usize>,
 
@@ -62,8 +63,9 @@ pub struct Cli {
     /// Values: nvme (queue depth 24), ssd (12), hdd (4)
     /// Default: auto-detect based on filesystem characteristics
     ///
-    /// Educational: Different storage devices have different optimal queue depths.
-    /// NVMe handles more concurrent I/O than SSD, which handles more than HDD.
+    /// Educational: Different storage devices have different optimal queue
+    /// depths. NVMe handles more concurrent I/O than SSD, which handles
+    /// more than HDD.
     #[arg(long, value_parser = parse_storage_type)]
     pub storage_type: Option<String>,
 
@@ -76,7 +78,8 @@ pub struct Cli {
     /// Higher values increase buffering but consume more memory.
     /// Optimal value depends on chunk processing time and I/O latency.
     ///
-    /// Example: If chunk processing = 2ms and I/O = 1ms, depth=4 keeps pipeline full.
+    /// Example: If chunk processing = 2ms and I/O = 1ms, depth=4 keeps pipeline
+    /// full.
     #[arg(long, default_value = "4")]
     pub channel_depth: usize,
 }
@@ -168,7 +171,8 @@ pub enum Commands {
         #[arg(short, long)]
         file: PathBuf,
 
-        /// Perform full streaming validation (decrypt/decompress and verify checksum)
+        /// Perform full streaming validation (decrypt/decompress and verify
+        /// checksum)
         #[arg(long)]
         full: bool,
     },
@@ -179,7 +183,8 @@ pub enum Commands {
         #[arg(short, long)]
         input: PathBuf,
 
-        /// Output directory for restored file (optional - uses original directory if not specified)
+        /// Output directory for restored file (optional - uses original
+        /// directory if not specified)
         #[arg(short, long)]
         output_dir: Option<PathBuf>,
 
@@ -215,10 +220,7 @@ pub enum Commands {
 fn parse_storage_type(s: &str) -> Result<String, String> {
     match s.to_lowercase().as_str() {
         "nvme" | "ssd" | "hdd" => Ok(s.to_lowercase()),
-        _ => Err(format!(
-            "Invalid storage type '{}'. Valid options: nvme, ssd, hdd",
-            s
-        )),
+        _ => Err(format!("Invalid storage type '{}'. Valid options: nvme, ssd, hdd", s)),
     }
 }
 

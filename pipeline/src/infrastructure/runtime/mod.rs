@@ -28,16 +28,7 @@ pub mod supervisor;
 
 // Re-export commonly used types
 pub use resource_manager::{
-    GlobalResourceManager,
-    ResourceConfig,
-    StorageType,
-    RESOURCE_MANAGER,
-    init_resource_manager,
-    resource_manager,
+    init_resource_manager, resource_manager, GlobalResourceManager, ResourceConfig, StorageType, RESOURCE_MANAGER,
 };
 
-pub use supervisor::{
-    spawn_supervised,
-    join_supervised,
-    AppResult,
-};
+pub use supervisor::{join_supervised, spawn_supervised, AppResult};

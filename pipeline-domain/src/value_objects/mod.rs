@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Value Objects
 //!
 //! This module contains the domain value objects - immutable objects that
@@ -83,7 +82,8 @@
 //! ### Processing Configuration Objects
 //! Objects representing processing parameters and requirements:
 //!
-//! - [`PipelineRequirements`]: Configuration for pipeline performance and security
+//! - [`PipelineRequirements`]: Configuration for pipeline performance and
+//!   security
 //! - [`StageParameters`]: Type-safe parameters for individual stages
 //! - [`WorkerCount`]: Validated parallel worker configuration
 //!
@@ -108,7 +108,8 @@
 //!
 //! ### Transformation Patterns
 //!
-//! - **Immutable Transformations**: Create new value objects instead of mutating
+//! - **Immutable Transformations**: Create new value objects instead of
+//!   mutating
 //! - **Builder Pattern**: Fluent construction of complex value objects
 //! - **Composition**: Combine simple value objects into complex ones
 //! - **Type Conversion**: Safe conversion between related types
@@ -121,7 +122,8 @@
 //!
 //! ### Serialization Features
 //!
-//! - **JSON Support**: All value objects implement `Serialize` and `Deserialize`
+//! - **JSON Support**: All value objects implement `Serialize` and
+//!   `Deserialize`
 //! - **Type Safety**: Deserialization validates constraints
 //! - **Cross-Platform**: Consistent representation across languages
 //! - **Version Compatibility**: Serialization format stability
@@ -194,9 +196,7 @@ pub mod worker_count;
 
 // Re-export all value object types for convenient access
 pub use algorithm::Algorithm;
-pub use binary_file_format::{
-    ChunkFormat, FileHeader, ProcessingStepType,
-};
+pub use binary_file_format::{ChunkFormat, FileHeader, ProcessingStepType};
 pub use chunk_metadata::ChunkMetadata;
 pub use chunk_size::ChunkSize;
 pub use encryption_benchmark::EncryptionBenchmark;

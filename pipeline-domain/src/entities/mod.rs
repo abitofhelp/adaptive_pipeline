@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Entities
 //!
 //! This module contains the domain entities - objects with distinct identity
@@ -160,9 +159,14 @@
 //! }
 //! impl Device {
 //!     fn new(name: impl Into<String>) -> Self {
-//!         Self { id: EntityId(Uuid::new_v4()), name: name.into() }
+//!         Self {
+//!             id: EntityId(Uuid::new_v4()),
+//!             name: name.into(),
+//!         }
 //!     }
-//!     fn rename(&mut self, name: impl Into<String>) { self.name = name.into(); }
+//!     fn rename(&mut self, name: impl Into<String>) {
+//!         self.name = name.into();
+//!     }
 //! }
 //! let mut d = Device::new("Sensor-A");
 //! d.rename("Sensor-A1");

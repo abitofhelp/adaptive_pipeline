@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Generic Domain Event System - Core Infrastructure
 //!
 //! This module provides a comprehensive generic domain event system that

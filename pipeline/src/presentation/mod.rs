@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Interface Layer
 //!
 //! The interface layer provides external interfaces for user interaction and
@@ -164,8 +163,7 @@
 //!             .json(&ProcessRequest {
 //!                 input_path: "test.txt".to_string(),
 //!                 output_path: "test.adapipe".to_string(),
-//!             })
-//!             ?;
+//!             })?;
 //!
 //!         // Assert: Verify response
 //!         response.assert_status_ok();

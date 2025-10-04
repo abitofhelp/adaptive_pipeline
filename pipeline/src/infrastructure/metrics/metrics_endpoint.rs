@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Metrics Endpoint HTTP Server
 //!
 //! This module provides a lightweight HTTP server for exposing Prometheus
@@ -109,9 +108,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tracing::{debug, error, info};
 
-use pipeline_domain::error::PipelineError;
 use crate::infrastructure::config::config_service::ConfigService;
 use crate::infrastructure::metrics::metrics_service::MetricsService;
+use pipeline_domain::error::PipelineError;
 
 /// Lightweight HTTP server for exposing Prometheus metrics and health check
 /// endpoints.
@@ -189,7 +188,6 @@ impl MetricsEndpoint {
     /// A new `MetricsEndpoint` instance ready to start serving requests.
     ///
     /// # Examples
-    ///
     pub fn new(metrics_service: Arc<MetricsService>) -> Self {
         Self { metrics_service }
     }
@@ -230,7 +228,8 @@ impl MetricsEndpoint {
     pub async fn start(&self) -> Result<(), PipelineError> {
         let port = ConfigService::get_metrics_port().await;
         let addr = format!("127.0.0.1:{}", port);
-        let listener = TcpListener::bind(&addr).await
+        let listener = TcpListener::bind(&addr)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to bind metrics endpoint: {}", e)))?;
 
         info!("Prometheus metrics endpoint started on http://{}/metrics", addr);
@@ -391,7 +390,7 @@ mod tests {
         // Since start() runs forever, we'll just test that we can create the endpoint
         // The actual binding happens when start() is called, which we skip in tests
         // to avoid port conflicts and hanging tests
-        
+
         // Just verify the endpoint was created successfully
         assert!(true);
         Ok(())

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Stage Order Value Object - Pipeline Stage Sequencing Infrastructure
 //!
 //! This module provides a comprehensive stage order value object that
@@ -197,7 +196,6 @@ impl StageOrder {
     /// Stage orders must be positive for proper pipeline sequencing.
     ///
     /// # Examples
-    ///
     pub fn new(order: u32) -> Result<Self, PipelineError> {
         if order == 0 {
             return Err(PipelineError::InvalidConfiguration(
@@ -252,7 +250,6 @@ impl StageOrder {
     /// Returns error when current order is `u32::MAX` (4,294,967,295).
     ///
     /// # Examples
-    ///
     pub fn next(&self) -> Result<StageOrder, PipelineError> {
         if self.0 == u32::MAX {
             return Err(PipelineError::InvalidConfiguration(
@@ -283,7 +280,6 @@ impl StageOrder {
     /// Returns error when current order is 1 (first stage).
     ///
     /// # Examples
-    ///
     pub fn previous(&self) -> Result<StageOrder, PipelineError> {
         if self.0 == 1 {
             return Err(PipelineError::InvalidConfiguration(
@@ -310,7 +306,6 @@ impl StageOrder {
     /// `StageOrder` with value 1 (first stage)
     ///
     /// # Examples
-    ///
     pub fn first() -> Self {
         Self(1)
     }
@@ -381,7 +376,6 @@ pub mod stage_order_utils {
     /// conflicting order value in the error message.
     ///
     /// # Examples
-    ///
     pub fn validate_unique_orders(orders: &[StageOrder]) -> Result<(), PipelineError> {
         let mut seen = std::collections::HashSet::new();
         for order in orders {
@@ -443,7 +437,6 @@ pub mod stage_order_utils {
     /// - Maximum order + 1 otherwise
     ///
     /// # Examples
-    ///
     pub fn suggest_next_order(existing_orders: &[StageOrder]) -> StageOrder {
         if existing_orders.is_empty() {
             return StageOrder::first();

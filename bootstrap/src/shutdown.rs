@@ -354,10 +354,7 @@ mod tests {
         });
 
         // This should complete quickly (not timeout)
-        let result = tokio::time::timeout(
-            Duration::from_millis(200),
-            coordinator.wait_for_shutdown(),
-        ).await;
+        let result = tokio::time::timeout(Duration::from_millis(200), coordinator.wait_for_shutdown()).await;
 
         assert!(result.is_ok());
         assert!(result.unwrap()); // True = completed, not timed out

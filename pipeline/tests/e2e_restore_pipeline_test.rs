@@ -313,11 +313,13 @@ async fn test_e2e_multi_stage_restoration_validation() {
     assert_eq!(stages.len(), 5);
 
     // Verify stage names and types
-    let expected_stages = [("input_checksum", StageType::Checksum),
+    let expected_stages = [
+        ("input_checksum", StageType::Checksum),
         ("decryption", StageType::Encryption),
         ("decompression", StageType::Compression),
         ("verification", StageType::Checksum),
-        ("output_checksum", StageType::Checksum)];
+        ("output_checksum", StageType::Checksum),
+    ];
 
     for (i, (expected_name, expected_type)) in expected_stages.iter().enumerate() {
         assert_eq!(stages[i].name(), *expected_name);

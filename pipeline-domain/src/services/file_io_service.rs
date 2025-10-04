@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File I/O Service Interface
 //!
 //! This module defines the domain service interface for file input/output
@@ -153,15 +152,18 @@
 //! File I/O operations are inherently I/O-bound, not CPU-bound:
 //! - **I/O-Bound Operations**: File operations involve waiting for disk I/O
 //! - **Non-Blocking Benefits**: Async I/O prevents blocking the runtime
-//! - **tokio Integration**: Async file operations integrate naturally with tokio
+//! - **tokio Integration**: Async file operations integrate naturally with
+//!   tokio
 //! - **Performance**: Async I/O provides better concurrency for I/O operations
 //!
 //! ### Architectural Classification
 //!
 //! This trait is classified as an **infrastructure port** rather than a domain
 //! service:
-//! - **Domain Services**: CPU-bound business logic (compression, encryption, checksums)
-//! - **Infrastructure Ports**: I/O-bound operations (file I/O, network, database)
+//! - **Domain Services**: CPU-bound business logic (compression, encryption,
+//!   checksums)
+//! - **Infrastructure Ports**: I/O-bound operations (file I/O, network,
+//!   database)
 //!
 //! ### Design Trade-offs
 //!
@@ -195,7 +197,6 @@ use std::sync::Arc;
 /// - **Performance**: Various performance optimization settings
 ///
 /// # Examples
-///
 #[derive(Debug, Clone)]
 pub struct FileIOConfig {
     /// Default chunk size for reading files

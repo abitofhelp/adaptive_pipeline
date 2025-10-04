@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Generic ID Value Object
 //!
 //! This module provides a generic, type-safe ID value object system for the
@@ -231,7 +230,6 @@ use crate::PipelineError;
 /// - **Extensibility**: Easy to add new ID categories
 ///
 /// # Examples
-///
 pub trait IdCategory {
     /// Gets the category name for this ID type
     fn category_name() -> &'static str;
@@ -803,7 +801,7 @@ mod tests {
     #[test]
     fn test_time_range_queries() {
         use super::generic_id_utils::*;
-        
+
         let base_time = 1640995200000; // 2022-01-01
         let boundary_id = boundary_id_for_time::<TestEntity>(base_time);
 

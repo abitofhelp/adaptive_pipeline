@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Session Identifier Value Object - Session Management Infrastructure
 //!
 //! This module provides a comprehensive session identifier value object that
@@ -230,7 +229,6 @@ impl SessionId {
     /// New `SessionId` with current millisecond timestamp
     ///
     /// # Examples
-    ///
     pub fn new() -> Self {
         Self(GenericId::new())
     }
@@ -583,7 +581,7 @@ mod tests {
 
         let age = old_session.age_minutes();
         assert!((119..=121).contains(&age)); // Approximately 2 hours (120
-                                           // minutes)
+                                             // minutes)
     }
 
     /// Tests session ID chronological ordering and sorting.

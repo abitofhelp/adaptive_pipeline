@@ -5,14 +5,13 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! Stage configuration example:
 
+use crate::services::datetime_serde;
+use crate::value_objects::StageId;
+use crate::PipelineError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::value_objects::StageId;
-use crate::services::datetime_serde;
-use crate::PipelineError;
 
 /// Represents the type of processing performed by a pipeline stage.
 ///
@@ -93,7 +92,10 @@ impl std::str::FromStr for StageType {
             "transform" => Ok(StageType::Transform),
             "checksum" => Ok(StageType::Checksum),
             "passthrough" => Ok(StageType::PassThrough),
-            _ => Err(PipelineError::InvalidConfiguration(format!("Unknown stage type: {}", s))),
+            _ => Err(PipelineError::InvalidConfiguration(format!(
+                "Unknown stage type: {}",
+                s
+            ))),
         }
     }
 }
@@ -162,19 +164,15 @@ impl Default for StageConfiguration {
 /// ### Creating a Compression Stage
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageType, StageConfiguration};
+/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();
 /// params.insert("level".to_string(), "6".to_string());
 ///
 /// let config = StageConfiguration::new("brotli".to_string(), params, true);
-/// let stage = PipelineStage::new(
-///     "compression".to_string(),
-///     StageType::Compression,
-///     config,
-///     0,
-/// ).unwrap();
+/// let stage =
+///     PipelineStage::new("compression".to_string(), StageType::Compression, config, 0).unwrap();
 ///
 /// assert_eq!(stage.name(), "compression");
 /// assert_eq!(stage.stage_type(), &StageType::Compression);
@@ -185,19 +183,15 @@ impl Default for StageConfiguration {
 /// ### Creating an Encryption Stage
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageType, StageConfiguration};
+/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();
 /// params.insert("key_size".to_string(), "256".to_string());
 ///
 /// let config = StageConfiguration::new("aes256gcm".to_string(), params, false);
-/// let stage = PipelineStage::new(
-///     "encryption".to_string(),
-///     StageType::Encryption,
-///     config,
-///     1,
-/// ).unwrap();
+/// let stage =
+///     PipelineStage::new("encryption".to_string(), StageType::Encryption, config, 1).unwrap();
 ///
 /// assert_eq!(stage.algorithm(), "aes256gcm");
 /// assert_eq!(stage.order(), 1);
@@ -206,16 +200,12 @@ impl Default for StageConfiguration {
 /// ### Modifying Stage Configuration
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageType, StageConfiguration};
+/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// let config = StageConfiguration::default();
-/// let mut stage = PipelineStage::new(
-///     "transform".to_string(),
-///     StageType::Transform,
-///     config,
-///     0,
-/// ).unwrap();
+/// let mut stage =
+///     PipelineStage::new("transform".to_string(), StageType::Transform, config, 0).unwrap();
 ///
 /// // Update configuration
 /// let mut new_params = HashMap::new();
@@ -229,21 +219,23 @@ impl Default for StageConfiguration {
 /// ### Stage Compatibility Checking
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageType, StageConfiguration};
+/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 ///
 /// let compression = PipelineStage::new(
 ///     "compression".to_string(),
 ///     StageType::Compression,
 ///     StageConfiguration::default(),
 ///     0,
-/// ).unwrap();
+/// )
+/// .unwrap();
 ///
 /// let encryption = PipelineStage::new(
 ///     "encryption".to_string(),
 ///     StageType::Encryption,
 ///     StageConfiguration::default(),
 ///     1,
-/// ).unwrap();
+/// )
+/// .unwrap();
 ///
 /// // Compression should come before encryption
 /// assert!(compression.is_compatible_with(&encryption));
@@ -252,14 +244,15 @@ impl Default for StageConfiguration {
 /// ### Enabling and Disabling Stages
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageType, StageConfiguration};
+/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 ///
 /// let mut stage = PipelineStage::new(
 ///     "checksum".to_string(),
 ///     StageType::Checksum,
 ///     StageConfiguration::default(),
 ///     0,
-/// ).unwrap();
+/// )
+/// .unwrap();
 ///
 /// assert!(stage.is_enabled());
 ///
@@ -326,7 +319,8 @@ impl PipelineStage {
     /// # Arguments
     ///
     /// * `name` - Human-readable stage identifier (must not be empty)
-    /// * `stage_type` - Type of processing operation (Compression, Encryption, etc.)
+    /// * `stage_type` - Type of processing operation (Compression, Encryption,
+    ///   etc.)
     /// * `configuration` - Algorithm and parameter configuration for the stage
     /// * `order` - Execution order position in the pipeline (0-based)
     ///
@@ -342,7 +336,7 @@ impl PipelineStage {
     /// # Examples
     ///
     /// ```
-    /// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageType, StageConfiguration};
+    /// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
     /// use std::collections::HashMap;
     ///
     /// // Create a stage successfully
@@ -355,7 +349,8 @@ impl PipelineStage {
     ///     StageType::Compression,
     ///     config,
     ///     0,
-    /// ).unwrap();
+    /// )
+    /// .unwrap();
     ///
     /// assert_eq!(stage.name(), "my-compression-stage");
     ///
@@ -416,7 +411,8 @@ impl PipelineStage {
     ///
     /// # Returns
     ///
-    /// Reference to the stage type (Compression, Encryption, Checksum, or PassThrough)
+    /// Reference to the stage type (Compression, Encryption, Checksum, or
+    /// PassThrough)
     pub fn stage_type(&self) -> &StageType {
         &self.stage_type
     }
@@ -489,8 +485,9 @@ impl PipelineStage {
 
     /// Enables or disables the stage for execution
     ///
-    /// Disabled stages are skipped during pipeline execution without being removed.
-    /// This allows temporary deactivation while preserving stage configuration.
+    /// Disabled stages are skipped during pipeline execution without being
+    /// removed. This allows temporary deactivation while preserving stage
+    /// configuration.
     ///
     /// # Arguments
     ///

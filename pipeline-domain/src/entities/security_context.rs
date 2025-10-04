@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Security Context Entity
 //!
 //! The `SecurityContext` entity manages security-related information and access
@@ -88,7 +87,6 @@ use uuid::Uuid;
 ///
 ///
 /// ### Audit and Session Management
-///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityContext {
     user_id: Option<String>,
@@ -136,7 +134,6 @@ pub struct SecurityContext {
 /// Custom permissions are evaluated independently.
 ///
 /// ## Usage Examples
-///
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Permission {
     Read,
@@ -202,7 +199,6 @@ pub enum Permission {
 ///
 ///
 /// ## Usage Examples
-///
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum SecurityLevel {
     Public,

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Observability Service Implementation
 //!
 //! This module provides a comprehensive observability service for the adaptive
@@ -184,9 +183,9 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
-use pipeline_domain::entities::processing_metrics::ProcessingMetrics;
 use crate::infrastructure::config::config_service::ConfigService;
 use crate::infrastructure::metrics::MetricsService;
+use pipeline_domain::entities::processing_metrics::ProcessingMetrics;
 
 /// Enhanced observability service for comprehensive monitoring
 ///
@@ -214,7 +213,6 @@ use crate::infrastructure::metrics::MetricsService;
 /// - **Configuration Integration**: Dynamic configuration management
 ///
 /// # Examples
-///
 #[derive(Clone)]
 pub struct ObservabilityService {
     metrics_service: Arc<MetricsService>,

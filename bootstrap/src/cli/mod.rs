@@ -34,8 +34,8 @@
 pub mod parser;
 pub mod validator;
 
-pub use parser::{Cli, Commands, parse_cli};
-pub use validator::{SecureArgParser, ParseError};
+pub use parser::{parse_cli, Cli, Commands};
+pub use validator::{ParseError, SecureArgParser};
 
 use std::path::PathBuf;
 
@@ -172,7 +172,13 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
 
     // Validate command-specific arguments
     let command = match cli.command {
-        Commands::Process { input, output, pipeline, chunk_size_mb, workers } => {
+        Commands::Process {
+            input,
+            output,
+            pipeline,
+            chunk_size_mb,
+            workers,
+        } => {
             // Validate input file exists
             let validated_input = SecureArgParser::validate_path(&input.to_string_lossy())?;
 
@@ -209,7 +215,7 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
                 chunk_size_mb,
                 workers,
             }
-        },
+        }
         Commands::Create { name, stages, output } => {
             SecureArgParser::validate_argument(&name)?;
             SecureArgParser::validate_argument(&stages)?;
@@ -219,17 +225,21 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
             }
 
             ValidatedCommand::Create { name, stages, output }
-        },
+        }
         Commands::List => ValidatedCommand::List,
         Commands::Show { pipeline } => {
             SecureArgParser::validate_argument(&pipeline)?;
             ValidatedCommand::Show { pipeline }
-        },
+        }
         Commands::Delete { pipeline, force } => {
             SecureArgParser::validate_argument(&pipeline)?;
             ValidatedCommand::Delete { pipeline, force }
-        },
-        Commands::Benchmark { file, size_mb, iterations } => {
+        }
+        Commands::Benchmark {
+            file,
+            size_mb,
+            iterations,
+        } => {
             let validated_file = if let Some(ref path) = file {
                 Some(SecureArgParser::validate_path(&path.to_string_lossy())?)
             } else {
@@ -250,17 +260,31 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
                 });
             }
 
-            ValidatedCommand::Benchmark { file: validated_file, size_mb, iterations }
-        },
+            ValidatedCommand::Benchmark {
+                file: validated_file,
+                size_mb,
+                iterations,
+            }
+        }
         Commands::Validate { config } => {
             let validated_config = SecureArgParser::validate_path(&config.to_string_lossy())?;
-            ValidatedCommand::Validate { config: validated_config }
-        },
+            ValidatedCommand::Validate {
+                config: validated_config,
+            }
+        }
         Commands::ValidateFile { file, full } => {
             let validated_file = SecureArgParser::validate_path(&file.to_string_lossy())?;
-            ValidatedCommand::ValidateFile { file: validated_file, full }
-        },
-        Commands::Restore { input, output_dir, mkdir, overwrite } => {
+            ValidatedCommand::ValidateFile {
+                file: validated_file,
+                full,
+            }
+        }
+        Commands::Restore {
+            input,
+            output_dir,
+            mkdir,
+            overwrite,
+        } => {
             let validated_input = SecureArgParser::validate_path(&input.to_string_lossy())?;
 
             let validated_output_dir = if let Some(ref path) = output_dir {
@@ -271,13 +295,26 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
                 None
             };
 
-            ValidatedCommand::Restore { input: validated_input, output_dir: validated_output_dir, mkdir, overwrite }
-        },
-        Commands::Compare { original, adapipe, detailed } => {
+            ValidatedCommand::Restore {
+                input: validated_input,
+                output_dir: validated_output_dir,
+                mkdir,
+                overwrite,
+            }
+        }
+        Commands::Compare {
+            original,
+            adapipe,
+            detailed,
+        } => {
             let validated_original = SecureArgParser::validate_path(&original.to_string_lossy())?;
             let validated_adapipe = SecureArgParser::validate_path(&adapipe.to_string_lossy())?;
-            ValidatedCommand::Compare { original: validated_original, adapipe: validated_adapipe, detailed }
-        },
+            ValidatedCommand::Compare {
+                original: validated_original,
+                adapipe: validated_adapipe,
+                detailed,
+            }
+        }
     };
 
     Ok(ValidatedCli {

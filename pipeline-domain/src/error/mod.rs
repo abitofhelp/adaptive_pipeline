@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Error Module
 //!
 //! This module provides the comprehensive error types for the domain layer,
@@ -16,11 +15,16 @@
 //!
 //! The error module defines domain-specific errors that:
 //!
-//! - **Express Business Failures**: Errors that represent violations of business rules
-//! - **Maintain Type Safety**: Strongly-typed error variants for compile-time safety
-//! - **Provide Context**: Rich error information for debugging and user feedback
-//! - **Support Error Recovery**: Categorization enables appropriate recovery strategies
-//! - **Enable Error Translation**: Clean conversion to application and interface layer errors
+//! - **Express Business Failures**: Errors that represent violations of
+//!   business rules
+//! - **Maintain Type Safety**: Strongly-typed error variants for compile-time
+//!   safety
+//! - **Provide Context**: Rich error information for debugging and user
+//!   feedback
+//! - **Support Error Recovery**: Categorization enables appropriate recovery
+//!   strategies
+//! - **Enable Error Translation**: Clean conversion to application and
+//!   interface layer errors
 //!
 //! ## Error Categories
 //!
@@ -85,9 +89,11 @@
 //!
 //! ## Best Practices
 //!
-//! - **Be Specific**: Use specific error variants for different failure scenarios
+//! - **Be Specific**: Use specific error variants for different failure
+//!   scenarios
 //! - **Include Context**: Always include relevant context in error messages
-//! - **Avoid Strings**: Use typed error variants instead of generic string errors
+//! - **Avoid Strings**: Use typed error variants instead of generic string
+//!   errors
 //! - **Document Errors**: Document which errors can be returned from functions
 //! - **Test Error Paths**: Ensure error handling paths are tested
 

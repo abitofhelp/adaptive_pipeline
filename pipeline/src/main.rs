@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Adaptive Pipeline CLI Application
 //!
 //! This is the main entry point for the adaptive pipeline command-line
@@ -179,11 +178,11 @@ use tracing::{debug, error, info, warn};
 // Import ChunkSize and WorkerCount for optimal sizing calculations
 use crate::application::commands::RestoreFileCommand;
 // File restoration is now handled via use_cases::restore_file
+use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+use crate::infrastructure::services::progress_indicator_service::ProgressIndicatorService;
 use pipeline_domain::value_objects::binary_file_format::FileHeader;
 use pipeline_domain::value_objects::chunk_size::ChunkSize;
 use pipeline_domain::value_objects::worker_count::WorkerCount;
-use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
-use crate::infrastructure::services::progress_indicator_service::ProgressIndicatorService;
 
 /// Format bytes with 6-digit precision
 fn format_bytes_6_digits(bytes: u64) -> String {
@@ -237,14 +236,14 @@ use pipeline_domain::{FileChunk, Pipeline, PipelineStage, ProcessingContext, Sec
 // Application layer imports (duplicates removed - already imported above)
 use pipeline_domain::services::file_io_service::FileIOService;
 
-use pipeline_domain::repositories::stage_executor::StageExecutor;
+use crate::application::services::pipeline_service::PipelineServiceImpl;
+use crate::infrastructure::adapters::repositories::sqlite_pipeline_repository_adapter::SqlitePipelineRepository;
 use crate::infrastructure::adapters::{CompressionServiceImpl, EncryptionServiceImpl};
 use crate::infrastructure::logging::ObservabilityService;
 use crate::infrastructure::metrics::{MetricsEndpoint, MetricsService};
-use crate::infrastructure::adapters::repositories::sqlite_pipeline_repository_adapter::SqlitePipelineRepository;
 use crate::infrastructure::repositories::stage_executor::BasicStageExecutor;
 use crate::infrastructure::services::{BinaryFormatService, BinaryFormatServiceImpl};
-use crate::application::services::pipeline_service::PipelineServiceImpl;
+use pipeline_domain::repositories::stage_executor::StageExecutor;
 
 // CLI parsing now handled by bootstrap layer
 // See bootstrap::cli for CLI definitions and validation
@@ -278,7 +277,6 @@ async fn main() -> std::process::ExitCode {
 ///
 /// Result indicating success or error
 async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
-
     // === Initialize Global Resource Manager ===
     // Educational: This must happen BEFORE any code uses RESOURCE_MANAGER
     // We configure it from CLI flags, falling back to intelligent defaults.
@@ -287,18 +285,21 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
     let resource_config = ResourceConfig {
         cpu_tokens: cli.cpu_threads,
         io_tokens: cli.io_threads,
-        storage_type: cli.storage_type.as_ref().map(|s| match s.as_str() {
-            "nvme" => StorageType::NVMe,
-            "ssd" => StorageType::SSD,
-            "hdd" => StorageType::HDD,
-            _ => StorageType::Auto, // Shouldn't happen due to parse_storage_type validation
-        }).unwrap_or(StorageType::Auto),
+        storage_type: cli
+            .storage_type
+            .as_ref()
+            .map(|s| match s.as_str() {
+                "nvme" => StorageType::NVMe,
+                "ssd" => StorageType::SSD,
+                "hdd" => StorageType::HDD,
+                _ => StorageType::Auto, // Shouldn't happen due to parse_storage_type validation
+            })
+            .unwrap_or(StorageType::Auto),
         memory_limit: None, // Use system detection
     };
 
-    init_resource_manager(resource_config).map_err(|e| {
-        anyhow::anyhow!("Failed to initialize resource manager: {}", e)
-    })?;
+    init_resource_manager(resource_config)
+        .map_err(|e| anyhow::anyhow!("Failed to initialize resource manager: {}", e))?;
 
     // Educational: Log the resource configuration for observability
     let rm = crate::infrastructure::runtime::resource_manager();
@@ -385,14 +386,11 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
                 observability_service.clone(),
                 pipeline_repository.clone(),
             )
-            .await
-            ?;
+            .await?;
         }
 
         bootstrap::ValidatedCommand::Create { name, stages, output } => {
-            create_pipeline(name, stages, output, pipeline_repository.clone())
-                .await
-                ?;
+            create_pipeline(name, stages, output, pipeline_repository.clone()).await?;
         }
 
         bootstrap::ValidatedCommand::List => {
@@ -404,9 +402,7 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
         }
 
         bootstrap::ValidatedCommand::Delete { pipeline, force } => {
-            delete_pipeline(pipeline, force, pipeline_repository.clone())
-                .await
-                ?;
+            delete_pipeline(pipeline, force, pipeline_repository.clone()).await?;
         }
 
         bootstrap::ValidatedCommand::Benchmark {
@@ -431,9 +427,7 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
             overwrite,
         } => {
             // Use the new hybrid architecture-compliant function
-            restore_file_from_adapipe_v2(input, output_dir, mkdir, overwrite)
-                .await
-                ?;
+            restore_file_from_adapipe_v2(input, output_dir, mkdir, overwrite).await?;
         }
 
         bootstrap::ValidatedCommand::Compare {
@@ -572,8 +566,7 @@ async fn process_file(
         .find_by_name(&pipeline)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
-        .ok_or_else(|| anyhow::anyhow!("Pipeline '{}' not found", pipeline))
-        ?;
+        .ok_or_else(|| anyhow::anyhow!("Pipeline '{}' not found", pipeline))?;
 
     debug!(
         "Loaded pipeline '{}' with {} stages",
@@ -731,8 +724,7 @@ async fn process_file(
             println!();
 
             // Performance metrics
-            let total_chunks =
-                actual_input_size.div_ceil(actual_chunk_size_bytes as u64);
+            let total_chunks = actual_input_size.div_ceil(actual_chunk_size_bytes as u64);
             let chunk_size_mb = actual_chunk_size_bytes as f64 / (1024.0 * 1024.0);
 
             println!("⚡ PERFORMANCE METRICS");
@@ -898,7 +890,13 @@ async fn process_file(
 fn normalize_pipeline_name(name: &str) -> String {
     name.to_lowercase()
         // Replace common separators with hyphens
-        .replace([' ', '_', '.', '/', '\\', ':', ';', ',', '|', '&', '+', '=', '!', '?', '*', '%', '#', '@', '$', '^', '(', ')', '[', ']', '{', '}', '<', '>', '"', '\'', '`', '~'], "-")
+        .replace(
+            [
+                ' ', '_', '.', '/', '\\', ':', ';', ',', '|', '&', '+', '=', '!', '?', '*', '%', '#', '@', '$', '^',
+                '(', ')', '[', ']', '{', '}', '<', '>', '"', '\'', '`', '~',
+            ],
+            "-",
+        )
         // Remove any remaining non-alphanumeric, non-hyphen characters
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
@@ -1004,8 +1002,7 @@ async fn create_pipeline(
     pipeline_repository
         .save(&pipeline)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to save pipeline: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to save pipeline: {}", e))?;
 
     info!(
         "Pipeline '{}' created successfully with ID: {}",
@@ -1028,8 +1025,7 @@ async fn list_pipelines(pipeline_repository: Arc<SqlitePipelineRepository>) -> R
     let pipelines = pipeline_repository
         .list_all()
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to query pipelines: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to query pipelines: {}", e))?;
 
     if pipelines.is_empty() {
         println!("No pipelines found. Use 'pipeline create' to create a new pipeline.");
@@ -1059,8 +1055,7 @@ async fn show_pipeline(pipeline_name: String, pipeline_repository: Arc<SqlitePip
         .find_by_name(&pipeline_name)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
-        .ok_or_else(|| anyhow::anyhow!("Pipeline not found: {}", pipeline_name))
-        ?;
+        .ok_or_else(|| anyhow::anyhow!("Pipeline not found: {}", pipeline_name))?;
 
     // Display pipeline details
     println!("\n=== Pipeline Details ===");
@@ -1072,12 +1067,7 @@ async fn show_pipeline(pipeline_name: String, pipeline_repository: Arc<SqlitePip
     println!("\nStages ({}):", pipeline.stages().len());
 
     for (index, stage) in pipeline.stages().iter().enumerate() {
-        println!(
-            "  {}. {} ({:?})",
-            index + 1,
-            stage.name(),
-            stage.stage_type()
-        );
+        println!("  {}. {} ({:?})", index + 1, stage.name(), stage.stage_type());
         println!("     Algorithm: {}", stage.configuration().algorithm);
         println!("     Enabled: {}", stage.is_enabled());
         println!("     Order: {}", stage.order());
@@ -1123,8 +1113,7 @@ async fn delete_pipeline(
         .find_by_name(&pipeline_name)
         .await
         .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
-        .ok_or_else(|| anyhow::anyhow!("Pipeline '{}' not found", pipeline_name))
-        ?;
+        .ok_or_else(|| anyhow::anyhow!("Pipeline '{}' not found", pipeline_name))?;
 
     // Show pipeline details before deletion
     println!("\n=== Pipeline to Delete ===");
@@ -1156,8 +1145,7 @@ async fn delete_pipeline(
     pipeline_repository
         .delete(pipeline.id().clone())
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to delete pipeline: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to delete pipeline: {}", e))?;
 
     println!("✅ Pipeline '{}' deleted successfully", pipeline_name);
     Ok(())
@@ -1237,8 +1225,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
             iterations,
             &metrics_service,
         )
-        .await
-        ?;
+        .await?;
 
         results.push(BenchmarkResult {
             file_size_mb: test_size_mb,
@@ -1266,8 +1253,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
                 iterations,
                 &metrics_service,
             )
-            .await
-            ?;
+            .await?;
 
             results.push(BenchmarkResult {
                 file_size_mb: test_size_mb,
@@ -1293,8 +1279,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
                 iterations,
                 &metrics_service,
             )
-            .await
-            ?;
+            .await?;
 
             results.push(BenchmarkResult {
                 file_size_mb: test_size_mb,
@@ -1505,10 +1490,16 @@ async fn generate_optimization_report(results: &[BenchmarkResult]) -> Result<()>
         // Find best configuration
         let best_result = size_results
             .iter()
-            .max_by(|a, b| a.avg_throughput_mbps.partial_cmp(&b.avg_throughput_mbps).unwrap_or(std::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.avg_throughput_mbps
+                    .partial_cmp(&b.avg_throughput_mbps)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .ok_or_else(|| anyhow::anyhow!("No benchmark results found"))?;
 
-        let adaptive_result = size_results.iter().find(|r| r.config_type == "Adaptive")
+        let adaptive_result = size_results
+            .iter()
+            .find(|r| r.config_type == "Adaptive")
             .ok_or_else(|| anyhow::anyhow!("No adaptive results found"))?;
 
         report.push_str("**Adaptive Configuration:**\n");
@@ -1550,8 +1541,7 @@ async fn generate_optimization_report(results: &[BenchmarkResult]) -> Result<()>
 
         let mut sorted_results = size_results.clone();
         sorted_results.sort_by(|a, b| {
-            b
-                .avg_throughput_mbps
+            b.avg_throughput_mbps
                 .partial_cmp(&a.avg_throughput_mbps)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
@@ -1578,7 +1568,11 @@ async fn generate_optimization_report(results: &[BenchmarkResult]) -> Result<()>
 
         let best_result = size_results
             .iter()
-            .max_by(|a, b| a.avg_throughput_mbps.partial_cmp(&b.avg_throughput_mbps).unwrap_or(std::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.avg_throughput_mbps
+                    .partial_cmp(&b.avg_throughput_mbps)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .ok_or_else(|| anyhow::anyhow!("No benchmark results found"))?;
 
         report.push_str(&format!(
@@ -1608,8 +1602,7 @@ async fn validate_pipeline_config(config_path: PathBuf) -> Result<()> {
 
     // Read and parse configuration file
     let config_content = std::fs::read_to_string(&config_path)
-        .map_err(|e| anyhow::anyhow!("Failed to read configuration file: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to read configuration file: {}", e))?;
 
     println!("🔍 Validating configuration file: {}", config_path.display());
     println!("   File size: {} bytes", config_content.len());
@@ -1642,9 +1635,7 @@ fn validate_toml_config(content: &str, _path: &PathBuf) -> Result<()> {
     println!("   Format: TOML");
 
     // Parse TOML
-    let parsed: toml::Value = toml::from_str(content)
-        .map_err(|e| anyhow::anyhow!("Invalid TOML syntax: {}", e))
-        ?;
+    let parsed: toml::Value = toml::from_str(content).map_err(|e| anyhow::anyhow!("Invalid TOML syntax: {}", e))?;
 
     // Validate expected structure
     if let Some(pipelines) = parsed.get("pipelines") {
@@ -1671,9 +1662,8 @@ fn validate_json_config(content: &str, _path: &PathBuf) -> Result<()> {
     println!("   Format: JSON");
 
     // Parse JSON
-    let parsed: serde_json::Value = serde_json::from_str(content)
-        .map_err(|e| anyhow::anyhow!("Invalid JSON syntax: {}", e))
-        ?;
+    let parsed: serde_json::Value =
+        serde_json::from_str(content).map_err(|e| anyhow::anyhow!("Invalid JSON syntax: {}", e))?;
 
     // Validate expected structure
     if let Some(pipelines) = parsed.get("pipelines") {
@@ -1793,8 +1783,7 @@ async fn validate_adapipe_file(file_path: PathBuf, full_validation: bool) -> Res
     let validation_result = binary_format_service
         .validate_file(&file_path)
         .await
-        .map_err(|e| anyhow::anyhow!("Format validation failed: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Format validation failed: {}", e))?;
 
     if !validation_result.is_valid {
         println!("❌ File format validation failed!");
@@ -1811,8 +1800,7 @@ async fn validate_adapipe_file(file_path: PathBuf, full_validation: bool) -> Res
     let metadata = binary_format_service
         .read_metadata(&file_path)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to read metadata: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to read metadata: {}", e))?;
 
     println!("   Original filename: {}", metadata.original_filename);
     println!(
@@ -1903,8 +1891,7 @@ async fn restore_file_from_adapipe_v2(
     println!("🔍 Reading .adapipe file metadata...");
     let file_data = std::fs::read(&input)?;
     let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
-        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
 
     // Determine output path
     let target_path = if let Some(ref dir) = output_dir {
@@ -1928,8 +1915,8 @@ async fn restore_file_from_adapipe_v2(
 
     println!("📁 Target restoration path: {}", target_path.display());
 
-    // Note: Restoration service removed - use use_cases::restore_file directly instead
-    // let file_io_service = Arc::new(FileIOServiceImpl::new_default());
+    // Note: Restoration service removed - use use_cases::restore_file directly
+    // instead let file_io_service = Arc::new(FileIOServiceImpl::new_default());
 
     // Create Command following CQRS pattern
     let command = RestoreFileCommand::new(input.clone(), target_path.clone())
@@ -1939,8 +1926,8 @@ async fn restore_file_from_adapipe_v2(
 
     // Execute validation through Application Service
     println!("🔒 Validating permissions through Application Service...");
-    // TODO: Restoration service removed - implement permission validation via use_cases if needed
-    // restoration_service
+    // TODO: Restoration service removed - implement permission validation via
+    // use_cases if needed restoration_service
     //     .validate_restoration_permissions(&command)
     //     .await
     //     .map_err(|e| anyhow::anyhow!("Permission validation failed: {}", e))?;
@@ -1950,30 +1937,28 @@ async fn restore_file_from_adapipe_v2(
     // Use proper Application Service integration
     println!("🔄 Using Application Service for restoration...");
 
-    // Note: Restoration service removed - use use_cases::restore_file directly instead
+    // Note: Restoration service removed - use use_cases::restore_file directly
+    // instead
 
     // Determine target path
     let target_path = if let Some(output_dir) = output_dir {
         // Create output directory if needed
         if mkdir && !output_dir.exists() {
             std::fs::create_dir_all(&output_dir)
-                .map_err(|e| anyhow::anyhow!("Failed to create output directory: {}", e))
-                ?;
+                .map_err(|e| anyhow::anyhow!("Failed to create output directory: {}", e))?;
         }
 
         // Read metadata to get original filename
         let file_data = std::fs::read(&input)?;
         let (metadata, _) = FileHeader::from_footer_bytes(&file_data)
-            .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-            ?;
+            .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
 
         output_dir.join(&metadata.original_filename)
     } else {
         // Use same directory as input file, but with original filename
         let file_data = std::fs::read(&input)?;
         let (metadata, _) = FileHeader::from_footer_bytes(&file_data)
-            .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-            ?;
+            .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
 
         input
             .parent()
@@ -2002,9 +1987,9 @@ async fn restore_file_from_adapipe_v2(
     println!("   Source: {}", input.display());
     println!("   Target: {}", target_path.display());
 
-    // TODO: Perform restoration - restoration service removed, use use_cases::restore_file instead
-    // let start_time = std::time::Instant::now();
-    // let restore_result = restoration_service
+    // TODO: Perform restoration - restoration service removed, use
+    // use_cases::restore_file instead let start_time =
+    // std::time::Instant::now(); let restore_result = restoration_service
     //     .restore_file(restore_command)
     //     .await
     //     .map_err(|e| anyhow::anyhow!("Restoration failed: {}", e))
@@ -2019,8 +2004,8 @@ async fn restore_file_from_adapipe_v2(
     // println!("   Duration: {:.2}s", duration.as_secs_f64());
     // println!(
     //     "   Throughput: {:.2} MB/s",
-    //     (restore_result.bytes_restored as f64 / (1024.0 * 1024.0)) / duration.as_secs_f64()
-    // );
+    //     (restore_result.bytes_restored as f64 / (1024.0 * 1024.0)) /
+    // duration.as_secs_f64() );
 
     println!("⚠️  Restoration temporarily disabled - refactoring in progress");
     println!("   Use restore_file_from_adapipe_legacy() instead");
@@ -2051,8 +2036,7 @@ async fn restore_file_from_adapipe_legacy(
     // Read entire file to get footer data
     let file_data = std::fs::read(&input)?;
     let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
-        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
 
     // Debug: Show metadata details
     println!("   📋 Metadata details:");
@@ -2107,8 +2091,7 @@ async fn restore_file_from_adapipe_legacy(
 
         // Check if existing file is writable
         let metadata = std::fs::metadata(&output_path)
-            .map_err(|e| anyhow::anyhow!("Failed to check existing file permissions: {}", e))
-            ?;
+            .map_err(|e| anyhow::anyhow!("Failed to check existing file permissions: {}", e))?;
 
         if metadata.permissions().readonly() {
             return Err(anyhow::anyhow!(
@@ -2125,20 +2108,18 @@ async fn restore_file_from_adapipe_legacy(
         if !parent_dir.exists() {
             if mkdir {
                 println!("📂 Creating directory: {}", parent_dir.display());
-                std::fs::create_dir_all(parent_dir)
-                    .map_err(|e| {
-                        // Provide specific error messages for common permission issues
-                        if e.kind() == std::io::ErrorKind::PermissionDenied {
-                            anyhow::anyhow!(
-                                "Permission denied: Cannot create directory '{}'\nTry running with elevated \
-                                 privileges or choose a different location",
-                                parent_dir.display()
-                            )
-                        } else {
-                            anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
-                        }
-                    })
-                    ?;
+                std::fs::create_dir_all(parent_dir).map_err(|e| {
+                    // Provide specific error messages for common permission issues
+                    if e.kind() == std::io::ErrorKind::PermissionDenied {
+                        anyhow::anyhow!(
+                            "Permission denied: Cannot create directory '{}'\nTry running with elevated privileges or \
+                             choose a different location",
+                            parent_dir.display()
+                        )
+                    } else {
+                        anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
+                    }
+                })?;
             } else {
                 print!(
                     "Directory '{}' does not exist. Create it? [y/N]: ",
@@ -2151,19 +2132,17 @@ async fn restore_file_from_adapipe_legacy(
 
                 if input.trim().to_lowercase() == "y" || input.trim().to_lowercase() == "yes" {
                     println!("📂 Creating directory: {}", parent_dir.display());
-                    std::fs::create_dir_all(parent_dir)
-                        .map_err(|e| {
-                            if e.kind() == std::io::ErrorKind::PermissionDenied {
-                                anyhow::anyhow!(
-                                    "Permission denied: Cannot create directory '{}'\nTry running with elevated \
-                                     privileges or choose a different location",
-                                    parent_dir.display()
-                                )
-                            } else {
-                                anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
-                            }
-                        })
-                        ?;
+                    std::fs::create_dir_all(parent_dir).map_err(|e| {
+                        if e.kind() == std::io::ErrorKind::PermissionDenied {
+                            anyhow::anyhow!(
+                                "Permission denied: Cannot create directory '{}'\nTry running with elevated \
+                                 privileges or choose a different location",
+                                parent_dir.display()
+                            )
+                        } else {
+                            anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
+                        }
+                    })?;
                 } else {
                     return Err(anyhow::anyhow!("Directory creation cancelled by user"));
                 }
@@ -2226,8 +2205,7 @@ async fn restore_file_from_adapipe_legacy(
     println!("🔧 Creating ephemeral restoration pipeline...");
     let restoration_pipeline = create_restoration_pipeline(&metadata)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to create restoration pipeline: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to create restoration pipeline: {}", e))?;
 
     println!("   Pipeline ID: {}", restoration_pipeline.id());
     println!("   Stages: {}", restoration_pipeline.stages().len());
@@ -2260,8 +2238,7 @@ async fn restore_file_from_adapipe_legacy(
         &progress_indicator,
     )
     .await
-    .map_err(|e| anyhow::anyhow!("Restoration failed: {}", e))
-    ?;
+    .map_err(|e| anyhow::anyhow!("Restoration failed: {}", e))?;
 
     // Validate restoration results
     if restoration_result.checksum_verified {
@@ -2307,8 +2284,7 @@ async fn compare_file_against_adapipe(original: PathBuf, adapipe: PathBuf, detai
     // Read entire file to get footer data
     let file_data = std::fs::read(&adapipe)?;
     let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
-        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
 
     // Get original file info
     let original_metadata = std::fs::metadata(&original)?;
@@ -2444,8 +2420,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                     StageType::Encryption, // Use Encryption type for decryption (internal restoration)
                     decryption_config,
                     stage_index,
-                )
-                ?;
+                )?;
 
                 stages.push(decryption_stage);
                 info!(
@@ -2467,8 +2442,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                     StageType::Compression, // Note: Using Compression type for decompression
                     decompression_config,
                     stage_index,
-                )
-                ?;
+                )?;
 
                 stages.push(decompression_stage);
                 info!(
@@ -2528,8 +2502,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                     format!("reverse_{}", step_name)
                 };
 
-                let custom_stage =
-                    PipelineStage::new(stage_name.clone(), stage_type, custom_config, stage_index)?;
+                let custom_stage = PipelineStage::new(stage_name.clone(), stage_type, custom_config, stage_index)?;
 
                 stages.push(custom_stage);
                 info!(
@@ -2554,8 +2527,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
         StageType::Checksum, // Using Checksum type for verification
         verification_config,
         stage_index,
-    )
-    ?;
+    )?;
 
     stages.push(verification_stage);
     info!("Added verification stage: sha256");
@@ -2626,14 +2598,12 @@ async fn stream_restore_with_validation(
     let mut adapipe_reader = binary_format_service
         .create_reader(input_path)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to create .adapipe reader: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to create .adapipe reader: {}", e))?;
 
     // Create output file for writing restored data
     let mut output_file = File::create(output_path)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
 
     // Create domain services for restoration pipeline
     let compression_service = Arc::new(CompressionServiceImpl::new());
@@ -2684,8 +2654,7 @@ async fn stream_restore_with_validation(
             chunk_data,
             false, // is_final - we'll determine this later
         )
-        .map_err(|e| anyhow::anyhow!("Failed to create file chunk: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to create file chunk: {}", e))?;
 
         // Process chunk through restoration pipeline stages
         let mut current_chunk = file_chunk;
@@ -2695,8 +2664,7 @@ async fn stream_restore_with_validation(
             current_chunk = stage_executor
                 .execute(stage, current_chunk, &mut processing_context)
                 .await
-                .map_err(|e| anyhow::anyhow!("Stage '{}' failed: {}", stage.name(), e))
-                ?;
+                .map_err(|e| anyhow::anyhow!("Stage '{}' failed: {}", stage.name(), e))?;
         }
 
         // Write restored chunk to output file
@@ -2704,8 +2672,7 @@ async fn stream_restore_with_validation(
         output_file
             .write_all(restored_data)
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to write restored data: {}", e))
-            ?;
+            .map_err(|e| anyhow::anyhow!("Failed to write restored data: {}", e))?;
 
         // Update incremental checksum with restored data
         hasher.update(restored_data);
@@ -2730,8 +2697,7 @@ async fn stream_restore_with_validation(
     output_file
         .flush()
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to flush output file: {}", e))
-        ?;
+        .map_err(|e| anyhow::anyhow!("Failed to flush output file: {}", e))?;
 
     // Calculate final checksum
     let calculated_hash = hasher.finalize();

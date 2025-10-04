@@ -306,8 +306,8 @@
 //!
 //! ## License
 //!
-//! This project is licensed under the BSD 3-Clause License - see LICENSE file for
-//! details.
+//! This project is licensed under the BSD 3-Clause License - see LICENSE file
+//! for details.
 
 pub mod application;
 pub mod infrastructure;
@@ -319,8 +319,8 @@ pub mod presentation;
 
 // Re-export domain types for convenient access
 pub use pipeline_domain::{
-    Pipeline, PipelineStage, ProcessingContext, ProcessingMetrics,
-    SecurityContext, SecurityLevel, ChunkSize, FileChunk, PipelineError,
+    ChunkSize, FileChunk, Pipeline, PipelineError, PipelineStage, ProcessingContext, ProcessingMetrics,
+    SecurityContext, SecurityLevel,
 };
 
 // Re-export restoration functions for testing

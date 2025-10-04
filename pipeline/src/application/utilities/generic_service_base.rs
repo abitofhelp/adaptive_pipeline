@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Generic Service Base
 //!
 //! This module provides a generic base framework for building domain services
@@ -180,9 +179,9 @@
 //! - **Circuit Breaker**: Built-in circuit breaker implementation
 //! - **Distributed Tracing**: Distributed tracing support
 
+use async_trait::async_trait;
 use pipeline_domain::error::PipelineError;
 use pipeline_domain::services::datetime_serde;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -210,7 +209,6 @@ use std::sync::RwLock;
 /// - Have a stable lifetime (`'static`)
 ///
 /// # Examples
-///
 pub trait ServiceConfig: Clone + Debug + Send + Sync + 'static {
     /// Validates the configuration and returns errors if invalid
     fn validate(&self) -> Result<(), PipelineError>;

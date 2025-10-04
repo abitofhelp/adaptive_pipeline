@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # File Restoration Module
 //!
 //! This module provides comprehensive file restoration capabilities for the
@@ -115,11 +114,11 @@
 //! - **Validation Services**: Checksum verification and integrity checking
 //! - **Logging System**: Comprehensive operation logging and error reporting
 
+use chrono::Utc;
 use pipeline_domain::entities::pipeline::Pipeline;
 use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 use pipeline_domain::value_objects::binary_file_format::FileHeader;
 use pipeline_domain::PipelineError;
-use chrono::Utc;
 use tracing::info;
 
 type Result<T> = std::result::Result<T, PipelineError>;
@@ -277,8 +276,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                 parameters: Default::default(),
             },
             0, // Order will be set by Pipeline::new
-        )
-        ?;
+        )?;
 
         stages.push(stage);
     }
@@ -294,8 +292,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
             parameters: Default::default(),
         },
         0, // Order will be set by Pipeline::new
-    )
-    ?;
+    )?;
     stages.push(verification_stage);
 
     // Create pipeline with restoration stages (input_checksum and output_checksum

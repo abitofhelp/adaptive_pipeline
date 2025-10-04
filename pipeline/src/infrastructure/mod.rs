@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Infrastructure Layer
 //!
 //! The infrastructure layer provides concrete implementations of domain
@@ -78,21 +77,18 @@
 //! fn handle_io_operation() -> Result<String, PipelineError> {
 //!     // External operation that might fail
 //!     let result = std::fs::read_to_string("config.toml")
-//!         .map_err(|e| PipelineError::IoError(
-//!             format!("Failed to read config: {}", e)
-//!         ))?;
-//!     
+//!         .map_err(|e| PipelineError::IoError(format!("Failed to read config: {}", e)))?;
+//!
 //!     Ok(result)
 //! }
 //!
 //! // Database error translation
 //! fn handle_db_operation() -> Result<(), PipelineError> {
 //!     // Translate database errors to domain errors
-//!     perform_db_query()
-//!         .map_err(|e| PipelineError::DatabaseError(
-//!             format!("Database operation failed: {}", e)
-//!         ))?;
-//!     
+//!     perform_db_query().map_err(|e| {
+//!         PipelineError::DatabaseError(format!("Database operation failed: {}", e))
+//!     })?;
+//!
 //!     Ok(())
 //! }
 //!
@@ -162,8 +158,6 @@
 //! - **Audit Logging**: All security-relevant operations are logged
 //! - **TLS/SSL**: Encrypted connections to external systems
 //! - **Rate Limiting**: Protection against abuse and DoS attacks
-//!
-//!
 pub mod adapters;
 pub mod config;
 pub mod logging;

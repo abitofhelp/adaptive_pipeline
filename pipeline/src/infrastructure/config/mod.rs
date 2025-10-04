@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Infrastructure Configuration
 //!
 //! This module provides configuration management for the infrastructure layer,
@@ -112,7 +111,6 @@
 //! ## Testing
 //!
 //! Use test-specific configuration:
-//!
 
 pub mod config_service;
 pub mod generic_config_manager;

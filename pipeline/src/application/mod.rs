@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Application Layer
 //!
 //! The application layer orchestrates business workflows and coordinates

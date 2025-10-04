@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Application Services
 //!
 //! This module contains application services that orchestrate complex domain
@@ -54,7 +53,6 @@
 //!
 //! ### Pipeline Management Service
 //! Orchestrates pipeline lifecycle operations:
-//!
 
 pub mod file_processor_service;
 pub mod pipeline_service;

@@ -268,14 +268,8 @@ mod tests {
 
             assert_eq!(config.app_name(), "full-app");
             assert_eq!(config.log_level(), LogLevel::Debug);
-            assert_eq!(
-                config.input_path(),
-                Some(&PathBuf::from("/input"))
-            );
-            assert_eq!(
-                config.output_path(),
-                Some(&PathBuf::from("/output"))
-            );
+            assert_eq!(config.input_path(), Some(&PathBuf::from("/input")));
+            assert_eq!(config.output_path(), Some(&PathBuf::from("/output")));
             assert_eq!(config.worker_threads(), Some(8));
             assert!(config.is_verbose());
             assert!(config.is_dry_run());
@@ -289,9 +283,7 @@ mod tests {
 
         #[test]
         fn try_build_succeeds_with_required_fields() {
-            let result = AppConfig::builder()
-                .app_name("test")
-                .try_build();
+            let result = AppConfig::builder().app_name("test").try_build();
 
             assert!(result.is_ok());
         }
@@ -315,26 +307,11 @@ mod tests {
 
         #[test]
         fn converts_to_tracing_levels() {
-            assert_eq!(
-                LogLevel::Error.to_tracing_level(),
-                tracing::Level::ERROR
-            );
-            assert_eq!(
-                LogLevel::Warn.to_tracing_level(),
-                tracing::Level::WARN
-            );
-            assert_eq!(
-                LogLevel::Info.to_tracing_level(),
-                tracing::Level::INFO
-            );
-            assert_eq!(
-                LogLevel::Debug.to_tracing_level(),
-                tracing::Level::DEBUG
-            );
-            assert_eq!(
-                LogLevel::Trace.to_tracing_level(),
-                tracing::Level::TRACE
-            );
+            assert_eq!(LogLevel::Error.to_tracing_level(), tracing::Level::ERROR);
+            assert_eq!(LogLevel::Warn.to_tracing_level(), tracing::Level::WARN);
+            assert_eq!(LogLevel::Info.to_tracing_level(), tracing::Level::INFO);
+            assert_eq!(LogLevel::Debug.to_tracing_level(), tracing::Level::DEBUG);
+            assert_eq!(LogLevel::Trace.to_tracing_level(), tracing::Level::TRACE);
         }
     }
 

@@ -5,10 +5,10 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Application Utilities
 //!
-//! Generic utility modules for application layer patterns and common functionality.
+//! Generic utility modules for application layer patterns and common
+//! functionality.
 
 pub mod generic_result_builder;
 pub mod generic_service_base;

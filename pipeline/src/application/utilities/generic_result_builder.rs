@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Generic Result Builder
 //!
 //! This module provides a generic, reusable result building system for the
@@ -181,7 +180,6 @@ use std::time::{Duration, Instant};
 /// - Have a stable lifetime (`'static`)
 ///
 /// # Examples
-///
 pub trait OperationResult: Clone + Debug + Send + Sync + 'static {
     type Input: Clone + Debug + Send + Sync;
     type Output: Clone + Debug + Send + Sync;
@@ -345,13 +343,11 @@ where
 
         let input = self
             .input
-            .ok_or_else(|| PipelineError::InternalError("Input is required to build result".to_string()))
-            ?;
+            .ok_or_else(|| PipelineError::InternalError("Input is required to build result".to_string()))?;
 
         let output = self
             .output
-            .ok_or_else(|| PipelineError::InternalError("Output is required to build result".to_string()))
-            ?;
+            .ok_or_else(|| PipelineError::InternalError("Output is required to build result".to_string()))?;
 
         let result = T::new(input, output).with_metrics(self.metrics);
         Ok(result)
@@ -361,9 +357,9 @@ where
     ///
     /// # Panics
     ///
-    /// This convenience method will panic if the build fails. This is intentional
-    /// for use cases where the caller knows the build cannot fail. For error handling,
-    /// use `build()` instead.
+    /// This convenience method will panic if the build fails. This is
+    /// intentional for use cases where the caller knows the build cannot
+    /// fail. For error handling, use `build()` instead.
     #[allow(clippy::panic)]
     pub fn build_with_error(self) -> T {
         match self.build() {
