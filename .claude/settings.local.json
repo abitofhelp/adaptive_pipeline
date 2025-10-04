@@ -33,7 +33,9 @@
       "Bash(fi)",
       "Bash(xargs:*)",
       "Bash(git add:*)",
-      "Read(//Users/mike/Rust/src/github.com/abitofhelp/optimized_adaptive_pipeline_rs/**)"
+      "Read(//Users/mike/Rust/src/github.com/abitofhelp/optimized_adaptive_pipeline_rs/**)",
+      "Bash(dd:*)",
+      "Bash(./target/release/optimized_adaptive_pipeline_rs:*)"
     ],
     "deny": [],
     "ask": []

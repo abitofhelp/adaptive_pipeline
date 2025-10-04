@@ -190,6 +190,19 @@ pub struct ConcurrencyMetrics {
 
     /// Total number of tasks completed (counter)
     tasks_completed: AtomicU64,
+
+    // === Week 2: Channel Queue Metrics ===
+    /// Current depth of CPU worker channel (gauge)
+    /// Educational: Reveals backpressure - high depth means workers can't keep up
+    cpu_queue_depth: AtomicUsize,
+
+    /// Maximum CPU queue depth observed (gauge)
+    /// Educational: Shows peak backpressure during processing
+    cpu_queue_depth_max: AtomicUsize,
+
+    /// Histogram of time chunks wait in CPU queue
+    /// Educational: Queue wait time indicates worker saturation
+    cpu_queue_wait_histogram: Mutex<Histogram>,
 }
 
 impl ConcurrencyMetrics {
@@ -211,6 +224,11 @@ impl ConcurrencyMetrics {
             active_workers: AtomicUsize::new(0),
             tasks_spawned: AtomicU64::new(0),
             tasks_completed: AtomicU64::new(0),
+
+            // Week 2: Queue metrics
+            cpu_queue_depth: AtomicUsize::new(0),
+            cpu_queue_depth_max: AtomicUsize::new(0),
+            cpu_queue_wait_histogram: Mutex::new(Histogram::new()),
         }
     }
 
@@ -367,6 +385,76 @@ impl ConcurrencyMetrics {
         self.tasks_completed.load(Ordering::Relaxed)
     }
 
+    // === Week 2: Channel Queue Metrics ===
+
+    /// Update CPU queue depth
+    ///
+    /// ## Educational: Observing Backpressure
+    ///
+    /// Queue depth reveals whether workers can keep up with the reader:
+    /// - Depth near 0: Workers are faster than reader (good!)
+    /// - Depth near capacity: Workers are bottleneck (increase workers or optimize stages)
+    /// - Depth at capacity: Reader is blocked (severe backpressure)
+    pub fn update_cpu_queue_depth(&self, depth: usize) {
+        self.cpu_queue_depth.store(depth, Ordering::Relaxed);
+
+        // Track maximum depth observed
+        let mut current_max = self.cpu_queue_depth_max.load(Ordering::Relaxed);
+        while depth > current_max {
+            match self.cpu_queue_depth_max.compare_exchange_weak(
+                current_max,
+                depth,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => break,
+                Err(x) => current_max = x,
+            }
+        }
+    }
+
+    /// Get current CPU queue depth
+    pub fn cpu_queue_depth(&self) -> usize {
+        self.cpu_queue_depth.load(Ordering::Relaxed)
+    }
+
+    /// Get maximum CPU queue depth observed
+    pub fn cpu_queue_depth_max(&self) -> usize {
+        self.cpu_queue_depth_max.load(Ordering::Relaxed)
+    }
+
+    /// Record time a chunk waited in CPU queue
+    pub fn record_cpu_queue_wait(&self, duration: Duration) {
+        let ms = duration.as_millis() as u64;
+        if let Ok(hist) = self.cpu_queue_wait_histogram.lock() {
+            hist.record(ms);
+        }
+    }
+
+    /// Get P50 (median) CPU queue wait time in milliseconds
+    pub fn cpu_queue_wait_p50(&self) -> u64 {
+        self.cpu_queue_wait_histogram
+            .lock()
+            .map(|h| h.percentile(50.0))
+            .unwrap_or(0)
+    }
+
+    /// Get P95 CPU queue wait time in milliseconds
+    pub fn cpu_queue_wait_p95(&self) -> u64 {
+        self.cpu_queue_wait_histogram
+            .lock()
+            .map(|h| h.percentile(95.0))
+            .unwrap_or(0)
+    }
+
+    /// Get P99 CPU queue wait time in milliseconds
+    pub fn cpu_queue_wait_p99(&self) -> u64 {
+        self.cpu_queue_wait_histogram
+            .lock()
+            .map(|h| h.percentile(99.0))
+            .unwrap_or(0)
+    }
+
     /// Reset all metrics (for testing/benchmarking)
     pub fn reset(&self) {
         self.cpu_wait_total_ms.store(0, Ordering::Relaxed);
@@ -374,10 +462,17 @@ impl ConcurrencyMetrics {
         self.tasks_spawned.store(0, Ordering::Relaxed);
         self.tasks_completed.store(0, Ordering::Relaxed);
 
+        // Week 2: Reset queue metrics
+        self.cpu_queue_depth.store(0, Ordering::Relaxed);
+        self.cpu_queue_depth_max.store(0, Ordering::Relaxed);
+
         if let Ok(hist) = self.cpu_wait_histogram.lock() {
             hist.reset();
         }
         if let Ok(hist) = self.io_wait_histogram.lock() {
+            hist.reset();
+        }
+        if let Ok(hist) = self.cpu_queue_wait_histogram.lock() {
             hist.reset();
         }
     }

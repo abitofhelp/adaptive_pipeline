@@ -243,6 +243,7 @@ use crate::infrastructure::services::progress_indicator_service::ProgressIndicat
 /// - `chunk_index`: Required for ordered writes (future enhancement)
 /// - `data`: Owned Vec<u8> for zero-copy channel transfer
 /// - `is_final`: Allows writer to finalize file on last chunk
+/// - `enqueued_at`: Timestamp for queue wait metrics (Week 2)
 #[derive(Debug)]
 struct ChunkMessage {
     /// Index of this chunk in the file (0-based)
@@ -256,6 +257,9 @@ struct ChunkMessage {
 
     /// Original file chunk with metadata
     file_chunk: FileChunk,
+
+    /// Week 2: Timestamp when message was enqueued (for queue wait metrics)
+    enqueued_at: std::time::Instant,
 }
 
 /// Message sent from CPU Worker tasks to Writer task
@@ -334,7 +338,10 @@ async fn reader_task(
     chunk_size: usize,
     tx_cpu: tokio::sync::mpsc::Sender<ChunkMessage>,
     file_io_service: Arc<dyn FileIOService>,
+    channel_capacity: usize,  // Week 2: For queue depth metrics
 ) -> Result<ReaderStats, PipelineError> {
+    use crate::infrastructure::metrics::CONCURRENCY_METRICS;
+
     // Configure read options for streaming
     let read_options = ReadOptions {
         chunk_size: Some(chunk_size),
@@ -363,6 +370,7 @@ async fn reader_task(
             data: chunk_data,
             is_final: index == total_chunks - 1,
             file_chunk,
+            enqueued_at: std::time::Instant::now(),  // Week 2: Timestamp for queue wait
         };
 
         // Educational: This blocks if channel is full → backpressure!
@@ -370,6 +378,12 @@ async fn reader_task(
         // preventing memory overload from reading too far ahead.
         tx_cpu.send(message).await
             .map_err(|_| PipelineError::io_error("CPU worker channel closed unexpectedly"))?;
+
+        // Week 2: Update queue depth metrics after send
+        // Educational: Shows backpressure in real-time
+        let remaining_capacity = tx_cpu.capacity();
+        let current_depth = channel_capacity.saturating_sub(remaining_capacity);
+        CONCURRENCY_METRICS.update_cpu_queue_depth(current_depth);
     }
 
     // Educational: Dropping tx_cpu signals "no more chunks" to workers
@@ -985,6 +999,7 @@ impl PipelineService for PipelineServiceImpl {
             chunk_size,
             tx_cpu,
             self.file_io_service.clone(),
+            channel_depth,  // Week 2: Pass capacity for queue metrics
         ));
 
         // STEP 7: Spawn CPU worker pool
@@ -1017,6 +1032,11 @@ impl PipelineService for PipelineServiceImpl {
 
                     match chunk_msg {
                         Some(chunk_msg) => {
+                            // Week 2: Record queue wait time (time chunk spent in channel)
+                            // Educational: High wait times indicate worker saturation
+                            let queue_wait = chunk_msg.enqueued_at.elapsed();
+                            CONCURRENCY_METRICS.record_cpu_queue_wait(queue_wait);
+
                             // Acquire global CPU token
                             let cpu_wait_start = std::time::Instant::now();
                             let _cpu_permit = RESOURCE_MANAGER.acquire_cpu().await
