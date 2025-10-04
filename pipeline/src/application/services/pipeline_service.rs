@@ -160,6 +160,7 @@
 use async_trait::async_trait;
 use byte_unit::Byte;
 use futures::future;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{ debug, info, warn, Instrument };
@@ -176,7 +177,7 @@ use pipeline_domain::entities::{
 use pipeline_domain::repositories::stage_executor::ResourceRequirements;
 use pipeline_domain::repositories::{ PipelineRepository, StageExecutor };
 use pipeline_domain::services::file_processor_service::{ ChunkProcessor, FileProcessingResult };
-use pipeline_domain::services::file_io_service::FileIOService;
+use pipeline_domain::services::file_io_service::{ FileIOService, ReadOptions };
 use pipeline_domain::services::{
     CompressionService,
     EncryptionService,
@@ -187,10 +188,10 @@ use pipeline_domain::services::{
     PipelineRequirements,
     PipelineService,
 };
-use pipeline_domain::value_objects::{ ChunkSize, FileChunk, PipelineId, WorkerCount };
+use pipeline_domain::value_objects::{ ChunkFormat, ChunkSize, FileChunk, PipelineId, WorkerCount };
 use pipeline_domain::PipelineError;
 
-use crate::infrastructure::services::binary_format_service::BinaryFormatService;
+use crate::infrastructure::services::binary_format_service::{ BinaryFormatService, BinaryFormatWriter };
 use crate::infrastructure::services::progress_indicator_service::ProgressIndicatorService;
 
 /// Concrete implementation of the pipeline service
@@ -299,6 +300,200 @@ struct WorkerStats {
 struct WriterStats {
     chunks_written: usize,
     bytes_written: u64,
+}
+
+// ============================================================================
+// WEEK 2: Pipeline Task Implementations
+// ============================================================================
+
+/// Reader Task - Stage 1 of Execution Pipeline
+///
+/// ## Educational: Single Reader Pattern
+///
+/// This task demonstrates the "single reader" pattern, which eliminates
+/// coordination overhead. Only ONE task reads from disk, ensuring sequential
+/// access patterns optimal for filesystem performance.
+///
+/// ## Backpressure Mechanism
+///
+/// The bounded channel creates natural backpressure:
+/// - When workers are fast: Channel stays empty, reader proceeds immediately
+/// - When workers are slow: Channel fills up, `tx_cpu.send()` blocks
+/// - Result: Automatic flow control without explicit rate limiting!
+///
+/// ## Arguments
+/// - `input_path`: File to read chunks from
+/// - `chunk_size`: Size of each chunk in bytes
+/// - `tx_cpu`: Channel sender to CPU workers (blocks when full)
+/// - `file_io_service`: Service for reading file chunks
+///
+/// ## Returns
+/// `ReaderStats` with chunks read and bytes read
+async fn reader_task(
+    input_path: PathBuf,
+    chunk_size: usize,
+    tx_cpu: tokio::sync::mpsc::Sender<ChunkMessage>,
+    file_io_service: Arc<dyn FileIOService>,
+) -> Result<ReaderStats, PipelineError> {
+    // Configure read options for streaming
+    let read_options = ReadOptions {
+        chunk_size: Some(chunk_size),
+        use_memory_mapping: false,  // Stream from disk, don't load all into memory
+        calculate_checksums: false, // We'll calculate during processing
+        ..Default::default()
+    };
+
+    // Read file into chunks using FileIOService
+    let read_result = file_io_service
+        .read_file_chunks(&input_path, read_options)
+        .await
+        .map_err(|e| PipelineError::IoError(format!("Failed to read file chunks: {}", e)))?;
+
+    let total_chunks = read_result.chunks.len();
+    let mut bytes_read = 0u64;
+
+    // Send each chunk to CPU workers
+    for (index, file_chunk) in read_result.chunks.into_iter().enumerate() {
+        let chunk_data = file_chunk.data().to_vec();
+        let chunk_size_bytes = chunk_data.len() as u64;
+        bytes_read += chunk_size_bytes;
+
+        let message = ChunkMessage {
+            chunk_index: index,
+            data: chunk_data,
+            is_final: index == total_chunks - 1,
+            file_chunk,
+        };
+
+        // Educational: This blocks if channel is full → backpressure!
+        // When workers are processing slowly, the reader waits here,
+        // preventing memory overload from reading too far ahead.
+        tx_cpu.send(message).await
+            .map_err(|_| PipelineError::io_error("CPU worker channel closed unexpectedly"))?;
+    }
+
+    // Educational: Dropping tx_cpu signals "no more chunks" to workers
+    // Workers receive None from rx_cpu.recv() and gracefully shut down
+    drop(tx_cpu);
+
+    Ok(ReaderStats {
+        chunks_read: total_chunks,
+        bytes_read,
+    })
+}
+
+/// CPU Worker Task - Stage 2 of Execution Pipeline
+///
+/// ## Educational: Worker Pool Pattern
+///
+/// Multiple instances of this task run concurrently, forming a worker pool.
+/// Each worker:
+/// 1. Receives chunks from shared channel (MPSC pattern)
+/// 2. Acquires global CPU token (prevents oversubscription)
+/// 3. Executes ALL processing stages sequentially for ONE chunk
+/// 4. Writes directly to shared writer using concurrent random-access writes
+///
+/// ## Execution vs Processing Pipeline
+///
+/// This is where the two pipelines intersect:
+/// - **Execution pipeline**: Concurrency management (receive → process → write)
+/// - **Processing pipeline**: Business logic (compress → encrypt → checksum)
+///
+/// See: docs/EXECUTION_VS_PROCESSING_PIPELINES.md for details
+///
+/// ## Arguments
+/// - `worker_id`: Unique identifier for this worker (for metrics/debugging)
+/// - `rx_cpu`: Channel receiver for chunks (shared among workers)
+/// - `writer`: Thread-safe writer for concurrent random-access writes
+/// - `pipeline`: Processing pipeline configuration (what stages to run)
+/// - `stage_executor`: Executes individual processing stages
+/// - `input_path`: Input file path (for ProcessingContext)
+/// - `output_path`: Output file path (for ProcessingContext)
+/// - `input_size`: Total input file size (for ProcessingContext)
+/// - `security_context`: Security context for processing
+///
+/// ## Returns
+/// `WorkerStats` with worker ID and chunks processed
+async fn cpu_worker_task(
+    worker_id: usize,
+    mut rx_cpu: tokio::sync::mpsc::Receiver<ChunkMessage>,
+    writer: Arc<dyn BinaryFormatWriter>,
+    pipeline: Arc<Pipeline>,
+    stage_executor: Arc<dyn StageExecutor>,
+    input_path: PathBuf,
+    output_path: PathBuf,
+    input_size: u64,
+    security_context: SecurityContext,
+) -> Result<WorkerStats, PipelineError> {
+    use crate::infrastructure::runtime::RESOURCE_MANAGER;
+    use crate::infrastructure::metrics::CONCURRENCY_METRICS;
+
+    let mut chunks_processed = 0;
+
+    // Educational: Worker loop - receive, process, write
+    while let Some(chunk_msg) = rx_cpu.recv().await {
+        // ===================================================
+        // EXECUTION PIPELINE: Resource acquisition
+        // ===================================================
+
+        // Acquire global CPU token to prevent oversubscription
+        let cpu_wait_start = std::time::Instant::now();
+        let _cpu_permit = RESOURCE_MANAGER.acquire_cpu().await
+            .map_err(|e| PipelineError::resource_exhausted(format!("Failed to acquire CPU token: {}", e)))?;
+        let cpu_wait_duration = cpu_wait_start.elapsed();
+
+        CONCURRENCY_METRICS.record_cpu_wait(cpu_wait_duration);
+        CONCURRENCY_METRICS.worker_started();
+
+        // ===================================================
+        // PROCESSING PIPELINE: Business logic execution
+        // ===================================================
+
+        // Create local processing context for this chunk
+        let mut local_context = ProcessingContext::new(
+            input_path.clone(),
+            output_path.clone(),
+            input_size,
+            security_context.clone(),
+        );
+
+        // Execute each configured stage sequentially on this chunk
+        // Start with the FileChunk we received
+        let mut file_chunk = chunk_msg.file_chunk;
+
+        for stage in pipeline.stages() {
+            file_chunk = stage_executor.execute(stage, file_chunk, &mut local_context).await
+                .map_err(|e| PipelineError::processing_failed(format!("Stage execution failed: {}", e)))?;
+        }
+
+        // ===================================================
+        // EXECUTION PIPELINE: Direct concurrent write
+        // ===================================================
+
+        // Educational: No writer task! No mutex contention!
+        // Workers write directly using thread-safe random-access writes.
+        // Each write goes to a different file position, so they don't conflict.
+
+        // Prepare chunk for .adapipe file format
+        // The .adapipe format includes a nonce (number used once) for security
+        // TODO: In production, this would come from the encryption stage
+        let nonce = [0u8; 12]; // Placeholder nonce (12 bytes for AES-GCM)
+
+        // Convert processed FileChunk to ChunkFormat for binary format
+        let chunk_format = ChunkFormat::new(nonce, file_chunk.data().to_vec());
+
+        // Direct concurrent write to calculated position
+        writer.write_chunk_at_position(chunk_format, chunk_msg.chunk_index as u64).await?;
+
+        // Educational: CPU token released automatically (RAII drop)
+        CONCURRENCY_METRICS.worker_completed();
+        chunks_processed += 1;
+    }
+
+    Ok(WorkerStats {
+        worker_id,
+        chunks_processed,
+    })
 }
 
 // ============================================================================
