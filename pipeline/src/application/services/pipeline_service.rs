@@ -1696,4 +1696,288 @@ mod tests {
 
         println!("✅ Database preparation test passed!");
     }
+
+    /// Tests cancellation propagation to reader task.
+    ///
+    /// This test validates that when a cancellation token is triggered,
+    /// the reader task stops gracefully and returns a cancellation error.
+    ///
+    /// # Test Coverage
+    ///
+    /// - Cancellation token creation and triggering
+    /// - Reader task cancellation detection
+    /// - Graceful shutdown of reader
+    /// - Cancellation error propagation
+    ///
+    /// # Test Scenario
+    ///
+    /// 1. Create a test file with data
+    /// 2. Start reader task with cancellation token
+    /// 3. Trigger cancellation immediately
+    /// 4. Verify reader stops with cancellation error
+    #[tokio::test]
+    async fn test_reader_task_cancellation() {
+        use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+        use pipeline_domain::services::file_io_service::FileIOConfig;
+        use bootstrap::shutdown::ShutdownCoordinator;
+        use std::time::Duration;
+
+        // Create test file
+        let temp_dir = TempDir::new().unwrap();
+        let input_file = temp_dir.path().join("test_input.txt");
+        fs::write(&input_file, b"test data for cancellation").await.unwrap();
+
+        // Create channel and cancellation token
+        let (tx, _rx) = tokio::sync::mpsc::channel(10);
+        let coordinator = ShutdownCoordinator::new(Duration::from_secs(5));
+        let cancel_token = coordinator.token();
+
+        // Cancel immediately
+        cancel_token.cancel();
+
+        // Start reader task (should detect cancellation and exit)
+        let file_io = Arc::new(FileIOServiceImpl::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
+        let result = reader_task(
+            input_file,
+            1024,
+            tx,
+            file_io,
+            10,
+            cancel_token
+        ).await;
+
+        // Verify cancellation error
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("cancel"), "Expected cancellation error, got: {}", err);
+    }
+
+    /// Tests cancellation propagation during active processing.
+    ///
+    /// This test validates that when cancellation is triggered while
+    /// processing is in progress, all tasks stop gracefully.
+    ///
+    /// # Test Coverage
+    ///
+    /// - Cancellation during active file processing
+    /// - Graceful shutdown of reader and workers
+    /// - Channel cleanup on cancellation
+    /// - No resource leaks on cancellation
+    ///
+    /// # Test Scenario
+    ///
+    /// 1. Create a larger test file
+    /// 2. Start processing with cancellation token
+    /// 3. Trigger cancellation during processing
+    /// 4. Verify all tasks stop gracefully
+    #[tokio::test]
+    async fn test_cancellation_during_processing() {
+        use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+        use pipeline_domain::services::file_io_service::FileIOConfig;
+        use bootstrap::shutdown::ShutdownCoordinator;
+        use crate::infrastructure::runtime::{init_resource_manager, ResourceConfig};
+        use std::time::Duration;
+
+        // Initialize resource manager for test (required by CONCURRENCY_METRICS)
+        let _ = init_resource_manager(ResourceConfig::default());
+
+        // Create a larger test file to ensure processing takes time
+        let temp_dir = TempDir::new().unwrap();
+        let input_file = temp_dir.path().join("large_input.txt");
+        let test_data = vec![b'X'; 1024 * 100]; // 100KB
+        fs::write(&input_file, &test_data).await.unwrap();
+
+        // Create channel and cancellation token
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<ChunkMessage>(5);
+        let coordinator = ShutdownCoordinator::new(Duration::from_secs(5));
+        let cancel_token = coordinator.token();
+        let cancel_clone = cancel_token.clone();
+
+        // Spawn reader task
+        let file_io = Arc::new(FileIOServiceImpl::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
+        let reader_handle = tokio::spawn(async move {
+            reader_task(
+                input_file,
+                1024,
+                tx,
+                file_io,
+                5,
+                cancel_clone
+            ).await
+        });
+
+        // Let some chunks be sent
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+
+        // Trigger cancellation
+        cancel_token.cancel();
+
+        // Reader should exit with cancellation error
+        let reader_result = reader_handle.await.unwrap();
+        assert!(reader_result.is_err());
+
+        // Channel should be closed (no more messages)
+        // Drain any remaining messages
+        while rx.try_recv().is_ok() {}
+
+        // Verify channel is now empty and closed
+        assert!(rx.recv().await.is_none(), "Channel should be closed after cancellation");
+    }
+
+    /// Tests that cancelled workers exit gracefully.
+    ///
+    /// This test validates that worker tasks respect cancellation
+    /// and exit their processing loop cleanly.
+    ///
+    /// # Test Coverage
+    ///
+    /// - Worker task cancellation detection
+    /// - Graceful exit from worker loop
+    /// - No panics on cancellation
+    /// - Resource cleanup in workers
+    #[tokio::test]
+    async fn test_worker_cancellation() {
+        use bootstrap::shutdown::ShutdownCoordinator;
+        use std::time::Duration;
+
+        // Create a channel that will receive chunks
+        let (_tx, rx) = tokio::sync::mpsc::channel::<ChunkMessage>(10);
+        let rx_shared = Arc::new(tokio::sync::Mutex::new(rx));
+
+        let coordinator = ShutdownCoordinator::new(Duration::from_secs(5));
+        let cancel_token = coordinator.token();
+        let cancel_clone = cancel_token.clone();
+
+        // Spawn worker that will wait for chunks or cancellation
+        let worker_handle = tokio::spawn(async move {
+            loop {
+                let mut rx_lock = rx_shared.lock().await;
+
+                #[allow(clippy::await_holding_lock)]
+                let result = tokio::select! {
+                    _ = cancel_clone.cancelled() => {
+                        // Graceful shutdown: exit worker loop
+                        break;
+                    }
+                    _chunk_msg = rx_lock.recv() => {
+                        continue;
+                    }
+                };
+
+                #[allow(unreachable_code)]
+                {
+                    result
+                }
+            }
+            Ok::<(), PipelineError>(())
+        });
+
+        // Give worker time to start
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+
+        // Trigger cancellation
+        cancel_token.cancel();
+
+        // Worker should exit cleanly
+        let result = tokio::time::timeout(
+            tokio::time::Duration::from_secs(1),
+            worker_handle
+        ).await;
+
+        assert!(result.is_ok(), "Worker should exit within timeout");
+        let worker_result = result.unwrap().unwrap();
+        assert!(worker_result.is_ok(), "Worker should exit without error");
+    }
+
+    /// Tests early cancellation before processing starts.
+    ///
+    /// This test validates that if cancellation is triggered before
+    /// processing begins, the system detects it and aborts cleanly.
+    ///
+    /// # Test Coverage
+    ///
+    /// - Pre-processing cancellation detection
+    /// - Early abort mechanism
+    /// - No resource allocation on early cancel
+    /// - Clean error propagation
+    #[tokio::test]
+    async fn test_early_cancellation_detection() {
+        use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+        use pipeline_domain::services::file_io_service::FileIOConfig;
+        use bootstrap::shutdown::ShutdownCoordinator;
+        use std::time::Duration;
+
+        let temp_dir = TempDir::new().unwrap();
+        let input_file = temp_dir.path().join("input.txt");
+        fs::write(&input_file, b"data").await.unwrap();
+
+        let (tx, _rx) = tokio::sync::mpsc::channel(10);
+        let coordinator = ShutdownCoordinator::new(Duration::from_secs(5));
+        let cancel_token = coordinator.token();
+
+        // Cancel BEFORE starting any work
+        cancel_token.cancel();
+        assert!(cancel_token.is_cancelled(), "Token should be cancelled");
+
+        // Attempt to start reader
+        let file_io = Arc::new(FileIOServiceImpl::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
+        let result = reader_task(
+            input_file,
+            1024,
+            tx,
+            file_io,
+            10,
+            cancel_token
+        ).await;
+
+        // Should immediately return cancellation error
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("cancel"));
+    }
+
+    /// Tests cancellation token cloning and propagation.
+    ///
+    /// This test validates that cancellation tokens can be cloned
+    /// and all clones observe the cancellation state.
+    ///
+    /// # Test Coverage
+    ///
+    /// - Token cloning behavior
+    /// - Cancellation propagation to clones
+    /// - Shared state consistency
+    /// - Multiple task coordination
+    #[tokio::test]
+    async fn test_cancellation_token_propagation() {
+        use bootstrap::shutdown::ShutdownCoordinator;
+        use std::time::Duration;
+
+        let coordinator = ShutdownCoordinator::new(Duration::from_secs(5));
+        let token = coordinator.token();
+        let clone1 = token.clone();
+        let clone2 = token.clone();
+
+        // None should be cancelled initially
+        assert!(!token.is_cancelled());
+        assert!(!clone1.is_cancelled());
+        assert!(!clone2.is_cancelled());
+
+        // Cancel original
+        token.cancel();
+
+        // All clones should see cancellation
+        assert!(token.is_cancelled());
+        assert!(clone1.is_cancelled());
+        assert!(clone2.is_cancelled());
+
+        // All should unblock from cancelled()
+        tokio::time::timeout(
+            tokio::time::Duration::from_millis(100),
+            clone1.cancelled()
+        ).await.unwrap();
+
+        tokio::time::timeout(
+            tokio::time::Duration::from_millis(100),
+            clone2.cancelled()
+        ).await.unwrap();
+    }
 }

@@ -453,8 +453,161 @@ fn parse_storage_type(s: &str) -> Result<String, String> {
     }
 }
 
+/// Maps application errors to Unix exit codes (sysexits.h standard)
+///
+/// # Exit Code Mappings
+///
+/// - `70` (EX_SOFTWARE) - Internal software error (initialization failures)
+/// - `66` (EX_NOINPUT) - Cannot open input (file not found)
+/// - `65` (EX_DATAERR) - Data format error (invalid input)
+/// - `74` (EX_IOERR) - Input/output error (read/write failures)
+/// - `1` - General error (fallback for unclassified errors)
+///
+/// # Arguments
+///
+/// * `error_message` - The error message to classify
+///
+/// # Returns
+///
+/// The appropriate Unix exit code as u8
+fn map_error_to_exit_code(error_message: &str) -> u8 {
+    if error_message.contains("Failed to initialize") {
+        70 // EX_SOFTWARE - internal software error
+    } else if error_message.contains("not found") || error_message.contains("does not exist") {
+        66 // EX_NOINPUT - cannot open input
+    } else if error_message.contains("invalid") || error_message.contains("Invalid") {
+        65 // EX_DATAERR - data format error
+    } else if error_message.contains("I/O") || error_message.contains("Failed to read") || error_message.contains("Failed to write") {
+        74 // EX_IOERR - input/output error
+    } else {
+        1 // General error
+    }
+}
+
+#[cfg(test)]
+mod exit_code_tests {
+    use super::*;
+
+    #[test]
+    fn test_exit_code_initialization_error() {
+        assert_eq!(
+            map_error_to_exit_code("Failed to initialize resource manager"),
+            70
+        );
+        assert_eq!(
+            map_error_to_exit_code("Error: Failed to initialize database connection"),
+            70
+        );
+    }
+
+    #[test]
+    fn test_exit_code_file_not_found() {
+        assert_eq!(
+            map_error_to_exit_code("File not found: input.txt"),
+            66
+        );
+        assert_eq!(
+            map_error_to_exit_code("The file does not exist"),
+            66
+        );
+    }
+
+    #[test]
+    fn test_exit_code_invalid_data() {
+        assert_eq!(
+            map_error_to_exit_code("invalid chunk size specified"),
+            65
+        );
+        assert_eq!(
+            map_error_to_exit_code("Invalid pipeline configuration"),
+            65
+        );
+    }
+
+    #[test]
+    fn test_exit_code_io_error() {
+        assert_eq!(
+            map_error_to_exit_code("I/O error occurred"),
+            74
+        );
+        assert_eq!(
+            map_error_to_exit_code("Failed to read from disk"),
+            74
+        );
+        assert_eq!(
+            map_error_to_exit_code("Failed to write to output file"),
+            74
+        );
+    }
+
+    #[test]
+    fn test_exit_code_general_error() {
+        assert_eq!(
+            map_error_to_exit_code("Unknown error occurred"),
+            1
+        );
+        assert_eq!(
+            map_error_to_exit_code("Something went wrong"),
+            1
+        );
+    }
+
+    #[test]
+    fn test_exit_code_case_sensitivity() {
+        // Test that "Invalid" (capital I) also triggers DATAERR
+        assert_eq!(
+            map_error_to_exit_code("Invalid input provided"),
+            65
+        );
+        assert_eq!(
+            map_error_to_exit_code("invalid input provided"),
+            65
+        );
+    }
+
+    #[test]
+    fn test_exit_code_priority() {
+        // If multiple patterns match, the first one wins
+        // "Failed to initialize" contains "Failed to" but should match initialization first
+        assert_eq!(
+            map_error_to_exit_code("Failed to initialize with invalid data"),
+            70 // Should be EX_SOFTWARE, not EX_DATAERR
+        );
+    }
+
+    #[test]
+    fn test_exit_code_exact_messages() {
+        // Test exact error messages from the codebase
+        assert_eq!(
+            map_error_to_exit_code("Pipeline 'test' not found"),
+            66
+        );
+        assert_eq!(
+            map_error_to_exit_code("I/O error: permission denied"),
+            74
+        );
+        assert_eq!(
+            map_error_to_exit_code("Invalid pipeline name"),
+            65
+        );
+    }
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> std::process::ExitCode {
+    // Run the actual application logic and map errors to exit codes
+    match run_app().await {
+        Ok(()) => std::process::ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            let exit_code = map_error_to_exit_code(&e.to_string());
+            std::process::ExitCode::from(exit_code)
+        }
+    }
+}
+
+/// Main application logic separated for testability
+async fn run_app() -> Result<()> {
     let cli = Cli::parse();
 
     // === Initialize Global Resource Manager ===
@@ -574,11 +727,11 @@ async fn main() -> Result<()> {
         }
 
         Commands::List => {
-            list_pipelines(pipeline_repository.clone()).await?;
+            list_pipelines(pipeline_repository.clone()).await.unwrap();
         }
 
         Commands::Show { pipeline } => {
-            show_pipeline(pipeline, pipeline_repository.clone()).await?;
+            show_pipeline(pipeline, pipeline_repository.clone()).await.unwrap();
         }
 
         Commands::Delete { pipeline, force } => {
@@ -592,14 +745,14 @@ async fn main() -> Result<()> {
             size_mb,
             iterations,
         } => {
-            benchmark_system(file, size_mb, iterations).await?;
+            benchmark_system(file, size_mb, iterations).await.unwrap();
         }
 
         Commands::Validate { config } => {
-            validate_pipeline_config(config).await?;
+            validate_pipeline_config(config).await.unwrap();
         }
         Commands::ValidateFile { file, full } => {
-            validate_adapipe_file(file, full).await?;
+            validate_adapipe_file(file, full).await.unwrap();
         }
 
         Commands::Restore {
@@ -619,7 +772,7 @@ async fn main() -> Result<()> {
             adapipe,
             detailed,
         } => {
-            compare_file_against_adapipe(original, adapipe, detailed).await?;
+            compare_file_against_adapipe(original, adapipe, detailed).await.unwrap();
         }
     }
 
@@ -1389,7 +1542,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
         } else {
             // Generate test file
             let test_file = PathBuf::from(format!("benchmark_test_{}mb.txt", test_size_mb));
-            generate_test_file(&test_file, test_size_mb).await?;
+            generate_test_file(&test_file, test_size_mb).await.unwrap();
             test_file
         };
 
@@ -1491,7 +1644,7 @@ async fn benchmark_system(file: Option<PathBuf>, size_mb: usize, iterations: usi
     }
 
     // Generate comprehensive report
-    generate_optimization_report(&results).await?;
+    generate_optimization_report(&results).await.unwrap();
 
     println!("\n✅ Benchmark completed successfully!");
     println!("📊 Check the generated optimization report for detailed results.");
@@ -1571,7 +1724,7 @@ async fn simulate_pipeline_processing(
 
     // Collect results and write to output
     for handle in handles {
-        let processed_chunks = handle.await?;
+        let processed_chunks = handle.await.unwrap();
         for chunk in processed_chunks {
             // Write processed chunk (just write original for benchmark)
             output.write_all(&chunk)?;
@@ -2978,7 +3131,7 @@ mod restore_tests {
             result.err()
         );
 
-        let pipeline = result?;
+        let pipeline = result.unwrap();
         assert_eq!(
             pipeline.stages().len(),
             5,
@@ -3010,7 +3163,7 @@ mod restore_tests {
         let result = create_restoration_pipeline(&header).await;
         assert!(result.is_ok());
 
-        let pipeline = result?;
+        let pipeline = result.unwrap();
         assert_eq!(
             pipeline.stages().len(),
             4,
@@ -3031,7 +3184,7 @@ mod restore_tests {
         let result = create_restoration_pipeline(&header).await;
         assert!(result.is_ok());
 
-        let pipeline = result?;
+        let pipeline = result.unwrap();
         assert_eq!(
             pipeline.stages().len(),
             3,
@@ -3076,7 +3229,7 @@ mod restore_tests {
         let header = FileHeader::new("test.txt".to_string(), 1024, "abc123".to_string())
             .with_pipeline_id("original-pipeline-123".to_string());
 
-        let pipeline = create_restoration_pipeline(&header).await?;
+        let pipeline = create_restoration_pipeline(&header).await.unwrap();
 
         // Verify ephemeral pipeline naming convention
         assert!(pipeline.name().starts_with("__restore__"));
@@ -3095,7 +3248,7 @@ mod restore_tests {
 
         assert!(chunk.is_ok(), "Failed to create FileChunk: {:?}", chunk.err());
 
-        let chunk = chunk?;
+        let chunk = chunk.unwrap();
         assert_eq!(chunk.sequence_number(), 0);
         assert_eq!(chunk.offset(), 0);
         assert_eq!(chunk.data(), &test_data);

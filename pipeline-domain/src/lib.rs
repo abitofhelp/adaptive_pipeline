@@ -5,6 +5,10 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Enforce zero-panic production code at compile time
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
 
 //! # Pipeline Domain
 //!
