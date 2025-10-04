@@ -176,20 +176,668 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="schema-management"><a class="header" href="#schema-management">Schema Management</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
-<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
-<strong>License File:</strong> See the LICENSE file in the project root.
-<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>Database schema and migrations.</p>
-<h2 id="schema-design"><a class="header" href="#schema-design">Schema Design</a></h2>
-<p>TODO: Show database schema</p>
-<h2 id="migrations"><a class="header" href="#migrations">Migrations</a></h2>
-<p>TODO: Explain sqlx migrations</p>
-<h2 id="version-management"><a class="header" href="#version-management">Version Management</a></h2>
-<p>TODO: Explain versioning</p>
+<p><strong>Version</strong>: 1.0
+<strong>Date</strong>: 2025-10-04
+<strong>License</strong>: BSD-3-Clause
+<strong>Copyright</strong>: (c) 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors</strong>: Michael Gardner
+<strong>Status</strong>: Active</p>
+<hr />
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The Optimized Adaptive Pipeline uses <strong>SQLite</strong> for data persistence with an automated schema management system powered by <strong>sqlx migrations</strong>. This chapter explains the database schema design, migration strategy, and best practices for schema evolution.</p>
+<h3 id="key-features"><a class="header" href="#key-features">Key Features</a></h3>
+<ul>
+<li><strong>Automatic Migrations</strong>: Schema automatically initialized and updated on startup</li>
+<li><strong>Version Tracking</strong>: Migrations tracked in <code>_sqlx_migrations</code> table</li>
+<li><strong>Idempotent</strong>: Safe to run migrations multiple times</li>
+<li><strong>Normalized Design</strong>: Proper foreign keys and referential integrity</li>
+<li><strong>Performance Indexed</strong>: Strategic indexes for common queries</li>
+<li><strong>Test-Friendly</strong>: Support for in-memory databases</li>
+</ul>
+<hr />
+<h2 id="database-schema"><a class="header" href="#database-schema">Database Schema</a></h2>
+<h3 id="entity-relationship-diagram"><a class="header" href="#entity-relationship-diagram">Entity-Relationship Diagram</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                        pipelines                            │
+├─────────────────────────────────────────────────────────────┤
+│ id (PK)             TEXT                                    │
+│ name                TEXT UNIQUE NOT NULL                    │
+│ archived            BOOLEAN DEFAULT false                   │
+│ created_at          TEXT NOT NULL                           │
+│ updated_at          TEXT NOT NULL                           │
+└────────────────┬────────────────────────────────────────────┘
+                 │
+                 │ 1:N
+                 │
+    ┌────────────┼──────────────────┐
+    │            │                  │
+    ▼            ▼                  ▼
+┌─────────────────┐  ┌───────────────────────┐  ┌──────────────────┐
+│ pipeline_stages │  │pipeline_configuration │  │processing_metrics│
+├─────────────────┤  ├───────────────────────┤  ├──────────────────┤
+│ id (PK)         │  │ pipeline_id (PK,FK)   │  │ pipeline_id (PK,FK)│
+│ pipeline_id (FK)│  │ key (PK)              │  │ bytes_processed  │
+│ name            │  │ value                 │  │ throughput_*     │
+│ stage_type      │  │ archived              │  │ error_count      │
+│ algorithm       │  │ created_at            │  │ ...              │
+│ enabled         │  │ updated_at            │  └──────────────────┘
+│ stage_order     │  └───────────────────────┘
+│ ...             │
+└────────┬────────┘
+         │
+         │ 1:N
+         │
+         ▼
+┌──────────────────┐
+│ stage_parameters │
+├──────────────────┤
+│ stage_id (PK,FK) │
+│ key (PK)         │
+│ value            │
+│ archived         │
+│ created_at       │
+│ updated_at       │
+└──────────────────┘
+</code></pre>
+<h3 id="tables-overview"><a class="header" href="#tables-overview">Tables Overview</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Table</th><th>Purpose</th><th>Relationships</th></tr></thead><tbody>
+<tr><td><strong>pipelines</strong></td><td>Core pipeline configurations</td><td>Parent of stages, config, metrics</td></tr>
+<tr><td><strong>pipeline_stages</strong></td><td>Processing stages within pipelines</td><td>Child of pipelines, parent of parameters</td></tr>
+<tr><td><strong>pipeline_configuration</strong></td><td>Key-value configuration for pipelines</td><td>Child of pipelines</td></tr>
+<tr><td><strong>stage_parameters</strong></td><td>Key-value parameters for stages</td><td>Child of pipeline_stages</td></tr>
+<tr><td><strong>processing_metrics</strong></td><td>Execution metrics and statistics</td><td>Child of pipelines</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="table-schemas"><a class="header" href="#table-schemas">Table Schemas</a></h2>
+<h3 id="pipelines"><a class="header" href="#pipelines">pipelines</a></h3>
+<p>The root table for pipeline management:</p>
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS pipelines (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    archived BOOLEAN NOT NULL DEFAULT false,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+</code></pre>
+<p><strong>Columns</strong>:</p>
+<ul>
+<li><code>id</code>: UUID or unique identifier (e.g., "pipeline-123")</li>
+<li><code>name</code>: Human-readable name (unique constraint)</li>
+<li><code>archived</code>: Soft delete flag (false = active, true = archived)</li>
+<li><code>created_at</code>: RFC3339 timestamp of creation</li>
+<li><code>updated_at</code>: RFC3339 timestamp of last modification</li>
+</ul>
+<p><strong>Constraints</strong>:</p>
+<ul>
+<li>Primary key on <code>id</code></li>
+<li>Unique constraint on <code>name</code></li>
+<li>Indexed on <code>name WHERE archived = false</code> for active pipeline lookups</li>
+</ul>
+<h3 id="pipeline_stages"><a class="header" href="#pipeline_stages">pipeline_stages</a></h3>
+<p>Defines the ordered stages within a pipeline:</p>
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS pipeline_stages (
+    id TEXT PRIMARY KEY,
+    pipeline_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    stage_type TEXT NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    stage_order INTEGER NOT NULL,
+    algorithm TEXT NOT NULL,
+    parallel_processing BOOLEAN NOT NULL DEFAULT FALSE,
+    chunk_size INTEGER,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
+</code></pre>
+<p><strong>Columns</strong>:</p>
+<ul>
+<li><code>id</code>: Unique stage identifier</li>
+<li><code>pipeline_id</code>: Foreign key to owning pipeline</li>
+<li><code>name</code>: Stage name (e.g., "compression", "encryption")</li>
+<li><code>stage_type</code>: Type of stage (enum: compression, encryption, checksum)</li>
+<li><code>enabled</code>: Whether stage is active</li>
+<li><code>stage_order</code>: Execution order (0-based)</li>
+<li><code>algorithm</code>: Specific algorithm (e.g., "zstd", "aes-256-gcm")</li>
+<li><code>parallel_processing</code>: Whether stage can process chunks in parallel</li>
+<li><code>chunk_size</code>: Optional chunk size override for this stage</li>
+<li><code>archived</code>: Soft delete flag</li>
+<li><code>created_at</code>, <code>updated_at</code>: Timestamps</li>
+</ul>
+<p><strong>Constraints</strong>:</p>
+<ul>
+<li>Primary key on <code>id</code></li>
+<li>Foreign key to <code>pipelines(id)</code> with CASCADE delete</li>
+<li>Indexed on <code>(pipeline_id, stage_order)</code> for ordered retrieval</li>
+<li>Indexed on <code>pipeline_id</code> for pipeline lookups</li>
+</ul>
+<h3 id="pipeline_configuration"><a class="header" href="#pipeline_configuration">pipeline_configuration</a></h3>
+<p>Key-value configuration storage for pipelines:</p>
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS pipeline_configuration (
+    pipeline_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (pipeline_id, key),
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
+</code></pre>
+<p><strong>Columns</strong>:</p>
+<ul>
+<li><code>pipeline_id</code>: Foreign key to pipeline</li>
+<li><code>key</code>: Configuration key (e.g., "max_workers", "buffer_size")</li>
+<li><code>value</code>: Configuration value (stored as TEXT, parsed by application)</li>
+<li><code>archived</code>, <code>created_at</code>, <code>updated_at</code>: Standard metadata</li>
+</ul>
+<p><strong>Constraints</strong>:</p>
+<ul>
+<li>Composite primary key on <code>(pipeline_id, key)</code></li>
+<li>Foreign key to <code>pipelines(id)</code> with CASCADE delete</li>
+<li>Indexed on <code>pipeline_id</code></li>
+</ul>
+<p><strong>Usage Example</strong>:</p>
+<pre><code>pipeline_id                          | key           | value
+-------------------------------------|---------------|-------
+pipeline-abc-123                     | max_workers   | 4
+pipeline-abc-123                     | buffer_size   | 1048576
+</code></pre>
+<h3 id="stage_parameters"><a class="header" href="#stage_parameters">stage_parameters</a></h3>
+<p>Key-value parameters for individual stages:</p>
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS stage_parameters (
+    stage_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (stage_id, key),
+    FOREIGN KEY (stage_id) REFERENCES pipeline_stages(id) ON DELETE CASCADE
+);
+</code></pre>
+<p><strong>Columns</strong>:</p>
+<ul>
+<li><code>stage_id</code>: Foreign key to stage</li>
+<li><code>key</code>: Parameter key (e.g., "compression_level", "key_size")</li>
+<li><code>value</code>: Parameter value (TEXT, parsed by stage)</li>
+<li><code>archived</code>, <code>created_at</code>, <code>updated_at</code>: Standard metadata</li>
+</ul>
+<p><strong>Constraints</strong>:</p>
+<ul>
+<li>Composite primary key on <code>(stage_id, key)</code></li>
+<li>Foreign key to <code>pipeline_stages(id)</code> with CASCADE delete</li>
+<li>Indexed on <code>stage_id</code></li>
+</ul>
+<p><strong>Usage Example</strong>:</p>
+<pre><code>stage_id                | key                | value
+------------------------|--------------------|---------
+stage-comp-456          | compression_level  | 9
+stage-enc-789           | key_size           | 256
+</code></pre>
+<h3 id="processing_metrics"><a class="header" href="#processing_metrics">processing_metrics</a></h3>
+<p>Tracks execution metrics for pipeline runs:</p>
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS processing_metrics (
+    pipeline_id TEXT PRIMARY KEY,
+    bytes_processed INTEGER NOT NULL DEFAULT 0,
+    bytes_total INTEGER NOT NULL DEFAULT 0,
+    chunks_processed INTEGER NOT NULL DEFAULT 0,
+    chunks_total INTEGER NOT NULL DEFAULT 0,
+    start_time_rfc3339 TEXT,
+    end_time_rfc3339 TEXT,
+    processing_duration_ms INTEGER,
+    throughput_bytes_per_second REAL NOT NULL DEFAULT 0.0,
+    compression_ratio REAL,
+    error_count INTEGER NOT NULL DEFAULT 0,
+    warning_count INTEGER NOT NULL DEFAULT 0,
+    input_file_size_bytes INTEGER NOT NULL DEFAULT 0,
+    output_file_size_bytes INTEGER NOT NULL DEFAULT 0,
+    input_file_checksum TEXT,
+    output_file_checksum TEXT,
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
+</code></pre>
+<p><strong>Columns</strong>:</p>
+<ul>
+<li><code>pipeline_id</code>: Foreign key to pipeline (also primary key - one metric per pipeline)</li>
+<li>Progress tracking: <code>bytes_processed</code>, <code>bytes_total</code>, <code>chunks_processed</code>, <code>chunks_total</code></li>
+<li>Timing: <code>start_time_rfc3339</code>, <code>end_time_rfc3339</code>, <code>processing_duration_ms</code></li>
+<li>Performance: <code>throughput_bytes_per_second</code>, <code>compression_ratio</code></li>
+<li>Status: <code>error_count</code>, <code>warning_count</code></li>
+<li>File info: <code>input_file_size_bytes</code>, <code>output_file_size_bytes</code></li>
+<li>Integrity: <code>input_file_checksum</code>, <code>output_file_checksum</code></li>
+</ul>
+<p><strong>Constraints</strong>:</p>
+<ul>
+<li>Primary key on <code>pipeline_id</code></li>
+<li>Foreign key to <code>pipelines(id)</code> with CASCADE delete</li>
+</ul>
+<hr />
+<h2 id="migrations-with-sqlx"><a class="header" href="#migrations-with-sqlx">Migrations with sqlx</a></h2>
+<h3 id="migration-files"><a class="header" href="#migration-files">Migration Files</a></h3>
+<p>Migrations live in the <code>/migrations</code> directory at the project root:</p>
+<pre><code class="language-text">migrations/
+└── 20250101000000_initial_schema.sql
+</code></pre>
+<p><strong>Naming Convention</strong>: <code>{timestamp}_{description}.sql</code></p>
+<ul>
+<li>Timestamp: <code>YYYYMMDDHHMMSS</code> format</li>
+<li>Description: Snake_case description of changes</li>
+</ul>
+<h3 id="migration-structure"><a class="header" href="#migration-structure">Migration Structure</a></h3>
+<p>Each migration file contains:</p>
+<pre><code class="language-sql">-- Migration: 20250101000000_initial_schema.sql
+-- Description: Initial database schema for pipeline management
+
+-- Table creation
+CREATE TABLE IF NOT EXISTS pipelines (...);
+CREATE TABLE IF NOT EXISTS pipeline_stages (...);
+-- ... more tables ...
+
+-- Index creation
+CREATE INDEX IF NOT EXISTS idx_pipeline_stages_pipeline_id ON pipeline_stages(pipeline_id);
+-- ... more indexes ...
+</code></pre>
+<h3 id="sqlx-migration-macro"><a class="header" href="#sqlx-migration-macro">sqlx Migration Macro</a></h3>
+<p>The <code>sqlx::migrate!()</code> macro embeds migrations at compile time:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// In schema.rs
+pub async fn ensure_schema(pool: &amp;SqlitePool) -&gt; Result&lt;(), sqlx::Error&gt; {
+    debug!("Ensuring database schema is up to date");
+
+    // Run migrations - sqlx will automatically track what's been applied
+    sqlx::migrate!("../migrations").run(pool).await?;
+
+    info!("Database schema is up to date");
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>How it works</strong>:</p>
+<ol>
+<li><code>sqlx::migrate!("../migrations")</code> scans directory at compile time</li>
+<li>Embeds migration SQL into binary</li>
+<li><code>run(pool)</code> executes pending migrations at runtime</li>
+<li>Tracks applied migrations in <code>_sqlx_migrations</code> table</li>
+</ol>
+<hr />
+<h2 id="schema-initialization"><a class="header" href="#schema-initialization">Schema Initialization</a></h2>
+<h3 id="automatic-initialization"><a class="header" href="#automatic-initialization">Automatic Initialization</a></h3>
+<p>The schema module provides convenience functions for database setup:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// High-level initialization function
+pub async fn initialize_database(database_url: &amp;str) -&gt; Result&lt;SqlitePool, sqlx::Error&gt; {
+    // 1. Create database if it doesn't exist
+    create_database_if_missing(database_url).await?;
+
+    // 2. Connect to database
+    let pool = SqlitePool::connect(database_url).await?;
+
+    // 3. Run migrations
+    ensure_schema(&amp;pool).await?;
+
+    Ok(pool)
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Usage in application startup</strong>:</p>
+<pre><pre class="playground"><code class="language-rust">use pipeline::infrastructure::repositories::schema;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    // Initialize database with schema
+    let pool = schema::initialize_database("sqlite://./pipeline.db").await?;
+
+    // Database is ready to use!
+    let repository = SqlitePipelineRepository::new(pool);
+
+    Ok(())
+}</code></pre></pre>
+<h3 id="create-database-if-missing"><a class="header" href="#create-database-if-missing">Create Database if Missing</a></h3>
+<p>For file-based SQLite databases:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn create_database_if_missing(database_url: &amp;str) -&gt; Result&lt;(), sqlx::Error&gt; {
+    if !sqlx::Sqlite::database_exists(database_url).await? {
+        debug!("Database does not exist, creating: {}", database_url);
+        sqlx::Sqlite::create_database(database_url).await?;
+        info!("Created new SQLite database: {}", database_url);
+    } else {
+        debug!("Database already exists: {}", database_url);
+    }
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Handles</strong>:</p>
+<ul>
+<li>New database creation</li>
+<li>Existing database detection</li>
+<li>File system permissions</li>
+</ul>
+<h3 id="in-memory-databases"><a class="header" href="#in-memory-databases">In-Memory Databases</a></h3>
+<p>For testing, use in-memory databases:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_with_in_memory_db() {
+    // No file system needed
+    let pool = schema::initialize_database("sqlite::memory:")
+        .await
+        .unwrap();
+
+    // Database is fully initialized in memory
+    // ... run tests ...
+}
+<span class="boring">}</span></code></pre></pre>
+<hr />
+<h2 id="migration-tracking"><a class="header" href="#migration-tracking">Migration Tracking</a></h2>
+<h3 id="_sqlx_migrations-table"><a class="header" href="#_sqlx_migrations-table">_sqlx_migrations Table</a></h3>
+<p>sqlx automatically creates a tracking table:</p>
+<pre><code class="language-sql">CREATE TABLE _sqlx_migrations (
+    version BIGINT PRIMARY KEY,
+    description TEXT NOT NULL,
+    installed_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    success BOOLEAN NOT NULL,
+    checksum BLOB NOT NULL,
+    execution_time BIGINT NOT NULL
+);
+</code></pre>
+<p><strong>Columns</strong>:</p>
+<ul>
+<li><code>version</code>: Migration timestamp (e.g., 20250101000000)</li>
+<li><code>description</code>: Migration description</li>
+<li><code>installed_on</code>: When migration was applied</li>
+<li><code>success</code>: Whether migration succeeded</li>
+<li><code>checksum</code>: SHA256 of migration SQL</li>
+<li><code>execution_time</code>: Duration in milliseconds</li>
+</ul>
+<h3 id="querying-applied-migrations"><a class="header" href="#querying-applied-migrations">Querying Applied Migrations</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let migrations: Vec&lt;(i64, String)&gt; = sqlx::query_as(
+    "SELECT version, description FROM _sqlx_migrations ORDER BY version"
+)
+.fetch_all(&amp;pool)
+.await?;
+
+for (version, description) in migrations {
+    println!("Applied migration: {} - {}", version, description);
+}
+<span class="boring">}</span></code></pre></pre>
+<hr />
+<h2 id="adding-new-migrations"><a class="header" href="#adding-new-migrations">Adding New Migrations</a></h2>
+<h3 id="step-1-create-migration-file"><a class="header" href="#step-1-create-migration-file">Step 1: Create Migration File</a></h3>
+<p>Create a new file in <code>/migrations</code>:</p>
+<pre><code class="language-bash"># Generate timestamp
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
+# Create migration file
+touch migrations/${TIMESTAMP}_add_pipeline_tags.sql
+</code></pre>
+<h3 id="step-2-write-migration-sql"><a class="header" href="#step-2-write-migration-sql">Step 2: Write Migration SQL</a></h3>
+<pre><code class="language-sql">-- migrations/20250204120000_add_pipeline_tags.sql
+-- Add tagging support for pipelines
+
+CREATE TABLE IF NOT EXISTS pipeline_tags (
+    pipeline_id TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (pipeline_id, tag),
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_pipeline_tags_tag ON pipeline_tags(tag);
+</code></pre>
+<h3 id="step-3-test-migration"><a class="header" href="#step-3-test-migration">Step 3: Test Migration</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_new_migration() {
+    let pool = schema::initialize_database("sqlite::memory:")
+        .await
+        .unwrap();
+
+    // Verify new table exists
+    let count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='pipeline_tags'"
+    )
+    .fetch_one(&amp;pool)
+    .await
+    .unwrap();
+
+    assert_eq!(count, 1);
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="step-4-rebuild"><a class="header" href="#step-4-rebuild">Step 4: Rebuild</a></h3>
+<pre><code class="language-bash"># sqlx macro embeds migrations at compile time
+cargo build
+</code></pre>
+<p>The next application start will automatically apply the new migration.</p>
+<hr />
+<h2 id="indexes-and-performance"><a class="header" href="#indexes-and-performance">Indexes and Performance</a></h2>
+<h3 id="current-indexes"><a class="header" href="#current-indexes">Current Indexes</a></h3>
+<pre><code class="language-sql">-- Ordered stage retrieval
+CREATE INDEX idx_pipeline_stages_order
+ON pipeline_stages(pipeline_id, stage_order);
+
+-- Stage lookup by pipeline
+CREATE INDEX idx_pipeline_stages_pipeline_id
+ON pipeline_stages(pipeline_id);
+
+-- Configuration lookup
+CREATE INDEX idx_pipeline_configuration_pipeline_id
+ON pipeline_configuration(pipeline_id);
+
+-- Parameter lookup
+CREATE INDEX idx_stage_parameters_stage_id
+ON stage_parameters(stage_id);
+
+-- Active pipelines only
+CREATE INDEX idx_pipelines_name
+ON pipelines(name) WHERE archived = false;
+</code></pre>
+<h3 id="index-strategy"><a class="header" href="#index-strategy">Index Strategy</a></h3>
+<p><strong>When to add indexes</strong>:</p>
+<ul>
+<li>✅ Foreign key columns (for JOIN performance)</li>
+<li>✅ Columns in WHERE clauses (for filtering)</li>
+<li>✅ Columns in ORDER BY (for sorting)</li>
+<li>✅ Partial indexes for common filters (e.g., <code>WHERE archived = false</code>)</li>
+</ul>
+<p><strong>When NOT to index</strong>:</p>
+<ul>
+<li>❌ Small tables (&lt; 1000 rows)</li>
+<li>❌ Columns with low cardinality (few distinct values)</li>
+<li>❌ Columns rarely used in queries</li>
+<li>❌ Write-heavy columns (indexes slow INSERTs/UPDATEs)</li>
+</ul>
+<hr />
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="-do"><a class="header" href="#-do">✅ DO</a></h3>
+<p><strong>Use idempotent migrations</strong></p>
+<pre><code class="language-sql">-- Safe to run multiple times
+CREATE TABLE IF NOT EXISTS new_table (...);
+CREATE INDEX IF NOT EXISTS idx_name ON table(column);
+</code></pre>
+<p><strong>Include rollback comments</strong></p>
+<pre><code class="language-sql">-- Migration: Add user_id column
+-- Rollback: DROP COLUMN is not supported in SQLite, recreate table
+
+ALTER TABLE pipelines ADD COLUMN user_id TEXT;
+</code></pre>
+<p><strong>Use transactions for multi-statement migrations</strong></p>
+<pre><code class="language-sql">BEGIN TRANSACTION;
+
+CREATE TABLE new_table (...);
+INSERT INTO new_table SELECT ...;
+DROP TABLE old_table;
+
+COMMIT;
+</code></pre>
+<p><strong>Test migrations with production-like data</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_migration_with_data() {
+    let pool = schema::initialize_database("sqlite::memory:").await.unwrap();
+
+    // Insert test data
+    sqlx::query("INSERT INTO pipelines (...) VALUES (...)")
+        .execute(&amp;pool)
+        .await
+        .unwrap();
+
+    // Run migration
+    schema::ensure_schema(&amp;pool).await.unwrap();
+
+    // Verify data integrity
+    // ...
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="-dont"><a class="header" href="#-dont">❌ DON'T</a></h3>
+<p><strong>Don't modify existing migrations</strong></p>
+<pre><code class="language-sql">-- BAD: Editing 20250101000000_initial_schema.sql after deployment
+-- This will cause checksum mismatch!
+
+-- GOOD: Create a new migration to alter the schema
+-- migrations/20250204000000_modify_pipeline_name.sql
+</code></pre>
+<p><strong>Don't use database-specific features unnecessarily</strong></p>
+<pre><code class="language-sql">-- BAD: SQLite-only (limits portability)
+CREATE TABLE pipelines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+-- GOOD: Portable approach
+CREATE TABLE pipelines (
+    id TEXT PRIMARY KEY  -- Application generates UUIDs
+);
+</code></pre>
+<p><strong>Don't forget foreign key constraints</strong></p>
+<pre><code class="language-sql">-- BAD: No referential integrity
+CREATE TABLE pipeline_stages (
+    pipeline_id TEXT NOT NULL
+);
+
+-- GOOD: Enforced relationships
+CREATE TABLE pipeline_stages (
+    pipeline_id TEXT NOT NULL,
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
+</code></pre>
+<hr />
+<h2 id="testing-schema-changes"><a class="header" href="#testing-schema-changes">Testing Schema Changes</a></h2>
+<h3 id="unit-tests"><a class="header" href="#unit-tests">Unit Tests</a></h3>
+<p>From <code>schema.rs</code>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_create_database_if_missing() {
+    let temp = NamedTempFile::new().unwrap();
+    let db_path = temp.path().to_str().unwrap();
+    let db_url = format!("sqlite://{}", db_path);
+    drop(temp); // Remove file
+
+    // Should create the database
+    create_database_if_missing(&amp;db_url).await.unwrap();
+
+    // Should succeed if already exists
+    create_database_if_missing(&amp;db_url).await.unwrap();
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="integration-tests"><a class="header" href="#integration-tests">Integration Tests</a></h3>
+<p>From <code>schema_integration_test.rs</code>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_schema_migrations_run_automatically() {
+    let pool = schema::initialize_database("sqlite::memory:")
+        .await
+        .unwrap();
+
+    // Verify _sqlx_migrations table exists
+    let result: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM _sqlx_migrations"
+    )
+    .fetch_one(&amp;pool)
+    .await
+    .unwrap();
+
+    assert!(result &gt; 0, "At least one migration should be applied");
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="idempotency-tests"><a class="header" href="#idempotency-tests">Idempotency Tests</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_schema_idempotent_initialization() {
+    let db_url = "sqlite::memory:";
+
+    // Initialize twice - should not error
+    let _pool1 = schema::initialize_database(db_url).await.unwrap();
+    let _pool2 = schema::initialize_database(db_url).await.unwrap();
+}
+<span class="boring">}</span></code></pre></pre>
+<hr />
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="issue-migration-checksum-mismatch"><a class="header" href="#issue-migration-checksum-mismatch">Issue: Migration checksum mismatch</a></h3>
+<p><strong>Symptom</strong>: Error: "migration checksum mismatch"</p>
+<p><strong>Cause</strong>: Existing migration file was modified after being applied</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"># NEVER modify applied migrations!
+# Instead, create a new migration to make changes
+
+# If in development and migration hasn't been deployed:
+# 1. Drop database
+rm pipeline.db
+
+# 2. Recreate with modified migration
+cargo run
+</code></pre>
+<h3 id="issue-database-file-locked"><a class="header" href="#issue-database-file-locked">Issue: Database file locked</a></h3>
+<p><strong>Symptom</strong>: Error: "database is locked"</p>
+<p><strong>Cause</strong>: Another process has an exclusive lock</p>
+<p><strong>Solution</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Use connection pool with proper configuration
+let pool = SqlitePool::connect_with(
+    SqliteConnectOptions::from_str("sqlite://./pipeline.db")?
+        .busy_timeout(Duration::from_secs(30))  // Wait for lock
+        .journal_mode(SqliteJournalMode::Wal)    // Use WAL mode
+)
+.await?;
+<span class="boring">}</span></code></pre></pre>
+<h3 id="issue-foreign-key-constraint-failed"><a class="header" href="#issue-foreign-key-constraint-failed">Issue: Foreign key constraint failed</a></h3>
+<p><strong>Symptom</strong>: Error: "FOREIGN KEY constraint failed"</p>
+<p><strong>Cause</strong>: Trying to insert/update with invalid foreign key</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-sql">-- Enable foreign key enforcement (SQLite default is OFF)
+PRAGMA foreign_keys = ON;
+
+-- Then verify referenced row exists before insert
+SELECT id FROM pipelines WHERE id = ?;
+</code></pre>
+<hr />
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><strong><a href="repositories.html">Repository Implementation</a></strong>: Using the schema in repositories</li>
+<li><strong><a href="persistence.html">Data Persistence</a></strong>: Persistence patterns and strategies</li>
+<li><strong><a href="../testing/integration-tests.html">Testing</a></strong>: Integration testing with databases</li>
+</ul>
+<hr />
+<h2 id="references"><a class="header" href="#references">References</a></h2>
+<ul>
+<li><a href="https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md#create-and-run-migrations">sqlx Migrations Documentation</a></li>
+<li><a href="https://www.sqlite.org/datatype3.html">SQLite Data Types</a></li>
+<li><a href="https://www.sqlite.org/foreignkeys.html">SQLite Foreign Keys</a></li>
+<li><a href="https://www.sqlite.org/queryplanner.html">SQLite Indexes</a></li>
+<li>Source: <code>pipeline/src/infrastructure/repositories/schema.rs</code> (lines 1-157)</li>
+<li>Source: <code>migrations/20250101000000_initial_schema.sql</code> (lines 1-81)</li>
+<li>Source: <code>pipeline/tests/schema_integration_test.rs</code> (lines 1-110)</li>
+</ul>
 
                     </main>
 

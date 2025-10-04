@@ -7,8 +7,8 @@ skinparam packageStyle rectangle
 title Project Structure
 
 package "optimized_adaptive_pipeline_rs" {
-  folder "pipeline/" {
-    [Pipeline Library\n(Main Crate)]
+  folder "pipeline/" as pipelinefolder {
+    component "Pipeline Library\n(Main Crate)" as pipeline
     folder "src/" {
       [lib.rs]
       [main.rs]
@@ -33,12 +33,12 @@ package "optimized_adaptive_pipeline_rs" {
     }
   }
 
-  folder "pipeline-domain/" {
-    [Domain Crate\n(Shared Domain)]
+  folder "pipeline-domain/" as domainfolder {
+    component "Domain Crate\n(Shared Domain)" as domain
   }
 
-  folder "bootstrap/" {
-    [Bootstrap Crate\n(Initialization)]
+  folder "bootstrap/" as bootstrapfolder {
+    component "Bootstrap Crate\n(Initialization)" as bootstrap
   }
 
   folder "docs/" {
@@ -70,14 +70,14 @@ package "optimized_adaptive_pipeline_rs" {
   file "Makefile" as makefile
 }
 
-note right of "Pipeline Library"
+note right of pipeline
   **Main Pipeline Crate**
   - Binary and library
   - Clean Architecture layers
   - Domain-driven design
 end note
 
-note right of "Domain Crate"
+note right of domain
   **Shared Domain Logic**
   - Reusable across projects
   - No external dependencies
