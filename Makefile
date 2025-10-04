@@ -32,7 +32,9 @@ NC := \033[0m # No Color
 .PHONY: help setup clean build test check lint format doc bench audit security \
         install-tools update-deps release debug run examples workspace-check \
         pipeline-check pipelinelib-check coverage flamegraph bloat pre-commit \
-        docker-build docker-run ci-local
+        docker-build docker-run ci-local install-cross-targets build-linux-x86_64 \
+        build-linux-aarch64 build-macos-x86_64 build-macos-aarch64 build-windows-x86_64 \
+        build-all-platforms
 
 ##@ Help
 help: ## Display this help message
@@ -100,6 +102,15 @@ help: ## Display this help message
 	@echo -e "$(YELLOW)Release Management$(NC)"
 	@echo -e "  $(CYAN)release              $(NC) Build release version"
 	@echo -e "  $(CYAN)release-check        $(NC) Check release build"
+	@echo ""
+	@echo -e "$(YELLOW)Cross-Platform Builds$(NC)"
+	@echo -e "  $(CYAN)build-all-platforms  $(NC) Build for all supported platforms"
+	@echo -e "  $(CYAN)build-linux-aarch64  $(NC) Build for Linux ARM64"
+	@echo -e "  $(CYAN)build-linux-x86_64   $(NC) Build for Linux x86_64"
+	@echo -e "  $(CYAN)build-macos-aarch64  $(NC) Build for macOS ARM64 (Apple Silicon)"
+	@echo -e "  $(CYAN)build-macos-x86_64   $(NC) Build for macOS x86_64 (Intel)"
+	@echo -e "  $(CYAN)build-windows-x86_64 $(NC) Build for Windows x86_64"
+	@echo -e "  $(CYAN)install-cross-targets$(NC) Install cross-compilation toolchains"
 	@echo ""
 	@echo -e "$(YELLOW)Running$(NC)"
 	@echo -e "  $(CYAN)examples             $(NC) Run example code"
@@ -367,6 +378,50 @@ release: ## Build release version
 release-check: ## Check release build
 	@echo -e "$(BLUE)Checking release build...$(NC)"
 	@$(CARGO) check --release --workspace
+
+##@ Cross-Platform Builds
+install-cross-targets: ## Install cross-compilation toolchains
+	@echo -e "$(BLUE)Installing cross-compilation targets...$(NC)"
+	@rustup target add x86_64-unknown-linux-gnu
+	@rustup target add aarch64-unknown-linux-gnu
+	@rustup target add x86_64-apple-darwin
+	@rustup target add aarch64-apple-darwin
+	@rustup target add x86_64-pc-windows-msvc
+	@echo -e "$(GREEN)✓ Cross-compilation targets installed!$(NC)"
+
+build-linux-x86_64: ## Build for Linux x86_64
+	@echo -e "$(BLUE)Building for Linux x86_64...$(NC)"
+	@$(CARGO) build --release --target x86_64-unknown-linux-gnu
+	@echo -e "$(GREEN)✓ Build complete: target/x86_64-unknown-linux-gnu/release/$(NC)"
+
+build-linux-aarch64: ## Build for Linux ARM64
+	@echo -e "$(BLUE)Building for Linux ARM64...$(NC)"
+	@$(CARGO) build --release --target aarch64-unknown-linux-gnu
+	@echo -e "$(GREEN)✓ Build complete: target/aarch64-unknown-linux-gnu/release/$(NC)"
+
+build-macos-x86_64: ## Build for macOS x86_64 (Intel)
+	@echo -e "$(BLUE)Building for macOS x86_64...$(NC)"
+	@$(CARGO) build --release --target x86_64-apple-darwin
+	@echo -e "$(GREEN)✓ Build complete: target/x86_64-apple-darwin/release/$(NC)"
+
+build-macos-aarch64: ## Build for macOS ARM64 (Apple Silicon)
+	@echo -e "$(BLUE)Building for macOS ARM64...$(NC)"
+	@$(CARGO) build --release --target aarch64-apple-darwin
+	@echo -e "$(GREEN)✓ Build complete: target/aarch64-apple-darwin/release/$(NC)"
+
+build-windows-x86_64: ## Build for Windows x86_64
+	@echo -e "$(BLUE)Building for Windows x86_64...$(NC)"
+	@$(CARGO) build --release --target x86_64-pc-windows-msvc
+	@echo -e "$(GREEN)✓ Build complete: target/x86_64-pc-windows-msvc/release/$(NC)"
+
+build-all-platforms: ## Build for all supported platforms
+	@echo -e "$(CYAN)Building for all platforms...$(NC)"
+	@$(MAKE) build-linux-x86_64
+	@$(MAKE) build-linux-aarch64
+	@$(MAKE) build-macos-x86_64
+	@$(MAKE) build-macos-aarch64
+	@$(MAKE) build-windows-x86_64
+	@echo -e "$(GREEN)✓ All platform builds complete!$(NC)"
 
 ##@ Docker (if applicable)
 docker-build: ## Build Docker image
