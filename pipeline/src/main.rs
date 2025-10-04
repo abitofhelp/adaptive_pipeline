@@ -248,8 +248,8 @@ use crate::application::services::pipeline_service::PipelineServiceImpl;
 
 #[derive(Parser)]
 #[command(name = "pipeline")]
-#[command(about = "Optimized Adaptive Pipeline RS - High-performance file processing system")]
-#[command(version = "0.1.0")]
+#[command(about = concat!("Optimized Adaptive Pipeline RS v", env!("CARGO_PKG_VERSION")))]
+#[command(version)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

@@ -21,6 +21,7 @@ This isn't just another file processor - it's a **showcase of advanced Rust patt
 - [Architecture](#architecture)
 - [Performance](#performance)
 - [Quick Start](#quick-start)
+- [Command Line Reference](#-command-line-reference)
 - [Features](#features)
 - [Development](#development)
 - [Advanced Usage](#advanced-usage)
@@ -195,6 +196,339 @@ ls -lh test.adapipe
 
 # Verify integrity
 diff test.dat restored.dat
+```
+
+## 📟 Command Line Reference
+
+### Global Options
+
+```bash
+pipeline [OPTIONS] <COMMAND>
+
+Options:
+  -v, --verbose              Enable verbose logging
+  -c, --config <PATH>        Configuration file path
+      --cpu-threads <N>      Override CPU worker thread count (default: num_cpus - 1)
+      --io-threads <N>       Override I/O worker thread count (default: auto-detect)
+      --storage-type <TYPE>  Storage device type: nvme, ssd, hdd (default: auto)
+      --channel-depth <N>    Channel depth for pipeline stages (default: 4)
+  -h, --help                 Print help
+  -V, --version              Print version
+```
+
+### Commands
+
+#### `process` - Process File Through Pipeline
+
+Process a file through a configured pipeline with compression, encryption, or validation.
+
+```bash
+pipeline process --input <FILE> --output <FILE> --pipeline <NAME> [OPTIONS]
+
+Options:
+  -i, --input <FILE>         Input file path
+  -o, --output <FILE>        Output file path (.adapipe)
+  -p, --pipeline <NAME>      Pipeline name (e.g., "compress-encrypt")
+      --chunk-size-mb <MB>   Chunk size in MB (default: adaptive)
+      --workers <N>          Number of parallel workers (default: adaptive)
+
+Examples:
+  # Process with default pipeline
+  pipeline process -i large.dat -o large.adapipe -p compress-encrypt
+
+  # Process with custom settings
+  pipeline process -i data.bin -o data.adapipe -p secure \
+    --chunk-size-mb 16 --workers 8
+
+  # Process on NVMe with optimized I/O
+  pipeline process -i huge.dat -o huge.adapipe -p fast \
+    --storage-type nvme --io-threads 24
+```
+
+#### `create` - Create New Pipeline
+
+Create a new processing pipeline with custom stages.
+
+```bash
+pipeline create --name <NAME> --stages <STAGES> [OPTIONS]
+
+Options:
+  -n, --name <NAME>          Pipeline name (kebab-case)
+  -s, --stages <STAGES>      Comma-separated stages: compression,encryption,integrity
+  -o, --output <FILE>        Save pipeline definition to file (optional)
+
+Supported Stages:
+  compression                Brotli compression (default)
+  compression:zstd           Zstandard compression
+  compression:lz4            LZ4 compression
+  encryption                 AES-256-GCM encryption (default)
+  encryption:chacha20        ChaCha20-Poly1305 encryption
+  integrity                  SHA-256 checksum
+  passthrough                No transformation (testing)
+
+Examples:
+  # Create compression-only pipeline
+  pipeline create -n compress-only -s compression
+
+  # Create secure pipeline with encryption
+  pipeline create -n secure-backup -s compression:zstd,encryption,integrity
+
+  # Create fast pipeline with LZ4
+  pipeline create -n fast-compress -s compression:lz4
+```
+
+#### `list` - List Available Pipelines
+
+List all configured pipelines in the database.
+
+```bash
+pipeline list
+
+Example Output:
+  Found 3 pipeline(s):
+
+  Pipeline: compress-encrypt
+    ID: 550e8400-e29b-41d4-a716-446655440000
+    Status: active
+    Stages: 2
+    Created: 2025-01-15 10:30:45 UTC
+    Updated: 2025-01-15 10:30:45 UTC
+```
+
+#### `show` - Show Pipeline Details
+
+Display detailed information about a specific pipeline.
+
+```bash
+pipeline show <PIPELINE_NAME>
+
+Arguments:
+  <PIPELINE_NAME>  Name of the pipeline to show
+
+Example:
+  pipeline show compress-encrypt
+
+Example Output:
+  === Pipeline Details ===
+  ID: 550e8400-e29b-41d4-a716-446655440000
+  Name: compress-encrypt
+  Status: active
+  Created: 2025-01-15 10:30:45 UTC
+
+  Stages (2):
+    1. compression (Compression)
+       Algorithm: brotli
+       Enabled: true
+       Order: 0
+
+    2. encryption (Encryption)
+       Algorithm: aes256gcm
+       Enabled: true
+       Order: 1
+```
+
+#### `delete` - Delete Pipeline
+
+Delete a pipeline from the database.
+
+```bash
+pipeline delete <PIPELINE_NAME> [OPTIONS]
+
+Arguments:
+  <PIPELINE_NAME>  Name of the pipeline to delete
+
+Options:
+      --force      Skip confirmation prompt
+
+Examples:
+  # Delete with confirmation
+  pipeline delete old-pipeline
+
+  # Force delete without confirmation
+  pipeline delete old-pipeline --force
+```
+
+#### `restore` - Restore Original File
+
+Restore an original file from a processed `.adapipe` file.
+
+```bash
+pipeline restore --input <FILE> [OPTIONS]
+
+Options:
+  -i, --input <FILE>         .adapipe file to restore from
+  -o, --output-dir <DIR>     Output directory (default: use original path)
+      --mkdir                Create directories without prompting
+      --overwrite            Overwrite existing files without prompting
+
+Examples:
+  # Restore to original location
+  pipeline restore -i backup.adapipe
+
+  # Restore to specific directory
+  pipeline restore -i data.adapipe -o /tmp/restored/ --mkdir
+
+  # Force overwrite existing file
+  pipeline restore -i file.adapipe --overwrite
+```
+
+#### `validate` - Validate Configuration
+
+Validate a pipeline configuration file (TOML/JSON/YAML).
+
+```bash
+pipeline validate <CONFIG_FILE>
+
+Arguments:
+  <CONFIG_FILE>  Path to configuration file
+
+Supported Formats:
+  - TOML (.toml)
+  - JSON (.json)
+  - YAML (.yaml, .yml)
+
+Example:
+  pipeline validate pipeline-config.toml
+```
+
+#### `validate-file` - Validate .adapipe File
+
+Validate the integrity of a processed `.adapipe` file.
+
+```bash
+pipeline validate-file --file <FILE> [OPTIONS]
+
+Options:
+  -f, --file <FILE>  .adapipe file to validate
+      --full         Perform full streaming validation (decrypt/decompress/verify)
+
+Examples:
+  # Quick format validation
+  pipeline validate-file -f output.adapipe
+
+  # Full integrity check (slower but thorough)
+  pipeline validate-file -f output.adapipe --full
+```
+
+#### `compare` - Compare Files
+
+Compare an original file against its `.adapipe` processed version.
+
+```bash
+pipeline compare --original <FILE> --adapipe <FILE> [OPTIONS]
+
+Options:
+  -o, --original <FILE>  Original file to compare
+  -a, --adapipe <FILE>   .adapipe file to compare against
+      --detailed         Show detailed differences
+
+Example:
+  pipeline compare -o original.dat -a processed.adapipe --detailed
+
+Example Output:
+  📊 File Comparison:
+     Original file: original.dat
+     .adapipe file: processed.adapipe
+
+  📏 Size Comparison:
+     Current file size: 104857600 bytes
+     Expected size: 104857600 bytes
+     ✅ Size matches
+
+  🔐 Checksum Comparison:
+     Expected: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+     Current:  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+     ✅ Checksums match - files are identical
+```
+
+#### `benchmark` - System Benchmarking
+
+Run performance benchmarks to optimize configuration.
+
+```bash
+pipeline benchmark [OPTIONS]
+
+Options:
+  -f, --file <FILE>          Use existing file for benchmark
+      --size-mb <MB>         Test data size in MB (default: 100)
+      --iterations <N>       Number of iterations (default: 3)
+
+Examples:
+  # Quick benchmark with defaults
+  pipeline benchmark
+
+  # Comprehensive benchmark
+  pipeline benchmark --size-mb 1000 --iterations 5
+
+  # Benchmark with existing file
+  pipeline benchmark -f /path/to/large/file.dat
+
+Output:
+  - Generates optimization report: pipeline_optimization_report.md
+  - Tests multiple chunk sizes and worker counts
+  - Recommends optimal configuration for your system
+```
+
+### Exit Codes
+
+The CLI uses standard Unix exit codes (sysexits.h):
+
+| Code | Name         | Description                          |
+|------|--------------|--------------------------------------|
+| 0    | SUCCESS      | Command completed successfully       |
+| 1    | ERROR        | General error                        |
+| 65   | EX_DATAERR   | Invalid data or configuration        |
+| 66   | EX_NOINPUT   | Input file not found                 |
+| 70   | EX_SOFTWARE  | Internal software error              |
+| 74   | EX_IOERR     | I/O error (read/write failure)       |
+
+**Usage in scripts:**
+```bash
+#!/bin/bash
+pipeline process -i input.dat -o output.adapipe -p compress-encrypt
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "Success!"
+elif [ $EXIT_CODE -eq 66 ]; then
+    echo "Input file not found"
+elif [ $EXIT_CODE -eq 74 ]; then
+    echo "I/O error - check disk space and permissions"
+else
+    echo "Error occurred (code: $EXIT_CODE)"
+fi
+```
+
+### Environment Variables
+
+```bash
+# Database location
+export ADAPIPE_SQLITE_PATH="./pipeline.db"
+
+# Logging configuration
+export RUST_LOG="pipeline=debug,tower_http=warn"
+
+# Performance tuning
+export RAYON_NUM_THREADS=8        # CPU thread pool size
+export TOKIO_WORKER_THREADS=4     # Async I/O thread pool size
+```
+
+### Shell Completion
+
+Generate shell completion scripts for your shell:
+
+```bash
+# Bash
+pipeline --generate-completion bash > /etc/bash_completion.d/pipeline
+
+# Zsh
+pipeline --generate-completion zsh > /usr/local/share/zsh/site-functions/_pipeline
+
+# Fish
+pipeline --generate-completion fish > ~/.config/fish/completions/pipeline.fish
+
+# PowerShell
+pipeline --generate-completion powershell > pipeline.ps1
 ```
 
 ## ✨ Features
