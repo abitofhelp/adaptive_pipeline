@@ -908,12 +908,12 @@ impl PipelineService for PipelineServiceImpl {
         // STEP 1: Calculate total number of chunks
         let total_chunks = (input_size as usize).div_ceil(chunk_size);
 
-        // STEP 2: Create thread-safe writer
-        // Week 2: Writer uses &self for concurrent writes (no mutex on individual writes!)
-        // But we wrap in Arc for sharing, and Mutex is needed only for finalization
+        // STEP 2: Create thread-safe writer (NO MUTEX!)
+        // Week 2: Writer is now Arc<dyn BinaryFormatWriter> instead of Arc<Mutex<...>>
+        // Workers can write concurrently using platform-specific atomic operations
         let binary_writer = self.binary_format_service
             .create_writer(output_path, header.clone())?;
-        let writer_shared = Arc::new(binary_writer);
+        let writer_shared: Arc<dyn BinaryFormatWriter> = Arc::from(binary_writer);
 
         // Create progress indicator for this operation
         let progress_indicator = Arc::new(ProgressIndicatorService::new(total_chunks as u64));
@@ -973,12 +973,7 @@ impl PipelineService for PipelineServiceImpl {
         let channel_depth = 4; // TODO: Make this configurable via CLI
         let (tx_cpu, rx_cpu) = tokio::sync::mpsc::channel::<ChunkMessage>(channel_depth);
 
-        // STEP 5: Wrap receiver in Arc<Mutex> for sharing among workers
-        // Educational: Multiple workers need to share ONE receiver (MPSC pattern)
-        // This adds some contention, but only on channel receive (not on writes!)
-        let rx_cpu_shared = Arc::new(tokio::sync::Mutex::new(rx_cpu));
-
-        // STEP 6: Spawn reader task
+        // STEP 5: Spawn reader task
         // Single reader streams chunks from disk to CPU workers
         let reader_handle = tokio::spawn(reader_task(
             input_path.to_path_buf(),
@@ -987,83 +982,36 @@ impl PipelineService for PipelineServiceImpl {
             self.file_io_service.clone(),
         ));
 
-        // STEP 7: Spawn CPU worker pool
+        // STEP 6: Spawn CPU worker pool
         // Multiple workers receive chunks, process them, and write directly
         let mut worker_handles = Vec::new();
-        let pipeline_arc = Arc::new(pipeline.clone());
-
         for worker_id in 0..worker_count {
-            let rx_cpu_clone = rx_cpu_shared.clone();
+            let rx_cpu_clone = rx_cpu.clone();
             let writer_clone = writer_shared.clone();
-            let pipeline_clone = pipeline_arc.clone();
+            let pipeline_clone = pipeline.clone();
             let stage_executor_clone = self.stage_executor.clone();
             let input_path_clone = input_path.to_path_buf();
             let output_path_clone = output_path.to_path_buf();
             let security_context_clone = security_context_for_tasks.clone();
 
-            // Each worker shares the receiver via Arc<Mutex>
-            let worker_handle = tokio::spawn(async move {
-                use crate::infrastructure::runtime::RESOURCE_MANAGER;
-                use crate::infrastructure::metrics::CONCURRENCY_METRICS;
-
-                let mut chunks_processed = 0;
-
-                loop {
-                    // Lock receiver to get next chunk
-                    let chunk_msg = {
-                        let mut rx = rx_cpu_clone.lock().await;
-                        rx.recv().await
-                    };
-
-                    match chunk_msg {
-                        Some(chunk_msg) => {
-                            // Acquire global CPU token
-                            let cpu_wait_start = std::time::Instant::now();
-                            let _cpu_permit = RESOURCE_MANAGER.acquire_cpu().await
-                                .map_err(|e| PipelineError::resource_exhausted(format!("Failed to acquire CPU token: {}", e)))?;
-                            let cpu_wait_duration = cpu_wait_start.elapsed();
-
-                            CONCURRENCY_METRICS.record_cpu_wait(cpu_wait_duration);
-                            CONCURRENCY_METRICS.worker_started();
-
-                            // Create local processing context
-                            let mut local_context = ProcessingContext::new(
-                                input_path_clone.clone(),
-                                output_path_clone.clone(),
-                                input_size,
-                                security_context_clone.clone(),
-                            );
-
-                            // Execute all processing stages
-                            let mut file_chunk = chunk_msg.file_chunk;
-                            for stage in pipeline_clone.stages() {
-                                file_chunk = stage_executor_clone.execute(stage, file_chunk, &mut local_context).await
-                                    .map_err(|e| PipelineError::processing_failed(format!("Stage execution failed: {}", e)))?;
-                            }
-
-                            // Prepare and write chunk
-                            let nonce = [0u8; 12]; // TODO: Get from encryption stage
-                            let chunk_format = ChunkFormat::new(nonce, file_chunk.data().to_vec());
-                            writer_clone.write_chunk_at_position(chunk_format, chunk_msg.chunk_index as u64).await?;
-
-                            CONCURRENCY_METRICS.worker_completed();
-                            chunks_processed += 1;
-                        }
-                        None => {
-                            // Channel closed, exit
-                            break;
-                        }
-                    }
-                }
-
-                Ok::<WorkerStats, PipelineError>(WorkerStats {
-                    worker_id,
-                    chunks_processed,
-                })
-            });
+            let worker_handle = tokio::spawn(cpu_worker_task(
+                worker_id,
+                rx_cpu_clone,
+                writer_clone,
+                pipeline_clone,
+                stage_executor_clone,
+                input_path_clone,
+                output_path_clone,
+                input_size,
+                security_context_clone,
+            ));
 
             worker_handles.push(worker_handle);
         }
+
+        // Educational: Drop the original rx_cpu so workers know when to shut down
+        // When all senders are dropped, workers will exit their recv() loops
+        drop(rx_cpu);
 
         // =============================================================================
         // STEP 7: WAIT FOR PIPELINE COMPLETION
@@ -1091,9 +1039,17 @@ impl PipelineService for PipelineServiceImpl {
         // =============================================================================
         // All chunks written, now write footer and finalize
 
-        // Week 2: Finalize writer using &self signature (works perfectly with Arc!)
-        // Educational: No Arc::try_unwrap needed, just call finalize directly
-        let _total_bytes_written = writer_shared.finalize(header).await?;
+        // Extract writer from Arc for finalization
+        // Educational: Arc::try_unwrap succeeds only if we're the last reference
+        let binary_writer = Arc::try_unwrap(writer_shared)
+            .map_err(|_| {
+                PipelineError::internal_error(
+                    "Failed to extract binary writer - workers still hold references"
+                )
+            })?;
+
+        // Finalize the writer - writes footer with metadata
+        let _total_bytes_written = Box::new(binary_writer).finalize(header).await?;
 
         // =============================================================================
         // STEP 9: COLLECT METRICS AND COMPLETE
@@ -1163,6 +1119,272 @@ impl PipelineService for PipelineServiceImpl {
         Ok(metrics)
     }
 
+                // Acquire global CPU permit (global governance)
+                use crate::infrastructure::runtime::RESOURCE_MANAGER;
+                use crate::infrastructure::metrics::CONCURRENCY_METRICS;
+
+                let cpu_wait_start = std::time::Instant::now();
+                let _cpu_permit = RESOURCE_MANAGER.acquire_cpu().await.unwrap();
+                let cpu_wait_duration = cpu_wait_start.elapsed();
+
+                // Educational: Record metrics for observability
+                CONCURRENCY_METRICS.record_cpu_wait(cpu_wait_duration);
+                CONCURRENCY_METRICS.worker_started();
+
+                // Update metrics with current token availability
+                CONCURRENCY_METRICS.update_cpu_tokens_available(
+                    RESOURCE_MANAGER.cpu_tokens_available()
+                );
+
+                // STEP 6b: Create tracing span for this chunk's processing
+                // Using span! instead of entered() to avoid Send issues
+                let chunk_span = tracing::info_span!(
+                    "chunk_processing",
+                    chunk_id = chunk_index,
+                    input_size = chunk_data.len(),
+                    output_size = tracing::field::Empty
+                );
+
+                // STEP 6c: Notify observer that chunk processing started
+                let chunk_start_time = std::time::Instant::now();
+                if let Some(obs) = &observer_clone {
+                    obs.on_chunk_started(chunk_index as u64, chunk_data.len()).await;
+                }
+
+                // STEP 6d: Process chunk within tracing span context
+                let (file_chunk, local_context) = (
+                    async {
+                        // Create a FileChunk domain object
+                        // This wraps the raw chunk data with metadata needed for processing
+                        let mut file_chunk = FileChunk::new(
+                            chunk_index as u64, // Sequence number for ordering
+                            (chunk_index * chunk_size) as u64, // Byte offset in original file
+                            chunk_data.clone(), // The actual chunk data
+                            is_final // Whether this is the last chunk
+                        ).unwrap();
+
+                        // Debug logging for actual chunk size (especially useful for final chunk)
+                        let actual_chunk_size = chunk_data.len();
+                        if is_final {
+                            debug!(
+                                "Final chunk size: {} bytes ({:.6} MB)",
+                                actual_chunk_size,
+                                (actual_chunk_size as f64) / 1_000_000.0
+                            );
+                        }
+                        debug!("Processing chunk {}: {} bytes", chunk_index, actual_chunk_size);
+
+                        // Create a local processing context for this chunk
+                        // Each chunk gets its own context to avoid shared state issues
+                        let mut local_context = ProcessingContext::new(
+                            input_path,
+                            output_path,
+                            input_size,
+                            security_context
+                        );
+
+                        // Process the chunk through all pipeline stages
+                        // This is where the actual work happens: compression, encryption, etc.
+                        // Each stage transforms the chunk and passes it to the next stage
+                        for stage in pipeline_clone.stages() {
+                            file_chunk = stage_executor_clone
+                                .execute(stage, file_chunk, &mut local_context).await
+                                .unwrap();
+                        }
+
+                        // Update tracing span with output size
+                        // This provides structured observability data
+                        tracing::Span::current().record("output_size", file_chunk.data().len());
+
+                        Ok::<(FileChunk, ProcessingContext), PipelineError>((
+                            file_chunk,
+                            local_context,
+                        ))
+                    }
+                )
+                    .instrument(chunk_span).await
+                    .unwrap();
+
+                // STEP 6g: Prepare chunk for .adapipe file format
+                // The .adapipe format includes a nonce (number used once) for security
+                // In production, this would come from the encryption stage
+                let nonce = [0u8; 12]; // Placeholder nonce (12 bytes for AES-GCM)
+
+                // STEP 6h: Create the final chunk format for writing
+                // This wraps the processed data in the .adapipe format structure
+                let adapipe_chunk = pipeline_domain::value_objects::ChunkFormat::new(
+                    nonce, // Security nonce
+                    file_chunk.data().to_vec() // Processed chunk data
+                );
+
+                // STEP 6i: TRANSACTIONAL RANDOM ACCESS WRITE
+                // ==========================================
+                // Write the chunk using the transactional writer which provides:
+                // 1. ACID guarantees - either all chunks written or none committed
+                // 2. Concurrent safety - multiple threads can write simultaneously
+                // 3. Crash recovery - checkpoints allow resuming from failures
+                // 4. Atomic commits - temporary file + atomic rename for durability
+                //
+                // The transactional writer handles all the complexity of:
+                // - Random access positioning
+                // - Thread-safe file access
+                // - Progress tracking with atomic counters
+                // - Checkpoint creation for recovery
+                {
+                    let mut writer = writer_clone.lock().await;
+                    writer.write_chunk(adapipe_chunk).unwrap();
+                }
+
+                // STEP 6j: Update atomic counters for progress tracking
+                // These atomic operations are thread-safe and much simpler than collecting
+                // results
+                let current_chunks =
+                    chunks_completed_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                bytes_processed_clone.fetch_add(
+                    chunk_data.len() as u64,
+                    std::sync::atomic::Ordering::SeqCst
+                );
+
+                // STEP 6k: Update progress indicator with completed chunk
+                // This provides real-time terminal feedback to the user
+                progress_clone.update_progress(current_chunks).await;
+
+                // STEP 6l: Notify observer that chunk processing completed
+                if let Some(obs) = &observer_clone {
+                    let chunk_duration = chunk_start_time.elapsed();
+                    obs.on_chunk_completed(chunk_index as u64, chunk_duration).await;
+
+                    // Calculate current throughput for progress update
+                    let current_bytes = bytes_processed_clone.load(
+                        std::sync::atomic::Ordering::SeqCst
+                    );
+                    let total_bytes = input_size; // We have access to input_size here
+                    let throughput = if chunk_duration.as_secs_f64() > 0.0 {
+                        (chunk_data.len() as f64) / (1024.0 * 1024.0) / chunk_duration.as_secs_f64()
+                    } else {
+                        0.0
+                    };
+                    obs.on_progress_update(current_bytes, total_bytes, throughput).await;
+                }
+
+                // Educational: Mark worker as completed for metrics
+                CONCURRENCY_METRICS.worker_completed();
+
+                Ok::<(), PipelineError>(())
+            });
+
+            // STEP 6j: Add the task to our collection
+            // Each task represents one chunk being processed concurrently
+            tasks.push(task);
+        }
+
+        // =============================================================================
+        // STEP 7: WAIT FOR ALL CONCURRENT TASKS TO COMPLETE
+        // =============================================================================
+        // Now we wait for all the concurrent tasks to finish. Since we're using atomic
+        // counters, we just need to wait for completion - no result collection needed.
+        // =============================================================================
+
+        // STEP 7a: Wait for all concurrent tasks to complete
+        for task in tasks {
+            // Wait for this specific task to complete
+            // The ? handles both the tokio::spawn error and our task error
+            task.await.map_err(|e|
+                PipelineError::processing_failed(format!("Task failed: {}", e))
+            )??;
+        }
+
+        // STEP 7b: Get final counts from atomic counters
+        let chunks_processed = chunks_completed.load(std::sync::atomic::Ordering::SeqCst);
+        let total_bytes_processed = bytes_processed.load(std::sync::atomic::Ordering::SeqCst);
+
+        // =============================================================================
+        // STEP 8: COMMIT TRANSACTION ATOMICALLY
+        // =============================================================================
+        // Now that all chunks have been written successfully, we commit the
+        // transaction. This moves the temporary file to the final location
+        // atomically, ensuring that either the complete file appears or no file
+        // appears at all.
+
+        // Extract the binary writer from the shared Arc
+        let binary_writer = Arc::try_unwrap(writer_shared)
+            .map_err(|_| {
+                PipelineError::InternalError(
+                    "Failed to extract binary writer from shared reference".to_string()
+                )
+            })?;
+
+        // Finalize the binary writer - this writes the footer with metadata and magic
+        // bytes
+        let binary_writer = binary_writer.into_inner();
+        let _total_bytes_written = binary_writer.finalize(header).await?;
+
+        // Show completion summary to user
+        let total_duration = start_time.elapsed();
+        let throughput =
+            (total_bytes_processed as f64) / total_duration.as_secs_f64() / (1024.0 * 1024.0); // MB/s
+        progress_indicator.show_completion(total_bytes_processed, throughput, total_duration).await;
+
+        // Get the final file size for metrics
+        let total_output_bytes = tokio::fs::metadata(output_path)
+            .await
+            .map_err(|e| PipelineError::io_error(format!("Failed to get output file size: {}", e)))?
+            .len();
+
+        let total_duration = start_time.elapsed();
+        let throughput =
+            (total_bytes_processed as f64) / total_duration.as_secs_f64() / (1024.0 * 1024.0); // MB/s
+
+        // Record metrics to Prometheus
+        let mut processing_metrics = context.metrics().clone();
+        processing_metrics.start();
+        processing_metrics.update_bytes_processed(total_bytes_processed);
+        processing_metrics.update_chunks_processed(chunks_processed);
+        processing_metrics.set_output_file_info(total_output_bytes, None);
+        processing_metrics.end();
+
+        // Metrics are recorded via observer to avoid double counting
+
+        // Single concise completion log
+        debug!(
+            "Pipeline completed: {} chunks, {:.2} MB/s, {} → {} in {:?}",
+            chunks_processed,
+            throughput,
+            Byte::from_u128(total_bytes_processed as u128)
+                .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+                .get_appropriate_unit(byte_unit::UnitType::Decimal),
+            Byte::from_u128(total_output_bytes as u128)
+                .unwrap_or_else(|| Byte::from_u128(0).unwrap())
+                .get_appropriate_unit(byte_unit::UnitType::Decimal),
+            total_duration
+        );
+
+        // Create and return processing metrics
+        let mut metrics = context.metrics().clone();
+        metrics.start();
+        metrics.update_bytes_processed(total_bytes_processed);
+        metrics.update_chunks_processed(chunks_processed);
+        // Calculate output file checksum
+        let output_checksum = {
+            let output_data = tokio::fs
+                ::read(output_path).await
+                .map_err(|e| PipelineError::IoError(e.to_string()))
+                .unwrap();
+            let digest = ring::digest::digest(&ring::digest::SHA256, &output_data);
+            hex::encode(digest.as_ref())
+        };
+
+        // Set the actual output file size and checksum
+        metrics.set_output_file_info(total_output_bytes, Some(output_checksum));
+        metrics.end();
+
+        // STEP 7: Notify observer that processing completed with final metrics
+        if let Some(obs) = &observer {
+            obs.on_processing_completed(total_duration, Some(&metrics)).await;
+        }
+
+        Ok(metrics)
+    }
 
     async fn process_chunks(
         &self,

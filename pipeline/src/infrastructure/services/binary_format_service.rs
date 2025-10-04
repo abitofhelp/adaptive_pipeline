@@ -140,7 +140,7 @@ use pipeline_domain::PipelineError;
 use sha2::{Digest, Sha256};
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::fs::{self as fs};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
@@ -201,7 +201,10 @@ pub trait BinaryFormatWriter: Send + Sync {
     async fn write_chunk_at_position(&self, chunk: ChunkFormat, sequence_number: u64) -> Result<(), PipelineError>;
 
     /// Finalizes the .adapipe file by writing the footer with complete metadata
-    async fn finalize(self: Box<Self>, final_header: FileHeader) -> Result<u64, PipelineError>;
+    ///
+    /// Week 2: Changed from `self: Box<Self>` to `&self` for Arc sharing compatibility.
+    /// Uses internal AtomicBool to prevent double-finalization.
+    async fn finalize(&self, final_header: FileHeader) -> Result<u64, PipelineError>;
 
     /// Gets the current number of bytes written
     fn bytes_written(&self) -> u64;
@@ -322,7 +325,11 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
         unimplemented!("BufferedBinaryWriter doesn't support concurrent writes - use StreamingBinaryWriter")
     }
 
-    async fn finalize(self: Box<Self>, mut final_header: FileHeader) -> Result<u64, PipelineError> {
+    async fn finalize(&self, mut final_header: FileHeader) -> Result<u64, PipelineError> {
+        // Week 2: BufferedBinaryWriter is only for tests, not production
+        // In production, use StreamingBinaryWriter with concurrent writes
+        // This implementation writes all buffered chunks to file
+
         // Create the output file
         let mut file = tokio::fs::OpenOptions::new()
             .create(true)
@@ -405,6 +412,10 @@ pub struct StreamingBinaryWriter {
     flush_interval: u64,
     buffer_size_threshold: u64,
     bytes_since_flush: Arc<AtomicU64>,
+
+    /// Week 2: Track finalization state to prevent double-finalization
+    /// Educational: AtomicBool enables thread-safe state checking without mutex
+    finalized: Arc<AtomicBool>,
 }
 
 impl StreamingBinaryWriter {
@@ -428,6 +439,7 @@ impl StreamingBinaryWriter {
             flush_interval: 1024 * 1024,
             buffer_size_threshold: 10 * 1024 * 1024,
             bytes_since_flush: Arc::new(AtomicU64::new(0)),
+            finalized: Arc::new(AtomicBool::new(false)),
         })
     }
 }
@@ -580,7 +592,13 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
         Ok(())
     }
 
-    async fn finalize(self: Box<Self>, mut final_header: FileHeader) -> Result<u64, PipelineError> {
+    async fn finalize(&self, mut final_header: FileHeader) -> Result<u64, PipelineError> {
+        // Week 2: Check if already finalized (prevents double-finalization)
+        // Educational: swap() atomically sets to true and returns old value
+        if self.finalized.swap(true, Ordering::SeqCst) {
+            return Err(PipelineError::internal_error("Writer already finalized"));
+        }
+
         // Update header with final statistics
         final_header.chunk_count = self.chunks_written.load(Ordering::Relaxed) as u32;
         final_header.processed_at = chrono::Utc::now();
@@ -605,7 +623,7 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
             // Get mutable reference to file for write
             let file_ref = &*file;
 
-            // Write footer (we can use a regular write here since finalize is called once)
+            // Write footer using atomic position-based write
             use std::os::unix::fs::FileExt;
             let current_pos = file_ref.metadata()
                 .map(|m| m.len())
