@@ -7,42 +7,11 @@
 
 //! # Pipeline Entity
 //!
-//! The `Pipeline` entity represents the core business object for file
-//! processing workflows. It orchestrates a sequence of processing stages that
-//! transform input files through various operations like compression,
-//! encryption, and validation.
-//!
-//! ## Overview
-//!
-//! A pipeline is a domain entity with distinct identity that maintains its
-//! identity through state changes. It encapsulates the business logic for:
-//!
-//! - Stage ordering and validation
-//! - Processing configuration management
-//! - Metrics collection and reporting
-//! - Integrity verification through mandatory checksum stages
-//!
-//! ## Architecture
-//!
-//! The pipeline follows Domain-Driven Design principles:
-//!
-//! - **Entity Identity**: Each pipeline has a unique `PipelineId`
-//! - **Business Rules**: Enforces stage compatibility and ordering
-//! - **Encapsulation**: Internal state is protected through controlled methods
-//! - **Repository Support**: Implements traits for both generic and SQLite
-//!   repositories
-//!
-//! ## Automatic Stage Management
-//!
-//! Pipelines automatically manage integrity verification by inserting mandatory
-//! stages:
-//!
-//! 1. **Input Checksum Stage** (order: 0) - Validates input file integrity
-//! 2. **User-Defined Stages** (order: 1, 2, 3...) - Custom processing logic
-//! 3. **Output Checksum Stage** (order: final) - Validates output file
-//!    integrity
-//!
-//! This ensures every pipeline maintains data integrity throughout processing.
+//! Core domain entity representing a configurable file processing workflow with
+//! ordered stages (compression, encryption, validation). Automatically adds
+//! input/output checksum stages for integrity verification. Follows DDD
+//! principles with unique identity, business rule enforcement, and repository
+//! support. See mdBook for usage examples and architecture details.
 
 use crate::entities::{PipelineStage, ProcessingMetrics};
 use crate::services::datetime_serde;

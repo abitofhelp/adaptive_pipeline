@@ -7,97 +7,12 @@
 
 //! # File I/O Service Interface
 //!
-//! This module defines the domain service interface for file input/output
-//! operations within the adaptive pipeline system. It provides abstractions for
-//! efficient file reading, writing, and management with support for various
+//! Domain service trait for efficient file operations with chunked reading,
+//! memory mapping for large files, streaming support, and async I/O.
+//! Configurable chunk size, buffer size, and concurrency limits. Provides
+//! checksum verification, metadata extraction, and comprehensive error
+//! handling. Thread-safe operations. See mdBook for configuration and
 //! optimization strategies.
-//!
-//! ## Overview
-//!
-//! The file I/O service provides:
-//!
-//! - **Efficient File Reading**: Optimized file reading with chunking and
-//!   memory mapping
-//! - **Streaming Operations**: Support for streaming large files without
-//!   loading entirely
-//! - **Memory Management**: Intelligent memory usage with configurable limits
-//! - **Concurrent Operations**: Support for concurrent file operations
-//! - **Error Handling**: Comprehensive error handling for file system
-//!   operations
-//!
-//! ## Architecture
-//!
-//! The service follows Domain-Driven Design principles:
-//!
-//! - **Domain Interface**: `FileIOService` trait defines the contract
-//! - **Configuration**: `FileIOConfig` encapsulates I/O parameters
-//! - **Result Types**: Structured result types for operation outcomes
-//! - **Error Handling**: Domain-specific error types and recovery strategies
-//!
-//! ## Key Features
-//!
-//! ### Memory Mapping
-//!
-//! - **Large File Support**: Memory mapping for files larger than configured
-//!   threshold
-//! - **Performance Optimization**: Reduced memory copying for large files
-//! - **Configurable Limits**: Configurable size limits for memory mapping
-//!
-//! ### Chunked Reading
-//!
-//! - **Streaming Support**: Read files in configurable chunks
-//! - **Memory Efficiency**: Process files without loading entirely into memory
-//! - **Parallel Processing**: Enable parallel processing of file chunks
-//!
-//! ### Async Operations
-//!
-//! - **Non-Blocking I/O**: All operations are async for better concurrency
-//! - **Concurrent Operations**: Support for multiple concurrent file operations
-//! - **Resource Management**: Efficient resource allocation and cleanup
-//!
-//! ## Usage Examples
-//!
-//! ### Basic File Reading
-
-//!
-//! ### Chunked File Processing
-
-//!
-//! ### File Writing
-
-//!
-//! ## Configuration
-//!
-//! ### File I/O Configuration
-//!
-//! The service behavior is controlled through `FileIOConfig`:
-//!
-//! - **Chunk Size**: Default chunk size for file reading operations
-//! - **Memory Mapping**: Enable/disable memory mapping for large files
-//! - **Buffer Size**: Buffer size for streaming operations
-//! - **Concurrency**: Maximum number of concurrent file operations
-//! - **Verification**: Enable/disable checksum verification
-//!
-//! ### Performance Tuning
-//!
-//! - **Chunk Size**: Optimize chunk size based on file characteristics
-//! - **Memory Mapping**: Use memory mapping for large files
-//! - **Buffer Size**: Adjust buffer size for I/O operations
-//! - **Concurrency**: Configure concurrent operation limits
-//!
-//! ## Error Handling
-//!
-//! ### File System Errors
-//!
-//! - **File Not Found**: Handle missing files gracefully
-//! - **Permission Errors**: Handle insufficient permissions
-//! - **Disk Space**: Handle insufficient disk space
-//! - **I/O Errors**: Handle various I/O error conditions
-//!
-//! ### Recovery Strategies
-//!
-//! - **Retry Logic**: Automatic retry for transient failures
-//! - **Fallback Methods**: Alternative I/O methods on failure
 //! - **Partial Results**: Return partial results when possible
 //! - **Resource Cleanup**: Automatic cleanup on errors
 //!

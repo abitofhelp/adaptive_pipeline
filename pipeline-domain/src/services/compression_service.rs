@@ -7,83 +7,11 @@
 
 //! # Compression Service
 //!
-//! This module provides domain-level compression services for the adaptive
-//! pipeline system. It defines the compression service interface and related
-//! types for handling data compression and decompression operations within the
-//! pipeline processing workflow.
-//!
-//! ## Overview
-//!
-//! The compression service provides:
-//!
-//! - **Algorithm Support**: Multiple compression algorithms (Brotli, Gzip,
-//!   Zstd, Lz4)
-//! - **Configurable Compression**: Adjustable compression levels and parameters
-//! - **Streaming Processing**: Chunk-by-chunk compression for large files
-//! - **Performance Optimization**: Algorithm selection based on data
-//!   characteristics
-//! - **Error Handling**: Comprehensive error reporting and recovery
-//!
-//! ## Architecture
-//!
-//! The compression service follows Domain-Driven Design principles:
-//!
-//! - **Domain Service**: `CompressionService` trait defines the contract
-//! - **Configuration**: `CompressionConfig` encapsulates compression parameters
-//! - **Algorithms**: `CompressionAlgorithm` enum provides type-safe algorithm
-//!   selection
-//! - **Levels**: `CompressionLevel` enum balances speed vs. compression ratio
-//!
-//! ## Usage Examples
-//!
-//! ### Basic Compression
-
-//!
-//! ### Algorithm Selection
-
-//!
-//! ## Performance Considerations
-//!
-//! ### Algorithm Characteristics
-//!
-//! | Algorithm | Speed | Ratio | Memory | Use Case |
-//! |-----------|-------|-------|--------|-----------|
-//! | Lz4       | Fast  | Good  | Low    | Real-time processing |
-//! | Gzip      | Medium| Good  | Medium | General purpose |
-//! | Zstd      | Medium| Better| Medium | Modern balanced choice |
-//! | Brotli    | Slow  | Best  | High   | Maximum compression |
-//!
-//! ### Compression Levels
-//!
-//! - **Fastest**: Minimal compression, maximum speed
-//! - **Fast**: Light compression, good speed
-//! - **Balanced**: Optimal speed/ratio balance
-//! - **Best**: Maximum compression, slower processing
-//! - **Custom**: Fine-tuned level for specific requirements
-//!
-//! ## Error Handling
-//!
-//! The compression service handles various error conditions:
-//!
-//! - **Compression Failures**: Algorithm-specific errors
-//! - **Memory Limitations**: Out-of-memory conditions
-//! - **Data Corruption**: Invalid or corrupted input
-//! - **Configuration Errors**: Invalid parameters or settings
-//!
-//! ## Thread Safety
-//!
-//! All compression service implementations are thread-safe and can be used
-//! concurrently across multiple threads. The service maintains no mutable state
-//! and all operations are stateless.
-//!
-//! ## Integration
-//!
-//! The compression service integrates with:
-//!
-//! - **Pipeline Processing**: Core pipeline stage processing
-//! - **File Processor**: High-level file processing workflows
-//! - **Metrics Collection**: Performance monitoring and statistics
-//! - **Error Reporting**: Comprehensive error tracking and reporting
+//! Domain service trait for data compression/decompression with support for
+//! multiple algorithms (Brotli, Gzip, Zstd, Lz4) and configurable levels.
+//! Provides chunk-by-chunk streaming for large files, algorithm selection,
+//! performance optimization, and benchmarking. Thread-safe, stateless
+//! operations. See mdBook for algorithm characteristics and usage examples.
 
 use crate::{FileChunk, PipelineError, ProcessingContext};
 

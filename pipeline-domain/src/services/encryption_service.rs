@@ -7,97 +7,12 @@
 
 //! # Encryption Service
 //!
-//! This module provides domain-level encryption services for the adaptive
-//! pipeline system. It defines the encryption service interface and related
-//! types for handling data encryption and decryption operations within the
-//! pipeline processing workflow.
-//!
-//! ## Overview
-//!
-//! The encryption service provides:
-//!
-//! - **Algorithm Support**: Multiple encryption algorithms (AES-256-GCM,
-//!   ChaCha20-Poly1305)
-//! - **Key Management**: Secure key generation, derivation, and storage
-//! - **Authenticated Encryption**: Built-in integrity verification and
-//!   authentication
-//! - **Streaming Processing**: Chunk-by-chunk encryption for large files
-//! - **Security Context**: Integration with security policies and access
-//!   controls
-//!
-//! ## Architecture
-//!
-//! The encryption service follows Domain-Driven Design principles:
-//!
-//! - **Domain Service**: `EncryptionService` trait defines the contract
-//! - **Configuration**: `EncryptionConfig` encapsulates encryption parameters
-//! - **Algorithms**: `EncryptionAlgorithm` enum provides type-safe algorithm
-//!   selection
-//! - **Key Management**: `EncryptionKey` handles secure key operations
-//! - **Security Context**: Integration with access control and security
-//!   policies
-//!
-//! ## Security Features
-//!
-//! ### Authenticated Encryption
-//!
-//! All encryption algorithms provide authenticated encryption with associated
-//! data (AEAD):
-//! - **Confidentiality**: Data is encrypted and unreadable without the key
-//! - **Integrity**: Tampering is detected through authentication tags
-//! - **Authentication**: Verifies data origin and prevents forgery
-//!
-//! ### Key Derivation
-//!
-//! Secure key derivation from passwords or key material:
-//! - **Argon2**: Memory-hard function resistant to GPU attacks
-//! - **Scrypt**: Memory-hard function with tunable parameters
-//! - **PBKDF2**: Standard key derivation with configurable iterations
-//!
-//! ### Memory Security
-//!
-//! Sensitive data is protected in memory:
-//! - **Zeroization**: Keys are securely wiped from memory
-//! - **Secure Storage**: Minimal exposure of sensitive material
-//! - **Drop Safety**: Automatic cleanup on scope exit
-//!
-//! ## Usage Examples
-//!
-//! ### Basic Encryption
-
-//!
-//! ### Key Management
-
-//!
-//! ## Performance Considerations
-//!
-//! ### Algorithm Characteristics
-//!
-//! | Algorithm        | Speed | Security | Key Size | Nonce Size |
-//! |------------------|-------|----------|----------|------------|
-//! | AES-256-GCM      | Fast  | High     | 32 bytes | 12 bytes   |
-//! | ChaCha20-Poly1305| Fast  | High     | 32 bytes | 12 bytes   |
-//! | AES-128-GCM      | Faster| High     | 16 bytes | 12 bytes   |
-//! | AES-192-GCM      | Fast  | High     | 24 bytes | 12 bytes   |
-//!
-//! ### Key Derivation Performance
-//!
-//! - **Argon2**: Slower but more secure against GPU attacks
-//! - **Scrypt**: Balanced performance and security
-//! - **PBKDF2**: Faster but less resistant to specialized attacks
-//!
-//! ## Error Handling
-//!
-//! The encryption service handles various error conditions:
-//!
-//! - **Encryption Failures**: Algorithm-specific errors
-//! - **Key Derivation Errors**: Invalid parameters or insufficient entropy
-//! - **Authentication Failures**: Tampering detection during decryption
-//! - **Configuration Errors**: Invalid algorithms or parameters
-//!
-//! ## Thread Safety
-//!
-//! All encryption service implementations are thread-safe and can be used
+//! Domain service trait for authenticated encryption (AEAD) with algorithms
+//! (AES-256-GCM, ChaCha20-Poly1305), secure key derivation (Argon2, Scrypt,
+//! PBKDF2), and memory zeroization. Provides chunk-by-chunk streaming,
+//! tampering detection, and security context integration. Thread-safe,
+//! stateless operations. See mdBook for algorithm comparison and security
+//! features.
 //! concurrently across multiple threads. The service maintains no mutable state
 //! and all operations are stateless.
 //!
