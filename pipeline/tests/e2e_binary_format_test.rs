@@ -1,30 +1,8 @@
 //! # End-to-End Binary Format Tests
 //!
-//! Comprehensive end-to-end tests for the .adapipe binary format including
-//! complete file processing workflows and format validation.
-//!
-//! ## Test Coverage
-//!
-//! - **Complete Roundtrips**: Input file → .adapipe → restored output
-//!   validation
-//! - **Multi-Chunk Processing**: Large file handling with chunked processing
-//! - **Error Handling**: Corruption detection and error recovery
-//! - **Version Compatibility**: Binary format version validation
-//! - **Format Integrity**: Binary structure and metadata validation
-//!
-//! ## Test Scenarios
-//!
-//! - Small file processing (< 1KB)
-//! - Medium file processing (1KB - 1MB)
-//! - Large file processing (> 1MB)
-//! - Empty file handling
-//! - Corrupted file detection
-//!
-//! ## Running Tests
-//!
-//! ```bash
-//! cargo test e2e_binary_format_test
-//! ```
+//! E2E tests for .adapipe binary format: complete roundtrips, multi-chunk
+//! processing, format validation, corruption detection, and version
+//! compatibility.
 
 use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
@@ -33,11 +11,7 @@ use pipeline::infrastructure::services::{BinaryFormatService, BinaryFormatServic
 use pipeline_domain::value_objects::{ChunkFormat, FileHeader};
 use pipeline_domain::PipelineError;
 
-/// Tests complete .adapipe file format roundtrip workflow.
-///
-/// Validates the entire processing pipeline from input file through
-/// compression/encryption to .adapipe format and back to restored output,
-/// ensuring data integrity throughout the process.
+/// Tests complete .adapipe roundtrip: input → compression/encryption → .adapipe → restored output.
 #[tokio::test]
 async fn test_e2e_adapipe_format_complete_roundtrip() {
     let temp_dir = TempDir::new().unwrap();

@@ -1,46 +1,7 @@
 //! # Architecture Compliance Test Framework
 //!
-//! Comprehensive tests validating architectural compliance and design
-//! principles across the adaptive pipeline system.
-//!
-//! ## Architecture Validation
-//!
-//! - **Domain-Driven Design (DDD)**: Entity isolation, value objects, domain
-//!   services
-//! - **Clean Architecture**: Dependency rules, use case isolation,
-//!   infrastructure abstraction
-//! - **Hexagonal Architecture**: Ports/adapters pattern, application core
-//!   isolation
-//! - **Dependency Inversion Principle (DIP)**: Abstraction dependencies,
-//!   interface stability
-//!
-//! ## Test Categories
-//!
-//! ### DDD Compliance
-//! - Domain entity isolation testing
-//! - Value object pattern validation
-//! - Domain service interface testing
-//!
-//! ### Clean Architecture
-//! - Dependency direction validation
-//! - Use case isolation testing
-//! - Infrastructure abstraction testing
-//!
-//! ### Hexagonal Architecture
-//! - Primary ports (driving adapters) testing
-//! - Secondary ports (driven adapters) testing
-//! - Application core isolation validation
-//!
-//! ### DIP Compliance
-//! - Abstraction dependency testing
-//! - Interface-based testing validation
-//! - Abstraction stability testing
-//!
-//! ## Running Tests
-//!
-//! ```bash
-//! cargo test architecture_compliance_test
-//! ```
+//! Validates architectural compliance with DDD, Clean Architecture, Hexagonal
+//! Architecture, and Dependency Inversion principles.
 
 use std::time::Duration;
 

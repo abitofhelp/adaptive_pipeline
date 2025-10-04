@@ -1,38 +1,7 @@
 //! # End-to-End Restore Pipeline Tests
 //!
-//! Comprehensive end-to-end tests for the restoration pipeline functionality,
-//! validating complete workflows from `.adapipe` files back to original files.
-//!
-//! ## Test Coverage
-//!
-//! - **Complete Restore Workflows**: Full restoration from `.adapipe` format
-//! - **Stage Ordering**: Proper reverse-order processing for restoration
-//! - **Multi-Stage Processing**: Compression, encryption, and checksum
-//!   validation
-//! - **Error Handling**: Restoration failure scenarios and recovery
-//! - **Performance Validation**: Restoration performance metrics
-//!
-//! ## Restoration Process
-//!
-//! The restoration pipeline processes `.adapipe` files in reverse order:
-//! 1. Input checksum validation
-//! 2. Decryption (if encrypted)
-//! 3. Decompression (if compressed)
-//! 4. File verification
-//! 5. Output checksum validation
-//!
-//! ## Test Scenarios
-//!
-//! - Basic restoration workflow validation
-//! - Multi-stage processing with compression and encryption
-//! - Stage ordering verification for proper reverse processing
-//! - Error handling and recovery scenarios
-//!
-//! ## Running Tests
-//!
-//! ```bash
-//! cargo test e2e_restore_pipeline_test
-//! ```
+//! E2E tests for restoration pipeline: .adapipe → original file with reverse-
+//! order stage processing (decryption, decompression, checksum validation).
 
 use std::fs;
 use tempfile::TempDir;
@@ -44,19 +13,7 @@ use pipeline_domain::value_objects::file_chunk::FileChunk;
 // Import the restore functions from restoration module
 use pipeline::create_restoration_pipeline;
 
-/// Tests complete end-to-end restore workflow from `.adapipe` format.
-///
-/// This test validates the entire restoration process including:
-/// - Pipeline creation from file header metadata
-/// - Stage configuration and ordering
-/// - Basic restoration workflow validation
-/// - Pipeline properties and naming conventions
-///
-/// # Test Scenario
-/// - Creates a test file header with compression metadata
-/// - Generates restoration pipeline from header
-/// - Validates pipeline structure and properties
-/// - Ensures proper stage configuration
+/// Tests complete restore workflow: .adapipe header → restoration pipeline with proper stage ordering.
 #[tokio::test]
 async fn test_e2e_complete_restore_workflow() {
     let _temp_dir = TempDir::new().expect("Failed to create temp dir");

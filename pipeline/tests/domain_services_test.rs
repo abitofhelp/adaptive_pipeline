@@ -1,30 +1,8 @@
 //! # Domain Services Unit Tests
 //!
-//! Comprehensive unit tests for domain layer services including encryption,
-//! compression, checksum, and file I/O operations.
-//!
-//! ## Test Coverage
-//!
-//! - **Compression Service**: Algorithm testing, data integrity, performance
-//! - **Encryption Service**: Key management, security validation, roundtrip
-//!   testing
-//! - **Checksum Service**: Algorithm coverage, deterministic validation
-//! - **File I/O Service**: Basic operations, chunked operations, error handling
-//! - **Integration Testing**: Multi-service workflows and end-to-end validation
-//!
-//! ## Test Framework
-//!
-//! Uses structured testing framework with:
-//! - Comprehensive test data providers
-//! - Performance measurement utilities
-//! - Validation patterns for integrity and security
-//! - Edge case coverage for robustness
-//!
-//! ## Running Tests
-//!
-//! ```bash
-//! cargo test domain_services_test
-//! ```
+//! Unit tests for domain layer services: compression, encryption, checksum,
+//! and file I/O. Validates algorithms, integrity, performance, and roundtrip
+//! operations.
 
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -57,20 +35,10 @@ use pipeline_domain::PipelineError;
 // DOMAIN SERVICES TEST FRAMEWORK IMPLEMENTATION
 // ============================================================================
 
-/// Test framework implementation for domain services.
-///
-/// Provides comprehensive test data, utilities, and validation patterns
-/// for testing domain layer services with various algorithms and data sizes.
+/// Test framework for domain services with test data and validation utilities.
 struct DomainServicesTestImpl;
 
 impl DomainServicesTestImpl {
-    /// Provides test data sets for various testing scenarios.
-    ///
-    /// Returns different sizes of test data for comprehensive testing:
-    /// - Small data for basic functionality
-    /// - Medium data for typical use cases
-    /// - Large data for performance testing
-    /// - Empty data for edge case testing
     fn test_data_small() -> &'static [u8] {
         b"Hello, World! This is test data for domain services."
     }
@@ -87,60 +55,32 @@ impl DomainServicesTestImpl {
         b""
     }
 
-    /// Provides compression algorithms for testing.
-    ///
-    /// Returns a list of compression algorithms with their recommended
-    /// compression levels for comprehensive algorithm coverage.
     fn compression_algorithms() -> Vec<(&'static str, u32)> {
         vec![("brotli", 6), ("gzip", 6), ("lz4", 1)]
     }
 
-    /// Provides encryption algorithms for testing.
-    ///
-    /// Returns a list of encryption algorithms for comprehensive
-    /// security and encryption testing coverage.
     fn encryption_algorithms() -> Vec<&'static str> {
         vec!["aes256gcm", "chacha20poly1305", "xchacha20poly1305"]
     }
 
-    /// Provides checksum algorithms for testing.
-    ///
-    /// Returns a list of checksum algorithms for comprehensive
-    /// data integrity validation testing.
     fn checksum_algorithms() -> Vec<&'static str> {
         vec!["sha256", "sha512", "blake3", "md5"]
     }
 
-    /// Creates a test file chunk from data.
-    ///
-    /// Utility function for creating FileChunk instances
-    /// with specified parameters for testing.
     fn create_test_chunk(data: &[u8], chunk_id: u64, offset: u64, is_final: bool) -> Result<FileChunk, PipelineError> {
         FileChunk::new(chunk_id, offset, data.to_vec(), is_final)
     }
 
-    /// Creates a test encryption key ID.
-    ///
-    /// Utility function for creating EncryptionKeyId instances
-    /// with test-specific naming for encryption testing.
     fn create_test_key_id(suffix: &str) -> Result<EncryptionKeyId, PipelineError> {
         EncryptionKeyId::new(format!("test-key-{}", suffix))
     }
 
-    /// Creates a temporary test file with data.
-    ///
-    /// Utility function for creating temporary files with
-    /// specified data for file I/O testing.
     async fn create_temp_file_with_data(data: &[u8]) -> Result<NamedTempFile, std::io::Error> {
         let temp_file = NamedTempFile::new()?;
         fs::write(temp_file.path(), data).await?;
         Ok(temp_file)
     }
 
-    /// Validates service roundtrip integrity.
-    ///
-    /// Performs roundtrip validation for operations like compress/decompress
-    /// and encrypt/decrypt to ensure data integrity.
     fn validate_roundtrip_integrity(original: &[u8], final_result: &[u8], operation: &str) {
         assert_eq!(
             original, final_result,
