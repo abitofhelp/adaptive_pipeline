@@ -296,12 +296,115 @@
 <strong>Authors:</strong> Michael Gardner
 <strong>Status:</strong> Draft</p>
 <p>Introduction to pipelines and their purpose.</p>
-<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>TODO: Explain what a pipeline is</p>
+<h2 id="what-is-a-pipeline-1"><a class="header" href="#what-is-a-pipeline-1">What is a Pipeline?</a></h2>
+<p>A <strong>pipeline</strong> is a series of connected processing stages that transform data from input to output. Each stage performs a specific operation, and data flows through the stages sequentially or in parallel.</p>
+<p>Think of it like a factory assembly line:</p>
+<ul>
+<li>Raw materials (input file) enter at one end</li>
+<li>Each station (stage) performs a specific task</li>
+<li>The finished product (processed file) exits at the other end</li>
+</ul>
 <h2 id="real-world-analogy"><a class="header" href="#real-world-analogy">Real-World Analogy</a></h2>
-<p>TODO: Add assembly line analogy</p>
-<h2 id="pipeline-benefits"><a class="header" href="#pipeline-benefits">Pipeline Benefits</a></h2>
-<p>TODO: Add benefits</p>
+<h3 id="assembly-line"><a class="header" href="#assembly-line">Assembly Line</a></h3>
+<p>Imagine an automobile assembly line:</p>
+<pre><code>Raw Materials → Welding → Painting → Assembly → Quality Check → Finished Car
+</code></pre>
+<p>In our pipeline system:</p>
+<pre><code>Input File → Compression → Encryption → Validation → Output File
+</code></pre>
+<p>Each stage:</p>
+<ul>
+<li>Receives data from the previous stage</li>
+<li>Performs its specific transformation</li>
+<li>Passes the result to the next stage</li>
+</ul>
+<h2 id="why-use-a-pipeline"><a class="header" href="#why-use-a-pipeline">Why Use a Pipeline?</a></h2>
+<h3 id="modularity"><a class="header" href="#modularity">Modularity</a></h3>
+<p>Each stage does one thing well. You can:</p>
+<ul>
+<li>Add new stages easily</li>
+<li>Remove stages you don't need</li>
+<li>Reorder stages as needed</li>
+</ul>
+<p><strong>Example</strong>: Need encryption? Add an encryption stage. Don't need compression? Remove the compression stage.</p>
+<h3 id="reusability"><a class="header" href="#reusability">Reusability</a></h3>
+<p>Stages can be used in multiple pipelines:</p>
+<ul>
+<li>Use the same compression stage in different workflows</li>
+<li>Share validation logic across projects</li>
+<li>Build libraries of reusable components</li>
+</ul>
+<h3 id="testability"><a class="header" href="#testability">Testability</a></h3>
+<p>Each stage can be tested independently:</p>
+<ul>
+<li>Unit test individual stages</li>
+<li>Mock stage inputs/outputs</li>
+<li>Verify stage behavior in isolation</li>
+</ul>
+<h3 id="scalability"><a class="header" href="#scalability">Scalability</a></h3>
+<p>Pipelines can process data efficiently:</p>
+<ul>
+<li>Process file chunks in parallel</li>
+<li>Distribute work across CPU cores</li>
+<li>Handle files of any size</li>
+</ul>
+<h2 id="our-pipeline-system"><a class="header" href="#our-pipeline-system">Our Pipeline System</a></h2>
+<p>The Optimized Adaptive Pipeline provides:</p>
+<p><strong>File Processing</strong>: Transform files through configurable stages</p>
+<ul>
+<li>Input: Any file type</li>
+<li>Stages: Compression, encryption, validation</li>
+<li>Output: Processed <code>.adapipe</code> file</li>
+</ul>
+<p><strong>Flexibility</strong>: Configure stages for your needs</p>
+<ul>
+<li>Enable/disable stages</li>
+<li>Choose algorithms (Brotli, LZ4, Zstandard for compression)</li>
+<li>Set security levels (Public → Top Secret)</li>
+</ul>
+<p><strong>Performance</strong>: Handle large files efficiently</p>
+<ul>
+<li>Stream processing (low memory usage)</li>
+<li>Parallel chunk processing</li>
+<li>Optimized algorithms</li>
+</ul>
+<p><strong>Security</strong>: Protect sensitive data</p>
+<ul>
+<li>AES-256-GCM encryption</li>
+<li>Argon2 key derivation</li>
+<li>Integrity verification with checksums</li>
+</ul>
+<h2 id="pipeline-flow"><a class="header" href="#pipeline-flow">Pipeline Flow</a></h2>
+<p>Here's how data flows through the pipeline:</p>
+<p><img src="fundamentals/../diagrams/pipeline-flow.svg" alt="Pipeline Flow" /></p>
+<ol>
+<li><strong>Input</strong>: Read file from disk</li>
+<li><strong>Chunk</strong>: Split into manageable pieces (default 1MB)</li>
+<li><strong>Process</strong>: Apply stages to each chunk
+<ul>
+<li>Compress (optional)</li>
+<li>Encrypt (optional)</li>
+<li>Calculate checksum (always)</li>
+</ul>
+</li>
+<li><strong>Store</strong>: Write processed data and metadata</li>
+<li><strong>Verify</strong>: Confirm integrity of output</li>
+</ol>
+<h2 id="what-you-can-do"><a class="header" href="#what-you-can-do">What You Can Do</a></h2>
+<p>With this pipeline, you can:</p>
+<p>✅ <strong>Compress files</strong> to save storage space
+✅ <strong>Encrypt files</strong> to protect sensitive data
+✅ <strong>Validate integrity</strong> to detect corruption
+✅ <strong>Process large files</strong> without running out of memory
+✅ <strong>Customize workflows</strong> with configurable stages
+✅ <strong>Track metrics</strong> to monitor performance</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Continue to:</p>
+<ul>
+<li><a href="fundamentals/core-concepts.html">Core Concepts</a> - Key terminology and ideas</li>
+<li><a href="fundamentals/stages.html">Pipeline Stages</a> - Understanding stage types</li>
+<li><a href="fundamentals/configuration.html">Configuration Basics</a> - How to configure pipelines</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
@@ -311,12 +414,158 @@
 <strong>Authors:</strong> Michael Gardner
 <strong>Status:</strong> Draft</p>
 <p>Essential concepts for understanding the pipeline.</p>
-<h2 id="stages"><a class="header" href="#stages">Stages</a></h2>
-<p>TODO: Explain stages</p>
+<h2 id="key-terminology"><a class="header" href="#key-terminology">Key Terminology</a></h2>
+<h3 id="pipeline"><a class="header" href="#pipeline">Pipeline</a></h3>
+<p>A complete file processing workflow with:</p>
+<ul>
+<li><strong>Unique ID</strong>: Every pipeline has a ULID identifier</li>
+<li><strong>Input path</strong>: Source file to process</li>
+<li><strong>Output path</strong>: Destination for processed data</li>
+<li><strong>Stages</strong>: Ordered list of processing steps</li>
+<li><strong>Status</strong>: Created → Running → Completed (or Failed)</li>
+</ul>
+<h3 id="stage"><a class="header" href="#stage">Stage</a></h3>
+<p>An individual processing operation within a pipeline:</p>
+<ul>
+<li><strong>Type</strong>: Compression, Encryption, or Integrity Check</li>
+<li><strong>Algorithm</strong>: Specific implementation (e.g., Brotli, AES-256-GCM)</li>
+<li><strong>Sequence</strong>: Order in the pipeline (1, 2, 3, ...)</li>
+<li><strong>Configuration</strong>: Stage-specific settings</li>
+</ul>
+<h3 id="file-chunk"><a class="header" href="#file-chunk">File Chunk</a></h3>
+<p>A portion of a file processed independently:</p>
+<ul>
+<li><strong>Size</strong>: Configurable (default 1MB)</li>
+<li><strong>Sequence</strong>: Chunk number (0, 1, 2, ...)</li>
+<li><strong>Checksum</strong>: Integrity verification value</li>
+<li><strong>Offset</strong>: Position in original file</li>
+</ul>
+<h2 id="core-components"><a class="header" href="#core-components">Core Components</a></h2>
+<h3 id="entities"><a class="header" href="#entities">Entities</a></h3>
+<p><strong>Pipeline Entity</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Pipeline {
+    id: PipelineId,
+    input_file_path: FilePath,
+    output_file_path: FilePath,
+    stages: Vec&lt;PipelineStage&gt;,
+    status: PipelineStatus,
+    created_at: DateTime,
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>PipelineStage Entity</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>PipelineStage {
+    id: StageId,
+    pipeline_id: PipelineId,
+    stage_type: StageType,
+    algorithm: Algorithm,
+    sequence_number: u32,
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="value-objects"><a class="header" href="#value-objects">Value Objects</a></h3>
+<p><strong>FilePath</strong> - Validated file system path</p>
+<ul>
+<li>Must exist (for input) or be writable (for output)</li>
+<li>Supports absolute and relative paths</li>
+<li>Cross-platform compatibility</li>
+</ul>
+<p><strong>FileSize</strong> - File size in bytes</p>
+<ul>
+<li>Human-readable display (KB, MB, GB)</li>
+<li>Validation for reasonable limits</li>
+<li>Efficient storage representation</li>
+</ul>
+<p><strong>Algorithm</strong> - Processing algorithm specification</p>
+<ul>
+<li>Compression: Brotli, LZ4, Zstandard</li>
+<li>Encryption: AES-256-GCM, ChaCha20-Poly1305</li>
+<li>Checksum: Blake3, SHA-256</li>
+</ul>
 <h2 id="data-flow"><a class="header" href="#data-flow">Data Flow</a></h2>
-<p>TODO: Explain data flow</p>
-<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
-<p>TODO: Explain configuration basics</p>
+<h3 id="sequential-processing"><a class="header" href="#sequential-processing">Sequential Processing</a></h3>
+<p>Stages execute in order:</p>
+<pre><code>Input → Stage 1 → Stage 2 → Stage 3 → Output
+</code></pre>
+<h3 id="parallel-chunk-processing"><a class="header" href="#parallel-chunk-processing">Parallel Chunk Processing</a></h3>
+<p>Chunks process independently:</p>
+<pre><code>Chunk 0 ──┐
+Chunk 1 ──┼→ All go through stages → Reassemble
+Chunk 2 ──┘
+</code></pre>
+<p>This enables:</p>
+<ul>
+<li><strong>Concurrency</strong>: Multiple chunks processed simultaneously</li>
+<li><strong>Memory efficiency</strong>: Only active chunks in memory</li>
+<li><strong>Scalability</strong>: Leverage multiple CPU cores</li>
+</ul>
+<h3 id="pipeline-execution-sequence"><a class="header" href="#pipeline-execution-sequence">Pipeline Execution Sequence</a></h3>
+<p><img src="fundamentals/../diagrams/stage-execution.svg" alt="Stage Execution" /></p>
+<ol>
+<li><strong>CLI</strong> receives command</li>
+<li><strong>Pipeline Service</strong> creates pipeline</li>
+<li><strong>File Processor</strong> reads input file</li>
+<li>For each chunk:
+<ul>
+<li>Apply compression (if enabled)</li>
+<li>Apply encryption (if enabled)</li>
+<li>Calculate checksum (always)</li>
+<li>Store chunk metadata</li>
+<li>Write processed chunk</li>
+</ul>
+</li>
+<li>Update pipeline status</li>
+<li>Return result to user</li>
+</ol>
+<h2 id="domain-model"><a class="header" href="#domain-model">Domain Model</a></h2>
+<p>Our domain model follows Domain-Driven Design principles:</p>
+<p><img src="fundamentals/../diagrams/domain-model.svg" alt="Domain Model" /></p>
+<h3 id="aggregates"><a class="header" href="#aggregates">Aggregates</a></h3>
+<p><strong>Pipeline Aggregate</strong> - The root entity</p>
+<ul>
+<li>Contains Pipeline entity</li>
+<li>Manages associated FileChunks</li>
+<li>Enforces business rules</li>
+<li>Ensures consistency</li>
+</ul>
+<h3 id="relationships"><a class="header" href="#relationships">Relationships</a></h3>
+<ul>
+<li>Pipeline <strong>has many</strong> PipelineStages (1:N)</li>
+<li>Pipeline <strong>processes</strong> FileChunks (1:N)</li>
+<li>FileChunk <strong>belongs to</strong> Pipeline (N:1)</li>
+<li>PipelineStage <strong>uses</strong> Algorithm (N:1)</li>
+</ul>
+<h2 id="processing-guarantees"><a class="header" href="#processing-guarantees">Processing Guarantees</a></h2>
+<h3 id="integrity"><a class="header" href="#integrity">Integrity</a></h3>
+<p>Every chunk has a checksum:</p>
+<ul>
+<li>Calculated after processing</li>
+<li>Verified on read/restore</li>
+<li>Detects any corruption</li>
+</ul>
+<h3 id="atomicity"><a class="header" href="#atomicity">Atomicity</a></h3>
+<p>Pipeline operations are transactional:</p>
+<ul>
+<li>All stages complete, or none do</li>
+<li>Metadata stored consistently</li>
+<li>No partial outputs on failure</li>
+</ul>
+<h3 id="durability"><a class="header" href="#durability">Durability</a></h3>
+<p>Processed data is persisted:</p>
+<ul>
+<li>SQLite database for metadata</li>
+<li>File system for binary data</li>
+<li>Recoverable after crashes</li>
+</ul>
+<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<p>Continue to:</p>
+<ul>
+<li><a href="fundamentals/stages.html">Pipeline Stages</a> - Types of stages available</li>
+<li><a href="fundamentals/configuration.html">Configuration Basics</a> - How to configure pipelines</li>
+<li><a href="fundamentals/first-run.html">Running Your First Pipeline</a> - Hands-on tutorial</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="pipeline-stages"><a class="header" href="#pipeline-stages">Pipeline Stages</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
@@ -432,7 +681,7 @@
 <h2 id="hexagonal-architecture-ports-and-adapters"><a class="header" href="#hexagonal-architecture-ports-and-adapters">Hexagonal Architecture (Ports and Adapters)</a></h2>
 <p>The pipeline uses Hexagonal Architecture to isolate the core business logic:</p>
 <p><img src="architecture/../diagrams/hexagonal-architecture.svg" alt="Hexagonal Architecture" /></p>
-<h3 id="core-components"><a class="header" href="#core-components">Core Components</a></h3>
+<h3 id="core-components-1"><a class="header" href="#core-components-1">Core Components</a></h3>
 <p><strong>Application Core</strong></p>
 <ul>
 <li>Domain model (entities, value objects)</li>
@@ -481,7 +730,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <li>Flexible infrastructure</li>
 <li>Maintainable codebase</li>
 </ul>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
 <p>Continue to:</p>
 <ul>
 <li><a href="architecture/layers.html">Layered Architecture Details</a> - Deep dive into each layer</li>
@@ -520,7 +769,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>TODO: Explain DIP application</p>
 <h2 id="trait-abstractions"><a class="header" href="#trait-abstractions">Trait Abstractions</a></h2>
 <p>TODO: Explain trait usage</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="domain-model"><a class="header" href="#domain-model">Domain Model</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="domain-model-1"><a class="header" href="#domain-model-1">Domain Model</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
@@ -535,7 +784,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>TODO: Explain core domain</p>
 <h2 id="ubiquitous-language"><a class="header" href="#ubiquitous-language">Ubiquitous Language</a></h2>
 <p>TODO: Explain ubiquitous language</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="entities"><a class="header" href="#entities">Entities</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="entities-1"><a class="header" href="#entities-1">Entities</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
@@ -550,7 +799,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>TODO: Extract from entities/pipeline.rs</p>
 <h2 id="stage-entity"><a class="header" href="#stage-entity">Stage Entity</a></h2>
 <p>TODO: Extract from entities/pipeline_stage.rs</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="value-objects"><a class="header" href="#value-objects">Value Objects</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="value-objects-1"><a class="header" href="#value-objects-1">Value Objects</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
@@ -565,7 +814,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>TODO: Explain immutability</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <p>TODO: List key value objects</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="aggregates"><a class="header" href="#aggregates">Aggregates</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="aggregates-1"><a class="header" href="#aggregates-1">Aggregates</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
@@ -603,11 +852,245 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <strong>Status:</strong> Draft</p>
 <p>The Repository pattern for data persistence.</p>
 <h2 id="pattern-overview-1"><a class="header" href="#pattern-overview-1">Pattern Overview</a></h2>
-<p>TODO: Extract from repository files</p>
-<h2 id="implementation"><a class="header" href="#implementation">Implementation</a></h2>
-<p>TODO: Show implementation</p>
+<p>The Repository pattern provides an abstraction layer between the domain and data mapping layers. It acts like an in-memory collection of domain objects, hiding the complexities of database operations.</p>
+<p><strong>Key Idea</strong>: Your business logic shouldn't know whether data comes from SQLite, PostgreSQL, or a file. It just uses a <code>Repository</code> trait.</p>
+<h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
+<p><img src="architecture/../diagrams/repository-pattern.svg" alt="Repository Pattern" /></p>
+<h3 id="components"><a class="header" href="#components">Components</a></h3>
+<p><strong>Repository Trait</strong> (Domain Layer)</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait PipelineRepository {
+    fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+    fn find_by_id(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;Option&lt;Pipeline&gt;&gt;;
+    fn update(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+    fn delete(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;()&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Repository Adapter</strong> (Infrastructure Layer)</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct PipelineRepositoryAdapter {
+    repository: SQLitePipelineRepository,
+}
+
+impl PipelineRepository for PipelineRepositoryAdapter {
+    // Implements trait methods
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Concrete Repository</strong> (Infrastructure Layer)</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct SQLitePipelineRepository {
+    pool: SqlitePool,
+    mapper: PipelineMapper,
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="layer-responsibilities"><a class="header" href="#layer-responsibilities">Layer Responsibilities</a></h2>
+<h3 id="domain-layer-1"><a class="header" href="#domain-layer-1">Domain Layer</a></h3>
+<p>Defines <strong>what</strong> operations are needed:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Domain defines the interface
+pub trait PipelineRepository: Send + Sync {
+    async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+    async fn find_by_id(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;Option&lt;Pipeline&gt;&gt;;
+    // ... more methods
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Domain knows:</p>
+<ul>
+<li>What operations it needs</li>
+<li>What domain entities look like</li>
+<li>Business rules and validations</li>
+</ul>
+<p>Domain <strong>doesn't know</strong>:</p>
+<ul>
+<li>SQL syntax</li>
+<li>Database technology</li>
+<li>Connection pooling</li>
+</ul>
+<h3 id="infrastructure-layer-1"><a class="header" href="#infrastructure-layer-1">Infrastructure Layer</a></h3>
+<p>Implements <strong>how</strong> to persist data:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl PipelineRepository for PipelineRepositoryAdapter {
+    async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt; {
+        // Convert domain entity to database row
+        let row = self.mapper.to_persistence(pipeline);
+
+        // Execute SQL
+        sqlx::query("INSERT INTO pipelines ...")
+            .execute(&amp;self.pool)
+            .await?;
+
+        Ok(())
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Infrastructure knows:</p>
+<ul>
+<li>SQL syntax and queries</li>
+<li>Database schema</li>
+<li>Connection management</li>
+<li>Error handling</li>
+</ul>
+<h2 id="data-mapping"><a class="header" href="#data-mapping">Data Mapping</a></h2>
+<p>The <strong>Mapper</strong> separates domain models from database schema:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct PipelineMapper;
+
+impl PipelineMapper {
+    // Domain → Database
+    fn to_persistence(&amp;self, pipeline: &amp;Pipeline) -&gt; PipelineRow {
+        PipelineRow {
+            id: pipeline.id().to_string(),
+            input_path: pipeline.input_path().to_string(),
+            // ... map all fields
+        }
+    }
+
+    // Database → Domain
+    fn to_domain(&amp;self, row: SqliteRow) -&gt; Result&lt;Pipeline&gt; {
+        Pipeline::new(
+            PipelineId::from_string(&amp;row.id)?,
+            FilePath::new(&amp;row.input_path)?,
+            FilePath::new(&amp;row.output_path)?,
+        )
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Why mapping?</strong></p>
+<ul>
+<li>Domain entities stay pure (no database annotations)</li>
+<li>Database schema can change independently</li>
+<li>Different databases can use different schemas</li>
+<li>Validation happens in domain layer</li>
+</ul>
 <h2 id="benefits-1"><a class="header" href="#benefits-1">Benefits</a></h2>
-<p>TODO: List benefits</p>
+<h3 id="1-testability"><a class="header" href="#1-testability">1. Testability</a></h3>
+<p>Business logic can be tested without a database:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use mockall::mock;
+
+    mock! {
+        PipelineRepo {}
+
+        impl PipelineRepository for PipelineRepo {
+            async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+            // ... mock other methods
+        }
+    }
+
+    #[tokio::test]
+    async fn test_pipeline_service() {
+        let mut mock_repo = MockPipelineRepo::new();
+        mock_repo.expect_create()
+            .returning(|_| Ok(()));
+
+        let service = PipelineService::new(Arc::new(mock_repo));
+        // Test business logic without database
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-flexibility"><a class="header" href="#2-flexibility">2. Flexibility</a></h3>
+<p>Swap implementations without changing business logic:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Start with SQLite
+let repo = SQLitePipelineRepositoryAdapter::new(pool);
+let service = PipelineService::new(Arc::new(repo));
+
+// Later, switch to PostgreSQL
+let repo = PostgresPipelineRepositoryAdapter::new(pool);
+let service = PipelineService::new(Arc::new(repo));
+// Business logic unchanged!
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-centralized-data-access"><a class="header" href="#3-centralized-data-access">3. Centralized Data Access</a></h3>
+<p>All database queries in one place:</p>
+<ul>
+<li>Easier to optimize</li>
+<li>Easier to audit</li>
+<li>Easier to cache</li>
+<li>Easier to add logging</li>
+</ul>
+<h3 id="4-domain-purity"><a class="header" href="#4-domain-purity">4. Domain Purity</a></h3>
+<p>Domain layer stays technology-agnostic:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Domain doesn't import sqlx, postgres, etc.
+// Only depends on standard Rust types
+pub struct Pipeline {
+    id: PipelineId,           // Not i64 or UUID from database
+    input_path: FilePath,     // Not String from database
+    status: PipelineStatus,   // Not database enum
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="usage-example"><a class="header" href="#usage-example">Usage Example</a></h2>
+<h3 id="application-layer-1"><a class="header" href="#application-layer-1">Application Layer</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PipelineService {
+    repository: Arc&lt;dyn PipelineRepository&gt;,
+}
+
+impl PipelineService {
+    pub async fn create_pipeline(
+        &amp;self,
+        input: FilePath,
+        output: FilePath,
+    ) -&gt; Result&lt;Pipeline&gt; {
+        // Create domain entity
+        let pipeline = Pipeline::new(
+            PipelineId::new(),
+            input,
+            output,
+        )?;
+
+        // Persist using repository
+        self.repository.create(&amp;pipeline).await?;
+
+        Ok(pipeline)
+    }
+
+    pub async fn get_pipeline(
+        &amp;self,
+        id: PipelineId,
+    ) -&gt; Result&lt;Option&lt;Pipeline&gt;&gt; {
+        self.repository.find_by_id(&amp;id).await
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The service doesn't know or care:</p>
+<ul>
+<li>Which database is used</li>
+<li>How data is stored</li>
+<li>What the SQL looks like</li>
+</ul>
+<p>It just uses the <code>Repository</code> trait!</p>
+<h2 id="implementation-in-pipeline"><a class="header" href="#implementation-in-pipeline">Implementation in Pipeline</a></h2>
+<p>Our pipeline uses this pattern for:</p>
+<p><strong>PipelineRepository</strong> - Stores pipeline metadata</p>
+<ul>
+<li><code>pipeline/domain/src/repositories/pipeline_repository.rs</code> (trait)</li>
+<li><code>pipeline/src/infrastructure/repositories/sqlite_pipeline_repository.rs</code> (impl)</li>
+</ul>
+<p><strong>FileChunkRepository</strong> - Stores chunk metadata</p>
+<ul>
+<li><code>pipeline/domain/src/repositories/file_chunk_repository.rs</code> (trait)</li>
+<li><code>pipeline/src/infrastructure/repositories/sqlite_file_chunk_repository.rs</code> (impl)</li>
+</ul>
+<h2 id="next-steps-3"><a class="header" href="#next-steps-3">Next Steps</a></h2>
+<p>Continue to:</p>
+<ul>
+<li><a href="architecture/service-pattern.html">Service Pattern</a> - Business logic organization</li>
+<li><a href="architecture/adapter-pattern.html">Adapter Pattern</a> - Infrastructure integration</li>
+<li><a href="architecture/../implementation/repositories.html">Implementation: Repositories</a> - Concrete implementations</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="service-pattern"><a class="header" href="#service-pattern">Service Pattern</a></h1>
 <p><strong>Version:</strong> 0.1.0
 <strong>Date:</strong> October 2025
@@ -621,7 +1104,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>TODO: Extract from service files</p>
 <h2 id="domain-vs-application-services"><a class="header" href="#domain-vs-application-services">Domain vs Application Services</a></h2>
 <p>TODO: Explain distinction</p>
-<h2 id="implementation-1"><a class="header" href="#implementation-1">Implementation</a></h2>
+<h2 id="implementation"><a class="header" href="#implementation">Implementation</a></h2>
 <p>TODO: Show examples</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="adapter-pattern"><a class="header" href="#adapter-pattern">Adapter Pattern</a></h1>
 <p><strong>Version:</strong> 0.1.0
@@ -636,7 +1119,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>TODO: Extract from adapter files</p>
 <h2 id="hexagonal-architecture"><a class="header" href="#hexagonal-architecture">Hexagonal Architecture</a></h2>
 <p>TODO: Explain ports and adapters</p>
-<h2 id="implementation-2"><a class="header" href="#implementation-2">Implementation</a></h2>
+<h2 id="implementation-1"><a class="header" href="#implementation-1">Implementation</a></h2>
 <p>TODO: Show examples</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="observer-pattern"><a class="header" href="#observer-pattern">Observer Pattern</a></h1>
 <p><strong>Version:</strong> 0.1.0
@@ -649,7 +1132,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>The Observer pattern for metrics and events.</p>
 <h2 id="pattern-overview-4"><a class="header" href="#pattern-overview-4">Pattern Overview</a></h2>
 <p>TODO: Extract from metrics observer</p>
-<h2 id="implementation-3"><a class="header" href="#implementation-3">Implementation</a></h2>
+<h2 id="implementation-2"><a class="header" href="#implementation-2">Implementation</a></h2>
 <p>TODO: Show implementation</p>
 <h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
 <p>TODO: List use cases</p>
@@ -681,7 +1164,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>TODO: Extract from compression service</p>
 <h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
 <p>TODO: Add performance data</p>
-<h2 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h2>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
 <p>TODO: Show configuration</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="encryption"><a class="header" href="#encryption">Encryption</a></h1>
 <p><strong>Version:</strong> 0.1.0
@@ -874,7 +1357,7 @@ Hexagonal Architecture: Ports/Adapters at layer boundaries
 <p>Thread pool configuration and tuning.</p>
 <h2 id="thread-pool-architecture"><a class="header" href="#thread-pool-architecture">Thread Pool Architecture</a></h2>
 <p>TODO: Explain thread pooling</p>
-<h2 id="configuration-2"><a class="header" href="#configuration-2">Configuration</a></h2>
+<h2 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h2>
 <p>TODO: Show configuration</p>
 <h2 id="tuning-guidelines"><a class="header" href="#tuning-guidelines">Tuning Guidelines</a></h2>
 <p>TODO: Add tuning guidance</p>

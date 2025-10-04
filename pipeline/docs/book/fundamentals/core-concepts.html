@@ -184,12 +184,158 @@
 <strong>Authors:</strong> Michael Gardner
 <strong>Status:</strong> Draft</p>
 <p>Essential concepts for understanding the pipeline.</p>
-<h2 id="stages"><a class="header" href="#stages">Stages</a></h2>
-<p>TODO: Explain stages</p>
+<h2 id="key-terminology"><a class="header" href="#key-terminology">Key Terminology</a></h2>
+<h3 id="pipeline"><a class="header" href="#pipeline">Pipeline</a></h3>
+<p>A complete file processing workflow with:</p>
+<ul>
+<li><strong>Unique ID</strong>: Every pipeline has a ULID identifier</li>
+<li><strong>Input path</strong>: Source file to process</li>
+<li><strong>Output path</strong>: Destination for processed data</li>
+<li><strong>Stages</strong>: Ordered list of processing steps</li>
+<li><strong>Status</strong>: Created → Running → Completed (or Failed)</li>
+</ul>
+<h3 id="stage"><a class="header" href="#stage">Stage</a></h3>
+<p>An individual processing operation within a pipeline:</p>
+<ul>
+<li><strong>Type</strong>: Compression, Encryption, or Integrity Check</li>
+<li><strong>Algorithm</strong>: Specific implementation (e.g., Brotli, AES-256-GCM)</li>
+<li><strong>Sequence</strong>: Order in the pipeline (1, 2, 3, ...)</li>
+<li><strong>Configuration</strong>: Stage-specific settings</li>
+</ul>
+<h3 id="file-chunk"><a class="header" href="#file-chunk">File Chunk</a></h3>
+<p>A portion of a file processed independently:</p>
+<ul>
+<li><strong>Size</strong>: Configurable (default 1MB)</li>
+<li><strong>Sequence</strong>: Chunk number (0, 1, 2, ...)</li>
+<li><strong>Checksum</strong>: Integrity verification value</li>
+<li><strong>Offset</strong>: Position in original file</li>
+</ul>
+<h2 id="core-components"><a class="header" href="#core-components">Core Components</a></h2>
+<h3 id="entities"><a class="header" href="#entities">Entities</a></h3>
+<p><strong>Pipeline Entity</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Pipeline {
+    id: PipelineId,
+    input_file_path: FilePath,
+    output_file_path: FilePath,
+    stages: Vec&lt;PipelineStage&gt;,
+    status: PipelineStatus,
+    created_at: DateTime,
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>PipelineStage Entity</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>PipelineStage {
+    id: StageId,
+    pipeline_id: PipelineId,
+    stage_type: StageType,
+    algorithm: Algorithm,
+    sequence_number: u32,
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="value-objects"><a class="header" href="#value-objects">Value Objects</a></h3>
+<p><strong>FilePath</strong> - Validated file system path</p>
+<ul>
+<li>Must exist (for input) or be writable (for output)</li>
+<li>Supports absolute and relative paths</li>
+<li>Cross-platform compatibility</li>
+</ul>
+<p><strong>FileSize</strong> - File size in bytes</p>
+<ul>
+<li>Human-readable display (KB, MB, GB)</li>
+<li>Validation for reasonable limits</li>
+<li>Efficient storage representation</li>
+</ul>
+<p><strong>Algorithm</strong> - Processing algorithm specification</p>
+<ul>
+<li>Compression: Brotli, LZ4, Zstandard</li>
+<li>Encryption: AES-256-GCM, ChaCha20-Poly1305</li>
+<li>Checksum: Blake3, SHA-256</li>
+</ul>
 <h2 id="data-flow"><a class="header" href="#data-flow">Data Flow</a></h2>
-<p>TODO: Explain data flow</p>
-<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
-<p>TODO: Explain configuration basics</p>
+<h3 id="sequential-processing"><a class="header" href="#sequential-processing">Sequential Processing</a></h3>
+<p>Stages execute in order:</p>
+<pre><code>Input → Stage 1 → Stage 2 → Stage 3 → Output
+</code></pre>
+<h3 id="parallel-chunk-processing"><a class="header" href="#parallel-chunk-processing">Parallel Chunk Processing</a></h3>
+<p>Chunks process independently:</p>
+<pre><code>Chunk 0 ──┐
+Chunk 1 ──┼→ All go through stages → Reassemble
+Chunk 2 ──┘
+</code></pre>
+<p>This enables:</p>
+<ul>
+<li><strong>Concurrency</strong>: Multiple chunks processed simultaneously</li>
+<li><strong>Memory efficiency</strong>: Only active chunks in memory</li>
+<li><strong>Scalability</strong>: Leverage multiple CPU cores</li>
+</ul>
+<h3 id="pipeline-execution-sequence"><a class="header" href="#pipeline-execution-sequence">Pipeline Execution Sequence</a></h3>
+<p><img src="../diagrams/stage-execution.svg" alt="Stage Execution" /></p>
+<ol>
+<li><strong>CLI</strong> receives command</li>
+<li><strong>Pipeline Service</strong> creates pipeline</li>
+<li><strong>File Processor</strong> reads input file</li>
+<li>For each chunk:
+<ul>
+<li>Apply compression (if enabled)</li>
+<li>Apply encryption (if enabled)</li>
+<li>Calculate checksum (always)</li>
+<li>Store chunk metadata</li>
+<li>Write processed chunk</li>
+</ul>
+</li>
+<li>Update pipeline status</li>
+<li>Return result to user</li>
+</ol>
+<h2 id="domain-model"><a class="header" href="#domain-model">Domain Model</a></h2>
+<p>Our domain model follows Domain-Driven Design principles:</p>
+<p><img src="../diagrams/domain-model.svg" alt="Domain Model" /></p>
+<h3 id="aggregates"><a class="header" href="#aggregates">Aggregates</a></h3>
+<p><strong>Pipeline Aggregate</strong> - The root entity</p>
+<ul>
+<li>Contains Pipeline entity</li>
+<li>Manages associated FileChunks</li>
+<li>Enforces business rules</li>
+<li>Ensures consistency</li>
+</ul>
+<h3 id="relationships"><a class="header" href="#relationships">Relationships</a></h3>
+<ul>
+<li>Pipeline <strong>has many</strong> PipelineStages (1:N)</li>
+<li>Pipeline <strong>processes</strong> FileChunks (1:N)</li>
+<li>FileChunk <strong>belongs to</strong> Pipeline (N:1)</li>
+<li>PipelineStage <strong>uses</strong> Algorithm (N:1)</li>
+</ul>
+<h2 id="processing-guarantees"><a class="header" href="#processing-guarantees">Processing Guarantees</a></h2>
+<h3 id="integrity"><a class="header" href="#integrity">Integrity</a></h3>
+<p>Every chunk has a checksum:</p>
+<ul>
+<li>Calculated after processing</li>
+<li>Verified on read/restore</li>
+<li>Detects any corruption</li>
+</ul>
+<h3 id="atomicity"><a class="header" href="#atomicity">Atomicity</a></h3>
+<p>Pipeline operations are transactional:</p>
+<ul>
+<li>All stages complete, or none do</li>
+<li>Metadata stored consistently</li>
+<li>No partial outputs on failure</li>
+</ul>
+<h3 id="durability"><a class="header" href="#durability">Durability</a></h3>
+<p>Processed data is persisted:</p>
+<ul>
+<li>SQLite database for metadata</li>
+<li>File system for binary data</li>
+<li>Recoverable after crashes</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Continue to:</p>
+<ul>
+<li><a href="stages.html">Pipeline Stages</a> - Types of stages available</li>
+<li><a href="configuration.html">Configuration Basics</a> - How to configure pipelines</li>
+<li><a href="first-run.html">Running Your First Pipeline</a> - Hands-on tutorial</li>
+</ul>
 
                     </main>
 

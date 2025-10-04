@@ -185,11 +185,245 @@
 <strong>Status:</strong> Draft</p>
 <p>The Repository pattern for data persistence.</p>
 <h2 id="pattern-overview"><a class="header" href="#pattern-overview">Pattern Overview</a></h2>
-<p>TODO: Extract from repository files</p>
-<h2 id="implementation"><a class="header" href="#implementation">Implementation</a></h2>
-<p>TODO: Show implementation</p>
+<p>The Repository pattern provides an abstraction layer between the domain and data mapping layers. It acts like an in-memory collection of domain objects, hiding the complexities of database operations.</p>
+<p><strong>Key Idea</strong>: Your business logic shouldn't know whether data comes from SQLite, PostgreSQL, or a file. It just uses a <code>Repository</code> trait.</p>
+<h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
+<p><img src="../diagrams/repository-pattern.svg" alt="Repository Pattern" /></p>
+<h3 id="components"><a class="header" href="#components">Components</a></h3>
+<p><strong>Repository Trait</strong> (Domain Layer)</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait PipelineRepository {
+    fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+    fn find_by_id(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;Option&lt;Pipeline&gt;&gt;;
+    fn update(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+    fn delete(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;()&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Repository Adapter</strong> (Infrastructure Layer)</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct PipelineRepositoryAdapter {
+    repository: SQLitePipelineRepository,
+}
+
+impl PipelineRepository for PipelineRepositoryAdapter {
+    // Implements trait methods
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Concrete Repository</strong> (Infrastructure Layer)</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct SQLitePipelineRepository {
+    pool: SqlitePool,
+    mapper: PipelineMapper,
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="layer-responsibilities"><a class="header" href="#layer-responsibilities">Layer Responsibilities</a></h2>
+<h3 id="domain-layer"><a class="header" href="#domain-layer">Domain Layer</a></h3>
+<p>Defines <strong>what</strong> operations are needed:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Domain defines the interface
+pub trait PipelineRepository: Send + Sync {
+    async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+    async fn find_by_id(&amp;self, id: &amp;PipelineId) -&gt; Result&lt;Option&lt;Pipeline&gt;&gt;;
+    // ... more methods
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Domain knows:</p>
+<ul>
+<li>What operations it needs</li>
+<li>What domain entities look like</li>
+<li>Business rules and validations</li>
+</ul>
+<p>Domain <strong>doesn't know</strong>:</p>
+<ul>
+<li>SQL syntax</li>
+<li>Database technology</li>
+<li>Connection pooling</li>
+</ul>
+<h3 id="infrastructure-layer"><a class="header" href="#infrastructure-layer">Infrastructure Layer</a></h3>
+<p>Implements <strong>how</strong> to persist data:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl PipelineRepository for PipelineRepositoryAdapter {
+    async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt; {
+        // Convert domain entity to database row
+        let row = self.mapper.to_persistence(pipeline);
+
+        // Execute SQL
+        sqlx::query("INSERT INTO pipelines ...")
+            .execute(&amp;self.pool)
+            .await?;
+
+        Ok(())
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Infrastructure knows:</p>
+<ul>
+<li>SQL syntax and queries</li>
+<li>Database schema</li>
+<li>Connection management</li>
+<li>Error handling</li>
+</ul>
+<h2 id="data-mapping"><a class="header" href="#data-mapping">Data Mapping</a></h2>
+<p>The <strong>Mapper</strong> separates domain models from database schema:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct PipelineMapper;
+
+impl PipelineMapper {
+    // Domain → Database
+    fn to_persistence(&amp;self, pipeline: &amp;Pipeline) -&gt; PipelineRow {
+        PipelineRow {
+            id: pipeline.id().to_string(),
+            input_path: pipeline.input_path().to_string(),
+            // ... map all fields
+        }
+    }
+
+    // Database → Domain
+    fn to_domain(&amp;self, row: SqliteRow) -&gt; Result&lt;Pipeline&gt; {
+        Pipeline::new(
+            PipelineId::from_string(&amp;row.id)?,
+            FilePath::new(&amp;row.input_path)?,
+            FilePath::new(&amp;row.output_path)?,
+        )
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Why mapping?</strong></p>
+<ul>
+<li>Domain entities stay pure (no database annotations)</li>
+<li>Database schema can change independently</li>
+<li>Different databases can use different schemas</li>
+<li>Validation happens in domain layer</li>
+</ul>
 <h2 id="benefits"><a class="header" href="#benefits">Benefits</a></h2>
-<p>TODO: List benefits</p>
+<h3 id="1-testability"><a class="header" href="#1-testability">1. Testability</a></h3>
+<p>Business logic can be tested without a database:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use mockall::mock;
+
+    mock! {
+        PipelineRepo {}
+
+        impl PipelineRepository for PipelineRepo {
+            async fn create(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+            // ... mock other methods
+        }
+    }
+
+    #[tokio::test]
+    async fn test_pipeline_service() {
+        let mut mock_repo = MockPipelineRepo::new();
+        mock_repo.expect_create()
+            .returning(|_| Ok(()));
+
+        let service = PipelineService::new(Arc::new(mock_repo));
+        // Test business logic without database
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-flexibility"><a class="header" href="#2-flexibility">2. Flexibility</a></h3>
+<p>Swap implementations without changing business logic:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Start with SQLite
+let repo = SQLitePipelineRepositoryAdapter::new(pool);
+let service = PipelineService::new(Arc::new(repo));
+
+// Later, switch to PostgreSQL
+let repo = PostgresPipelineRepositoryAdapter::new(pool);
+let service = PipelineService::new(Arc::new(repo));
+// Business logic unchanged!
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-centralized-data-access"><a class="header" href="#3-centralized-data-access">3. Centralized Data Access</a></h3>
+<p>All database queries in one place:</p>
+<ul>
+<li>Easier to optimize</li>
+<li>Easier to audit</li>
+<li>Easier to cache</li>
+<li>Easier to add logging</li>
+</ul>
+<h3 id="4-domain-purity"><a class="header" href="#4-domain-purity">4. Domain Purity</a></h3>
+<p>Domain layer stays technology-agnostic:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Domain doesn't import sqlx, postgres, etc.
+// Only depends on standard Rust types
+pub struct Pipeline {
+    id: PipelineId,           // Not i64 or UUID from database
+    input_path: FilePath,     // Not String from database
+    status: PipelineStatus,   // Not database enum
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="usage-example"><a class="header" href="#usage-example">Usage Example</a></h2>
+<h3 id="application-layer"><a class="header" href="#application-layer">Application Layer</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct PipelineService {
+    repository: Arc&lt;dyn PipelineRepository&gt;,
+}
+
+impl PipelineService {
+    pub async fn create_pipeline(
+        &amp;self,
+        input: FilePath,
+        output: FilePath,
+    ) -&gt; Result&lt;Pipeline&gt; {
+        // Create domain entity
+        let pipeline = Pipeline::new(
+            PipelineId::new(),
+            input,
+            output,
+        )?;
+
+        // Persist using repository
+        self.repository.create(&amp;pipeline).await?;
+
+        Ok(pipeline)
+    }
+
+    pub async fn get_pipeline(
+        &amp;self,
+        id: PipelineId,
+    ) -&gt; Result&lt;Option&lt;Pipeline&gt;&gt; {
+        self.repository.find_by_id(&amp;id).await
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The service doesn't know or care:</p>
+<ul>
+<li>Which database is used</li>
+<li>How data is stored</li>
+<li>What the SQL looks like</li>
+</ul>
+<p>It just uses the <code>Repository</code> trait!</p>
+<h2 id="implementation-in-pipeline"><a class="header" href="#implementation-in-pipeline">Implementation in Pipeline</a></h2>
+<p>Our pipeline uses this pattern for:</p>
+<p><strong>PipelineRepository</strong> - Stores pipeline metadata</p>
+<ul>
+<li><code>pipeline/domain/src/repositories/pipeline_repository.rs</code> (trait)</li>
+<li><code>pipeline/src/infrastructure/repositories/sqlite_pipeline_repository.rs</code> (impl)</li>
+</ul>
+<p><strong>FileChunkRepository</strong> - Stores chunk metadata</p>
+<ul>
+<li><code>pipeline/domain/src/repositories/file_chunk_repository.rs</code> (trait)</li>
+<li><code>pipeline/src/infrastructure/repositories/sqlite_file_chunk_repository.rs</code> (impl)</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>Continue to:</p>
+<ul>
+<li><a href="service-pattern.html">Service Pattern</a> - Business logic organization</li>
+<li><a href="adapter-pattern.html">Adapter Pattern</a> - Infrastructure integration</li>
+<li><a href="../implementation/repositories.html">Implementation: Repositories</a> - Concrete implementations</li>
+</ul>
 
                     </main>
 
