@@ -9,8 +9,8 @@
 //!
 //! Services for reading and writing the Adaptive Pipeline binary format (.adapipe).
 //! Provides streaming I/O, integrity verification with SHA-256 checksums, metadata
-//! preservation, and format versioning. Structure: [CHUNK_DATA][JSON_HEADER]
-//! [HEADER_LENGTH][FORMAT_VERSION][MAGIC_BYTES]. See mdBook for detailed format
+//! preservation, and format versioning. Structure: \[CHUNK_DATA\]\[JSON_HEADER\]
+//! \[HEADER_LENGTH\]\[FORMAT_VERSION\]\[MAGIC_BYTES\]. See mdBook for detailed format
 //! specification.
 
 use async_trait::async_trait;
