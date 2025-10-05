@@ -80,3 +80,4 @@ Cargo.lock
 
 # Documentation
 **/book/  # mdBook generated output
+benchmark_test_100mb.txt

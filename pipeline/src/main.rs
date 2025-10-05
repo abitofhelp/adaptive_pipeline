@@ -1987,25 +1987,8 @@ async fn restore_file_from_adapipe_v2(
     println!("   Source: {}", input.display());
     println!("   Target: {}", target_path.display());
 
-    // TODO: Perform restoration - restoration service removed, use
-    // use_cases::restore_file instead let start_time =
-    // std::time::Instant::now(); let restore_result = restoration_service
-    //     .restore_file(restore_command)
-    //     .await
-    //     .map_err(|e| anyhow::anyhow!("Restoration failed: {}", e))
-    //     ?;
-    // let duration = start_time.elapsed();
-    //
-    // // Display results
-    // println!("✅ File restoration completed successfully!");
-    // println!("   Restored file: {}", target_path.display());
-    // println!("   Bytes restored: {}", restore_result.bytes_restored);
-    // println!("   Checksum verified: {}", restore_result.checksum_verified);
-    // println!("   Duration: {:.2}s", duration.as_secs_f64());
-    // println!(
-    //     "   Throughput: {:.2} MB/s",
-    //     (restore_result.bytes_restored as f64 / (1024.0 * 1024.0)) /
-    // duration.as_secs_f64() );
+    // TODO: Implement restoration using use_cases::restore_file
+    // This command is currently disabled pending proper use case implementation.
 
     println!("⚠️  Restoration temporarily disabled - refactoring in progress");
     println!("   Use restore_file_from_adapipe_legacy() instead");

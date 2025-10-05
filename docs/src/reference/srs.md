@@ -29,14 +29,13 @@ This Software Requirements Specification (SRS) defines the functional and non-fu
 **System Purpose:** Provide a configurable, extensible pipeline for processing files through multiple stages including compression, encryption, integrity verification, and custom transformations.
 
 **Key Capabilities:**
-- Multi-stage file processing with configurable pipelines
-- Compression support (Brotli, Gzip, Zstd, LZ4)
-- Encryption support (AES-256-GCM, ChaCha20-Poly1305, XChaCha20-Poly1305)
-- Integrity verification with checksums (SHA-256, SHA-512, BLAKE3)
-- Binary format (.adapipe) for processed files with metadata
-- Asynchronous, concurrent processing with resource management
-- Extensible architecture for custom stages and algorithms
-- Comprehensive metrics and observability
+- **Multi-stage file processing** with configurable pipelines
+- **Built-in stage types**: Compression (Brotli, Gzip, Zstd, LZ4), Encryption (AES-256-GCM, ChaCha20-Poly1305), Integrity verification (SHA-256, SHA-512, BLAKE3)
+- **Custom stage extensibility**: Create domain-specific stages (sanitization, transformation, validation, enrichment, watermarking) through trait-based extension system
+- **Binary format (.adapipe)** for processed files with embedded metadata
+- **Asynchronous, concurrent processing** with resource management
+- **Plugin-ready architecture** for loading external stage implementations
+- **Comprehensive metrics and observability** with Prometheus integration
 
 **Out of Scope:**
 - Distributed processing across multiple machines
@@ -773,6 +772,172 @@ compression_ratio
 - Log output failure (disk full, etc.)
 - Invalid log configuration
 
+### 3.8 Custom Stage Extensibility (FR-CUSTOM)
+
+#### FR-CUSTOM-001: Define Custom Stage Types
+**Priority:** High
+**Description:** System shall allow developers to define custom stage types by extending the StageType enum and implementing stage-specific logic.
+
+**Inputs:**
+- New StageType enum variant
+- Stage-specific configuration parameters
+- Stage metadata (name, description)
+
+**Processing:**
+- Register custom stage type in system
+- Validate stage type uniqueness
+- Associate configuration schema with stage type
+
+**Outputs:**
+- Registered custom stage type
+- Stage type available for pipeline configuration
+
+**Error Conditions:**
+- Duplicate stage type name
+- Invalid stage type identifier
+- Configuration schema validation failure
+
+**Extension Points:**
+- StageType enum in domain layer
+- Display and FromStr trait implementations
+- Stage configuration validation
+
+#### FR-CUSTOM-002: Implement Custom Stage Logic
+**Priority:** High
+**Description:** System shall provide extension points for implementing custom stage processing logic through domain service traits.
+
+**Inputs:**
+- Domain service trait definition
+- Infrastructure adapter implementation
+- Processing algorithm for file chunks
+
+**Processing:**
+- Define domain service trait (e.g., SanitizationService, TransformationService)
+- Implement infrastructure adapter with concrete algorithm
+- Register adapter with dependency injection container
+- Integrate with StageExecutor for execution
+
+**Outputs:**
+- Functional custom stage implementation
+- Stage available for use in pipelines
+
+**Error Conditions:**
+- Trait method signature mismatch
+- Missing required trait bounds (Send + Sync)
+- Registration failure
+- Incompatible chunk processing logic
+
+**Implementation Requirements:**
+- Must be async-compatible (async_trait)
+- Must support parallel chunk processing
+- Must update ProcessingContext metrics
+- Must handle errors through Result types
+
+#### FR-CUSTOM-003: Register Custom Stages
+**Priority:** High
+**Description:** System shall provide registration mechanism for custom stages with the StageExecutor.
+
+**Inputs:**
+- Custom stage type identifier
+- StageExecutor implementation
+- Supported algorithm identifiers
+
+**Processing:**
+- Validate stage executor implementation
+- Register executor with system registry
+- Associate stage type with executor
+- Enable stage in pipeline configuration
+
+**Outputs:**
+- Registered stage executor
+- Stage type available in CLI and API
+
+**Error Conditions:**
+- Executor registration conflict
+- Invalid stage type reference
+- Missing required executor methods
+
+**Registration Methods:**
+- Compile-time registration (preferred)
+- Runtime registration via plugin interface
+- Configuration-based registration
+
+#### FR-CUSTOM-004: Validate Custom Stage Configuration
+**Priority:** Medium
+**Description:** System shall validate custom stage configurations against stage-specific schemas.
+
+**Inputs:**
+- Custom stage configuration
+- Configuration schema definition
+- Stage-specific validation rules
+
+**Processing:**
+- Parse configuration parameters
+- Validate against schema (types, ranges, formats)
+- Check required vs optional parameters
+- Validate parameter compatibility
+
+**Outputs:**
+- Validated configuration
+- Configuration errors if invalid
+
+**Error Conditions:**
+- Missing required parameters
+- Invalid parameter types
+- Parameter value out of range
+- Incompatible parameter combinations
+
+#### FR-CUSTOM-005: Custom Stage Lifecycle Management
+**Priority:** Medium
+**Description:** System shall support initialization and cleanup for custom stages through lifecycle hooks.
+
+**Inputs:**
+- Stage initialization parameters
+- Processing context
+- Cleanup triggers (success, failure, always)
+
+**Processing:**
+- Call prepare_stage() before first execution
+- Allocate stage-specific resources
+- Execute stage processing
+- Call cleanup_stage() after completion or failure
+- Release resources and finalize state
+
+**Outputs:**
+- Initialized stage ready for processing
+- Clean resource cleanup after execution
+
+**Error Conditions:**
+- Initialization failure
+- Resource allocation failure
+- Cleanup failure (logged but not propagated)
+
+**Lifecycle Methods:**
+- `prepare_stage()`: Initialize stage resources
+- `cleanup_stage()`: Release resources and cleanup
+- Resource management through RAII patterns
+
+#### FR-CUSTOM-006: Custom Stage Examples
+**Priority:** Low
+**Description:** System shall provide comprehensive examples of custom stage implementations for common use cases.
+
+**Example Use Cases:**
+- **Data Sanitization**: Remove PII, redact sensitive fields
+- **Data Transformation**: Convert XML to JSON, restructure data
+- **Data Validation**: Schema validation, format checking
+- **Data Enrichment**: Add timestamps, inject metadata
+- **Watermarking**: Add digital watermarks to content
+- **Deduplication**: Remove duplicate data blocks
+
+**Deliverables:**
+- Example implementations in `examples/custom-stages/`
+- Documentation in `pipeline/docs/src/advanced/custom-stages.md`
+- Integration tests demonstrating usage
+- Performance benchmarks for common patterns
+
+**Error Conditions:**
+- None (documentation and examples)
+
 ---
 
 ## 4. Non-Functional Requirements
@@ -1030,6 +1195,84 @@ compression_ratio
 - API documentation clear
 - Example code idiomatic
 
+### 4.7 Extensibility Requirements (NFR-EXT)
+
+#### NFR-EXT-001: Custom Stage Support
+**Requirement:** System architecture shall support custom stage implementations without modifying core library code.
+
+**Extension Mechanisms:**
+- **Trait-Based Extension**: Define custom stages via trait implementation
+- **Type System Extension**: Add StageType enum variants
+- **Registration System**: Register custom stages at compile-time or runtime
+- **Configuration Extension**: Support stage-specific configuration schemas
+
+**Acceptance Criteria:**
+- Custom stages implementable without forking core library
+- No breaking changes required in domain layer
+- Registration mechanism well-documented
+- Examples provided for common patterns
+
+#### NFR-EXT-002: Plugin Architecture
+**Requirement:** System shall support plugin-style custom stages with dynamic loading capabilities (future).
+
+**Design Goals:**
+- Isolated custom stage code from core library
+- Safe loading of external stage implementations
+- Version compatibility checking
+- Dependency management for plugins
+
+**Acceptance Criteria:**
+- Plugin interface defined and documented
+- Safe sandboxing of plugin code
+- Graceful handling of plugin failures
+- Plugin compatibility matrix maintained
+
+#### NFR-EXT-003: Extension Documentation
+**Requirement:** System shall provide comprehensive documentation for creating custom stages.
+
+**Documentation Requirements:**
+- Step-by-step implementation guide
+- Complete working examples
+- API reference for extension points
+- Best practices and patterns
+- Performance tuning guidelines
+- Testing strategies for custom stages
+
+**Acceptance Criteria:**
+- Developer can implement custom stage in < 2 hours
+- All extension points documented with examples
+- Common pitfalls documented with solutions
+- Documentation tested by external developers
+
+#### NFR-EXT-004: Backward Compatibility
+**Requirement:** System shall maintain backward compatibility for custom stage implementations across minor version updates.
+
+**Compatibility Guarantees:**
+- Trait signatures stable across minor versions
+- Deprecation warnings for breaking changes
+- Migration guides for major version updates
+- Semantic versioning strictly followed
+
+**Acceptance Criteria:**
+- Custom stages compile across patch versions
+- Breaking changes only in major versions
+- Deprecation period: minimum 2 minor versions
+- Migration guides published before major releases
+
+#### NFR-EXT-005: Extension Performance
+**Requirement:** Custom stage infrastructure shall impose minimal performance overhead (<5%) compared to built-in stages.
+
+**Performance Goals:**
+- Trait dispatch overhead: <1% of processing time
+- No unnecessary allocations in hot paths
+- Zero-cost abstractions where possible
+- Efficient resource sharing
+
+**Acceptance Criteria:**
+- Benchmarks show <5% overhead
+- Custom stage throughput ≥ 95% of built-in stages
+- Memory overhead minimal (documented per-stage)
+
 ---
 
 ## 5. System Interfaces
@@ -1164,6 +1407,12 @@ pipeline process --input file.txt --output file.adapipe --compress zstd --encryp
 | FR-METRICS-001 | Collect Metrics | `test_metrics_collection` | metrics.md |
 | FR-METRICS-002 | Prometheus Export | `test_prometheus_export` | observability.md |
 | FR-METRICS-003 | Structured Logging | `test_logging` | logging.md |
+| FR-CUSTOM-001 | Define Custom Stage Types | `test_custom_stage_type` | custom-stages.md |
+| FR-CUSTOM-002 | Implement Custom Logic | `test_custom_stage_implementation` | custom-stages.md |
+| FR-CUSTOM-003 | Register Custom Stages | `test_custom_stage_registration` | custom-stages.md |
+| FR-CUSTOM-004 | Validate Custom Config | `test_custom_configuration_validation` | custom-stages.md |
+| FR-CUSTOM-005 | Lifecycle Management | `test_custom_stage_lifecycle` | custom-stages.md |
+| FR-CUSTOM-006 | Custom Stage Examples | Integration tests | custom-stages.md |
 | NFR-PERF-001 | Throughput | `bench_file_io` | performance.md |
 | NFR-PERF-002 | Latency | `bench_file_io` | performance.md |
 | NFR-PERF-003 | Memory Efficiency | `test_memory_usage` | resources.md |
@@ -1178,6 +1427,11 @@ pipeline process --input file.txt --output file.adapipe --compress zstd --encryp
 | NFR-MAINT-001 | Documentation | `cargo doc` | - |
 | NFR-MAINT-002 | Architecture | `architecture_compliance_test` | architecture/* |
 | NFR-MAINT-003 | Test Coverage | CI coverage report | - |
+| NFR-EXT-001 | Custom Stage Support | `test_custom_stages` | custom-stages.md, extending.md |
+| NFR-EXT-002 | Plugin Architecture | Design review | extending.md |
+| NFR-EXT-003 | Extension Documentation | Documentation review | custom-stages.md |
+| NFR-EXT-004 | Backward Compatibility | API stability tests | - |
+| NFR-EXT-005 | Extension Performance | `bench_custom_vs_builtin` | performance.md |
 
 ---
 
@@ -1210,9 +1464,152 @@ pipeline process --input file.txt --output file.adapipe --compress zstd --encryp
 | `PipelineError::DatabaseError` | Database operation failed | Check database connection |
 | `PipelineError::ResourceExhausted` | Resource limit exceeded | Reduce concurrency, free resources |
 
+### Appendix C: Custom Stage Use Cases
+
+This appendix provides real-world examples of custom stage implementations to demonstrate the extensibility of the pipeline system.
+
+#### C.1 Data Sanitization Stage
+
+**Purpose:** Remove or redact Personally Identifiable Information (PII) from documents before archival or sharing.
+
+**Use Cases:**
+- Healthcare: Redact patient names, SSN, medical record numbers from documents
+- Financial: Remove account numbers, credit card data from statements
+- Legal: Redact confidential information in discovery documents
+- HR: Anonymize employee data in reports
+
+**Implementation:**
+- StageType: `Sanitization`
+- Algorithm examples: `regex_redaction`, `named_entity_recognition`, `pattern_matching`
+- Configuration: Rules for what to redact, replacement patterns, allowed/blocked terms
+
+**Benefits:**
+- GDPR/HIPAA compliance
+- Safe data sharing
+- Privacy protection
+- Audit trail of sanitization
+
+#### C.2 Data Transformation Stage
+
+**Purpose:** Convert data between formats or restructure content.
+
+**Use Cases:**
+- XML to JSON conversion for API modernization
+- CSV to Parquet for data lake ingestion
+- Document format conversion (DOCX → PDF)
+- Image format optimization (PNG → WebP)
+
+**Implementation:**
+- StageType: `Transform`
+- Algorithm examples: `xml_to_json`, `csv_to_parquet`, `image_optimize`
+- Configuration: Source/target formats, transformation rules, quality settings
+
+**Benefits:**
+- Automated format conversion
+- Data lake preparation
+- Storage optimization
+- API compatibility
+
+#### C.3 Schema Validation Stage
+
+**Purpose:** Validate data against schemas before processing or storage.
+
+**Use Cases:**
+- JSON Schema validation for API payloads
+- XML Schema (XSD) validation for B2B integrations
+- Protobuf validation for microservices
+- Database schema compliance checking
+
+**Implementation:**
+- StageType: `Validation`
+- Algorithm examples: `json_schema`, `xml_schema`, `protobuf_validate`
+- Configuration: Schema file path, validation strictness, error handling
+
+**Benefits:**
+- Data quality assurance
+- Early error detection
+- Contract enforcement
+- Compliance verification
+
+#### C.4 Data Enrichment Stage
+
+**Purpose:** Add metadata, annotations, or derived fields to data.
+
+**Use Cases:**
+- Add geolocation data based on IP addresses
+- Inject timestamps and processing metadata
+- Add classification tags based on content
+- Append audit trail information
+
+**Implementation:**
+- StageType: `Enrichment`
+- Algorithm examples: `geo_lookup`, `metadata_injection`, `content_classification`
+- Configuration: Enrichment sources, field mappings, lookup tables
+
+**Benefits:**
+- Enhanced analytics
+- Better searchability
+- Compliance tracking
+- Data lineage
+
+#### C.5 Digital Watermarking Stage
+
+**Purpose:** Embed imperceptible watermarks in content for provenance tracking.
+
+**Use Cases:**
+- Document watermarking with user ID and timestamp
+- Image watermarking for copyright protection
+- PDF watermarking for leak detection
+- Video watermarking for piracy prevention
+
+**Implementation:**
+- StageType: `Watermark`
+- Algorithm examples: `steganography`, `visible_watermark`, `digital_signature`
+- Configuration: Watermark content, embedding strength, detection keys
+
+**Benefits:**
+- Copyright protection
+- Leak detection
+- Provenance tracking
+- Authenticity verification
+
+#### C.6 Deduplication Stage
+
+**Purpose:** Identify and remove duplicate data blocks for storage efficiency.
+
+**Use Cases:**
+- Deduplicate file chunks in backups
+- Remove duplicate records in data sets
+- Content-addressed storage optimization
+- Incremental backup efficiency
+
+**Implementation:**
+- StageType: `Deduplication`
+- Algorithm examples: `fixed_block`, `variable_block`, `content_hash`
+- Configuration: Block size, hash algorithm, dedup database
+
+**Benefits:**
+- Storage savings (50-90% typical)
+- Network bandwidth reduction
+- Faster backup/restore
+- Cost optimization
+
+#### C.7 Custom Stage Development Effort
+
+| Stage Complexity | Development Time | Testing Time | Total Effort |
+|-----------------|------------------|--------------|--------------|
+| Simple (Validation) | 2-4 hours | 2-3 hours | ~1 day |
+| Medium (Transformation) | 1-2 days | 1 day | ~3 days |
+| Complex (ML-based Sanitization) | 3-5 days | 2-3 days | ~1 week |
+
+**Prerequisites:**
+- Rust programming experience
+- Understanding of pipeline architecture
+- Domain knowledge for stage-specific logic
+
 ---
 
 **Document Status:** Draft
-**Last Updated:** October 2025
+**Last Updated:** 2025-01-04
 **Next Review:** TBD
 **Approver:** TBD

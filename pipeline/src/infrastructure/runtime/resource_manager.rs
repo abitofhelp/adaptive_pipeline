@@ -421,8 +421,10 @@ pub fn resource_manager() -> &'static GlobalResourceManager {
         .expect("Resource manager not initialized! Call init_resource_manager() in main().")
 }
 
-// Legacy alias for backward compatibility
-// TODO: Migrate all code to use resource_manager() function instead
+/// Legacy alias for backward compatibility
+///
+/// **Pattern**: Both `RESOURCE_MANAGER` (static) and `resource_manager()` (function)
+/// are supported. New code should prefer the function style for consistency.
 #[allow(non_upper_case_globals)]
 pub static RESOURCE_MANAGER: std::sync::LazyLock<&'static GlobalResourceManager> =
     std::sync::LazyLock::new(|| resource_manager());
