@@ -805,4 +805,3 @@ Now that you understand metrics collection:
 - [Logging](logging.md) - Structured logging implementation
 - [Observability](observability.md) - Complete observability strategy
 - [Performance](../advanced/performance.md) - Performance optimization
-- [Monitoring](../advanced/monitoring.md) - Production monitoring setup

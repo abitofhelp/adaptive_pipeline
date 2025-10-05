@@ -480,7 +480,6 @@ mod tests {
 
 Now that you understand the domain model:
 
-- [Layered Architecture](layered-architecture.md) - How the domain fits into the overall architecture
-- [Hexagonal Architecture](hexagonal-architecture.md) - Ports and adapters pattern
+- [Layered Architecture](layers.md) - How the domain fits into the overall architecture
+- [Hexagonal Architecture](adapter-pattern.md) - Ports and adapters pattern
 - [Repository Pattern](repository-pattern.md) - Data persistence abstraction
-- [Domain Events](event-driven.md) - Event-driven communication

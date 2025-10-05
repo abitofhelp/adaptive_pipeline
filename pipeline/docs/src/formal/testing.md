@@ -49,7 +49,7 @@ This Software Test Plan (STP) defines the testing strategy, approach, and organi
 
 ### 1.4 References
 
-- [Software Requirements Specification (SRS)](../reference/srs.md)
+- [Software Requirements Specification (SRS)](requirements.md)
 - [Software Design Document (SDD)](design.md)
 - [Test Organization Documentation](../../../../docs/TEST_ORGANIZATION.md)
 - Rust Testing Documentation: https://doc.rust-lang.org/book/ch11-00-testing.html

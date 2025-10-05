@@ -61,7 +61,7 @@ This document covers the design of a high-performance file processing pipeline i
 
 ### 1.4 References
 
-- [Software Requirements Specification](../reference/srs.md)
+- [Software Requirements Specification](requirements.md)
 - [Architecture Overview](../architecture/overview.md)
 - [Domain Model](../architecture/domain-model.md)
 - Clean Architecture: Robert C. Martin, 2017

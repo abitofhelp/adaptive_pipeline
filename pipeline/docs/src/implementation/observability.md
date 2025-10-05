@@ -793,8 +793,8 @@ export RUST_LOG=pipeline::infrastructure::logging=warn
 
 - **[Metrics Collection](metrics.md)**: Deep dive into Prometheus metrics
 - **[Logging Implementation](logging.md)**: Structured logging with tracing
-- **[Configuration](configuration.md)**: Configure alert thresholds and settings
-- **[Testing](../testing/integration-tests.md)**: Integration testing strategies
+- **[Configuration](../fundamentals/configuration.md)**: Configure alert thresholds and settings
+- **[Testing](../formal/testing.md)**: Testing strategies
 
 ---
 
