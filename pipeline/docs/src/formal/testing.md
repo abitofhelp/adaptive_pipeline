@@ -85,7 +85,7 @@ This Software Test Plan (STP) defines the testing strategy, approach, and organi
         │    (35)     │
         ├─────────────┤
         │   Unit      │  ← Many, fast, focused
-        │    (68)     │
+        │   (314)     │
         └─────────────┘
 ```
 
@@ -103,7 +103,7 @@ Following Rust best practices:
 - Location: `#[cfg(test)]` modules within source files
 - Scope: Single function/struct in isolation
 - Run with: `cargo test --lib`
-- Count: 68 tests
+- Count: 314 tests (68 bootstrap + 90 pipeline + 156 pipeline-domain)
 - Example: `pipeline-domain/src/entities/pipeline_stage.rs:590-747`
 
 **Integration Tests:**
@@ -129,9 +129,9 @@ Following Rust best practices:
 **Documentation Tests:**
 - Location: Doc comments with ` ``` ` code blocks
 - Run with: `cargo test --doc`
-- Count: 25 tests
+- Count: 27 tests (12 ignored)
 
-**Total Test Count: 141 tests**
+**Total Test Count: 389 tests** (15 ignored)
 
 ---
 
@@ -775,7 +775,7 @@ cargo deny check
 ### 9.1 Test Metrics
 
 **Key Metrics:**
-- Test count: 141 tests
+- Test count: 389 tests (15 ignored)
 - Test pass rate: Target 100%
 - Code coverage: Target 80%+
 - Test execution time: < 20 seconds for full suite
@@ -797,12 +797,12 @@ time cargo test
 
 **Console Output:**
 ```
-running 141 tests
+running 389 tests
 test unit::test_pipeline_creation ... ok
 test integration::test_repository_save ... ok
 test e2e::test_complete_workflow ... ok
 
-test result: ok. 141 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.34s
+test result: ok. 374 passed; 0 failed; 15 ignored; 0 measured; 0 filtered out; finished in 15.67s
 ```
 
 **Coverage Report:**
@@ -967,11 +967,11 @@ cargo audit
 
 ### 12.2 Test Code
 
-- [x] 68 unit tests in source files
-- [x] 35 integration tests in `tests/integration/`
+- [x] 314 unit tests in source files (68 bootstrap + 90 pipeline + 156 pipeline-domain)
+- [x] 35 integration tests in `tests/integration/` (3 ignored)
 - [x] 11 E2E tests in `tests/e2e/`
 - [x] 2 architecture compliance tests
-- [x] 25 documentation tests
+- [x] 27 documentation tests (12 ignored)
 - [ ] Benchmark suite (TODO)
 - [ ] Property-based tests (TODO)
 
@@ -1020,7 +1020,7 @@ cargo audit
 
 This Software Test Plan establishes a comprehensive testing strategy for the Optimized Adaptive Pipeline system. Key highlights:
 
-- **141 tests** across all levels (unit, integration, E2E, architecture, doc)
+- **389 tests** across all levels (314 unit, 35 integration, 11 E2E, 2 architecture, 27 doc)
 - **Organized structure** following Rust best practices
 - **Automated CI/CD** integration for continuous quality
 - **High coverage goals** (80%+ overall, 90%+ domain layer)

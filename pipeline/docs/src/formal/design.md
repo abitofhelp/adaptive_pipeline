@@ -639,44 +639,85 @@ impl ChunkSize {
 **Schema Management:** Using `sqlx` with migrations
 
 ```sql
--- migrations/001_initial_schema.sql
+-- migrations/20250101000000_initial_schema.sql
 
+-- Pipelines table: stores pipeline configurations
 CREATE TABLE IF NOT EXISTS pipelines (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
+    archived BOOLEAN NOT NULL DEFAULT false,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
 
-CREATE INDEX idx_pipelines_name ON pipelines(name);
+-- Pipeline configuration: key-value pairs for pipeline settings
+CREATE TABLE IF NOT EXISTS pipeline_configuration (
+    pipeline_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (pipeline_id, key),
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
 
+-- Pipeline stages: defines processing stages in a pipeline
 CREATE TABLE IF NOT EXISTS pipeline_stages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     pipeline_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    order_num INTEGER NOT NULL,
-    config TEXT NOT NULL,
-    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE,
-    UNIQUE (pipeline_id, name),
-    UNIQUE (pipeline_id, order_num)
+    stage_type TEXT NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    stage_order INTEGER NOT NULL,
+    algorithm TEXT NOT NULL,
+    parallel_processing BOOLEAN NOT NULL DEFAULT FALSE,
+    chunk_size INTEGER,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_stages_pipeline ON pipeline_stages(pipeline_id);
-
-CREATE TABLE IF NOT EXISTS file_metadata (
-    id TEXT PRIMARY KEY,
-    original_path TEXT NOT NULL,
-    processed_path TEXT NOT NULL,
-    pipeline_id TEXT NOT NULL,
-    original_size INTEGER NOT NULL,
-    processed_size INTEGER NOT NULL,
-    checksum TEXT,
-    processed_at TEXT NOT NULL,
-    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id)
+-- Stage parameters: configuration for individual stages
+CREATE TABLE IF NOT EXISTS stage_parameters (
+    stage_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (stage_id, key),
+    FOREIGN KEY (stage_id) REFERENCES pipeline_stages(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_metadata_pipeline ON file_metadata(pipeline_id);
+-- Processing metrics: tracks pipeline execution metrics
+CREATE TABLE IF NOT EXISTS processing_metrics (
+    pipeline_id TEXT PRIMARY KEY,
+    bytes_processed INTEGER NOT NULL DEFAULT 0,
+    bytes_total INTEGER NOT NULL DEFAULT 0,
+    chunks_processed INTEGER NOT NULL DEFAULT 0,
+    chunks_total INTEGER NOT NULL DEFAULT 0,
+    start_time_rfc3339 TEXT,
+    end_time_rfc3339 TEXT,
+    processing_duration_ms INTEGER,
+    throughput_bytes_per_second REAL NOT NULL DEFAULT 0.0,
+    compression_ratio REAL,
+    error_count INTEGER NOT NULL DEFAULT 0,
+    warning_count INTEGER NOT NULL DEFAULT 0,
+    input_file_size_bytes INTEGER NOT NULL DEFAULT 0,
+    output_file_size_bytes INTEGER NOT NULL DEFAULT 0,
+    input_file_checksum TEXT,
+    output_file_checksum TEXT,
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_pipeline_stages_pipeline_id ON pipeline_stages(pipeline_id);
+CREATE INDEX IF NOT EXISTS idx_pipeline_stages_order ON pipeline_stages(pipeline_id, stage_order);
+CREATE INDEX IF NOT EXISTS idx_pipeline_configuration_pipeline_id ON pipeline_configuration(pipeline_id);
+CREATE INDEX IF NOT EXISTS idx_stage_parameters_stage_id ON stage_parameters(stage_id);
+CREATE INDEX IF NOT EXISTS idx_pipelines_name ON pipelines(name) WHERE archived = false;
 ```
 
 ### 4.4 Binary File Format (.adapipe)
@@ -795,26 +836,45 @@ pipeline create \
 **Future: Library API:**
 
 ```rust
-use pipeline::{Pipeline, PipelineStage, StageType};
+use pipeline_domain::entities::{Pipeline, PipelineStage, StageType, StageConfiguration};
+use std::collections::HashMap;
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    // Create pipeline
-    let pipeline = Pipeline::builder()
-        .name("my-pipeline")
-        .add_stage(
-            PipelineStage::compression("compress", "zstd", 1)?
-        )
-        .add_stage(
-            PipelineStage::encryption("encrypt", "aes256gcm", 2)?
-        )
-        .build()?;
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create pipeline stages
+    let compression_stage = PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new(
+            "zstd".to_string(),
+            HashMap::new(),
+            false,
+        ),
+        0,
+    )?;
 
-    // Process file
-    let processor = PipelineProcessor::new()?;
-    let output = processor.process(&pipeline, "input.txt").await?;
+    let encryption_stage = PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new(
+            "aes256gcm".to_string(),
+            HashMap::new(),
+            false,
+        ),
+        1,
+    )?;
 
-    println!("Processed: {:?}", output);
+    // Create pipeline with stages
+    let pipeline = Pipeline::new(
+        "my-pipeline".to_string(),
+        vec![compression_stage, encryption_stage],
+    )?;
+
+    // Process file (future implementation)
+    // let processor = PipelineProcessor::new()?;
+    // let output = processor.process(&pipeline, "input.txt").await?;
+
+    println!("Pipeline created: {}", pipeline.name());
     Ok(())
 }
 ```
@@ -961,14 +1021,25 @@ impl PipelineProcessor {
 
 **Purpose:** Construct complex objects step by step.
 
-**Example:**
+**Note:** Builder pattern is a potential future enhancement. Current API uses direct construction.
+
+**Current API:**
 
 ```rust
+let pipeline = Pipeline::new(
+    "my-pipeline".to_string(),
+    vec![compression_stage, encryption_stage],
+)?;
+```
+
+**Potential Future Builder API:**
+
+```rust
+// Not yet implemented - potential future enhancement
 let pipeline = Pipeline::builder()
     .name("my-pipeline")
     .add_stage(compression_stage)
     .add_stage(encryption_stage)
-    .chunk_size(2_097_152)
     .build()?;
 ```
 

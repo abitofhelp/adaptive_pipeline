@@ -105,27 +105,43 @@ Integrity stages ensure your data hasn't been corrupted or tampered with. They c
 Each stage has a configuration that specifies how it should process data:
 
 ```rust
-use pipeline_domain::{PipelineStage, Algorithm};
+use pipeline_domain::entities::{PipelineStage, StageType, StageConfiguration};
+use std::collections::HashMap;
 
 // Example: Compression stage
 let compression_stage = PipelineStage::new(
     "compress".to_string(),
-    Algorithm::zstd(),
-    1, // stage order
+    StageType::Compression,
+    StageConfiguration::new(
+        "zstd".to_string(),  // algorithm name
+        HashMap::new(),      // parameters
+        false,               // parallel processing
+    ),
+    0, // stage order
 )?;
 
 // Example: Encryption stage
 let encryption_stage = PipelineStage::new(
     "encrypt".to_string(),
-    Algorithm::aes_256_gcm(),
-    2, // stage order
+    StageType::Encryption,
+    StageConfiguration::new(
+        "aes256gcm".to_string(),
+        HashMap::new(),
+        false,
+    ),
+    1, // stage order
 )?;
 
 // Example: Integrity verification stage
 let integrity_stage = PipelineStage::new(
     "verify".to_string(),
-    Algorithm::sha256(),
-    3, // stage order
+    StageType::Checksum,
+    StageConfiguration::new(
+        "sha256".to_string(),
+        HashMap::new(),
+        false,
+    ),
+    2, // stage order
 )?;
 ```
 
@@ -158,26 +174,66 @@ You can combine stages in different ways depending on your needs:
 ### Maximum Security
 ```rust
 vec![
-    PipelineStage::new("compress", Algorithm::brotli(), 1)?,
-    PipelineStage::new("encrypt", Algorithm::aes_256_gcm(), 2)?,
-    PipelineStage::new("verify", Algorithm::blake3(), 3)?,
+    PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new("brotli".to_string(), HashMap::new(), false),
+        0,
+    )?,
+    PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new("aes256gcm".to_string(), HashMap::new(), false),
+        1,
+    )?,
+    PipelineStage::new(
+        "verify".to_string(),
+        StageType::Checksum,
+        StageConfiguration::new("blake3".to_string(), HashMap::new(), false),
+        2,
+    )?,
 ]
 ```
 
 ### Maximum Speed
 ```rust
 vec![
-    PipelineStage::new("compress", Algorithm::lz4(), 1)?,
-    PipelineStage::new("encrypt", Algorithm::chacha20_poly1305(), 2)?,
+    PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new("lz4".to_string(), HashMap::new(), false),
+        0,
+    )?,
+    PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new("chacha20poly1305".to_string(), HashMap::new(), false),
+        1,
+    )?,
 ]
 ```
 
 ### Balanced Approach
 ```rust
 vec![
-    PipelineStage::new("compress", Algorithm::zstd(), 1)?,
-    PipelineStage::new("encrypt", Algorithm::aes_256_gcm(), 2)?,
-    PipelineStage::new("verify", Algorithm::sha256(), 3)?,
+    PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new("zstd".to_string(), HashMap::new(), false),
+        0,
+    )?,
+    PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new("aes256gcm".to_string(), HashMap::new(), false),
+        1,
+    )?,
+    PipelineStage::new(
+        "verify".to_string(),
+        StageType::Checksum,
+        StageConfiguration::new("sha256".to_string(), HashMap::new(), false),
+        2,
+    )?,
 ]
 ```
 
@@ -218,9 +274,14 @@ The pipeline validates stages at creation time:
 ```rust
 // This will fail - wrong algorithm for stage type
 PipelineStage::new(
-    "compress",
-    Algorithm::aes_256_gcm(), // Encryption algorithm!
-    1
+    "compress".to_string(),
+    StageType::Compression,
+    StageConfiguration::new(
+        "aes256gcm".to_string(), // ❌ Encryption algorithm in compression stage!
+        HashMap::new(),
+        false,
+    ),
+    0,
 ) // ❌ Error: Algorithm not compatible with stage type
 ```
 

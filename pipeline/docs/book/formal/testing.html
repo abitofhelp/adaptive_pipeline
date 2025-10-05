@@ -256,7 +256,7 @@
         │    (35)     │
         ├─────────────┤
         │   Unit      │  ← Many, fast, focused
-        │    (68)     │
+        │   (314)     │
         └─────────────┘
 </code></pre>
 <p><strong>Rationale:</strong></p>
@@ -273,7 +273,7 @@
 <li>Location: <code>#[cfg(test)]</code> modules within source files</li>
 <li>Scope: Single function/struct in isolation</li>
 <li>Run with: <code>cargo test --lib</code></li>
-<li>Count: 68 tests</li>
+<li>Count: 314 tests (68 bootstrap + 90 pipeline + 156 pipeline-domain)</li>
 <li>Example: <code>pipeline-domain/src/entities/pipeline_stage.rs:590-747</code></li>
 </ul>
 <p><strong>Integration Tests:</strong></p>
@@ -303,9 +303,9 @@
 <ul>
 <li>Location: Doc comments with <code>```</code> code blocks</li>
 <li>Run with: <code>cargo test --doc</code></li>
-<li>Count: 25 tests</li>
+<li>Count: 27 tests (12 ignored)</li>
 </ul>
-<p><strong>Total Test Count: 141 tests</strong></p>
+<p><strong>Total Test Count: 389 tests</strong> (15 ignored)</p>
 <hr />
 <h2 id="3-test-levels"><a class="header" href="#3-test-levels">3. Test Levels</a></h2>
 <h3 id="31-unit-testing"><a class="header" href="#31-unit-testing">3.1 Unit Testing</a></h3>
@@ -921,7 +921,7 @@ cargo deny check
 <h3 id="91-test-metrics"><a class="header" href="#91-test-metrics">9.1 Test Metrics</a></h3>
 <p><strong>Key Metrics:</strong></p>
 <ul>
-<li>Test count: 141 tests</li>
+<li>Test count: 389 tests (15 ignored)</li>
 <li>Test pass rate: Target 100%</li>
 <li>Code coverage: Target 80%+</li>
 <li>Test execution time: &lt; 20 seconds for full suite</li>
@@ -939,12 +939,12 @@ time cargo test
 </code></pre>
 <h3 id="92-test-reporting"><a class="header" href="#92-test-reporting">9.2 Test Reporting</a></h3>
 <p><strong>Console Output:</strong></p>
-<pre><code>running 141 tests
+<pre><code>running 389 tests
 test unit::test_pipeline_creation ... ok
 test integration::test_repository_save ... ok
 test e2e::test_complete_workflow ... ok
 
-test result: ok. 141 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.34s
+test result: ok. 374 passed; 0 failed; 15 ignored; 0 measured; 0 filtered out; finished in 15.67s
 </code></pre>
 <p><strong>Coverage Report:</strong></p>
 <pre><code>|| Tested/Total Lines:
@@ -1104,15 +1104,15 @@ This Software Test Plan</li>
 <h3 id="122-test-code"><a class="header" href="#122-test-code">12.2 Test Code</a></h3>
 <ul>
 <li><input disabled="" type="checkbox" checked=""/>
-68 unit tests in source files</li>
+314 unit tests in source files (68 bootstrap + 90 pipeline + 156 pipeline-domain)</li>
 <li><input disabled="" type="checkbox" checked=""/>
-35 integration tests in <code>tests/integration/</code></li>
+35 integration tests in <code>tests/integration/</code> (3 ignored)</li>
 <li><input disabled="" type="checkbox" checked=""/>
 11 E2E tests in <code>tests/e2e/</code></li>
 <li><input disabled="" type="checkbox" checked=""/>
 2 architecture compliance tests</li>
 <li><input disabled="" type="checkbox" checked=""/>
-25 documentation tests</li>
+27 documentation tests (12 ignored)</li>
 <li><input disabled="" type="checkbox"/>
 Benchmark suite (TODO)</li>
 <li><input disabled="" type="checkbox"/>
@@ -1160,7 +1160,7 @@ Property-based tests (TODO)</li>
 <h2 id="14-conclusion"><a class="header" href="#14-conclusion">14. Conclusion</a></h2>
 <p>This Software Test Plan establishes a comprehensive testing strategy for the Optimized Adaptive Pipeline system. Key highlights:</p>
 <ul>
-<li><strong>141 tests</strong> across all levels (unit, integration, E2E, architecture, doc)</li>
+<li><strong>389 tests</strong> across all levels (314 unit, 35 integration, 11 E2E, 2 architecture, 27 doc)</li>
 <li><strong>Organized structure</strong> following Rust best practices</li>
 <li><strong>Automated CI/CD</strong> integration for continuous quality</li>
 <li><strong>High coverage goals</strong> (80%+ overall, 90%+ domain layer)</li>

@@ -697,27 +697,43 @@ Chunk 2 ──┘
 <p>Each stage has a configuration that specifies how it should process data:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::{PipelineStage, Algorithm};
+</span>use pipeline_domain::entities::{PipelineStage, StageType, StageConfiguration};
+use std::collections::HashMap;
 
 // Example: Compression stage
 let compression_stage = PipelineStage::new(
     "compress".to_string(),
-    Algorithm::zstd(),
-    1, // stage order
+    StageType::Compression,
+    StageConfiguration::new(
+        "zstd".to_string(),  // algorithm name
+        HashMap::new(),      // parameters
+        false,               // parallel processing
+    ),
+    0, // stage order
 )?;
 
 // Example: Encryption stage
 let encryption_stage = PipelineStage::new(
     "encrypt".to_string(),
-    Algorithm::aes_256_gcm(),
-    2, // stage order
+    StageType::Encryption,
+    StageConfiguration::new(
+        "aes256gcm".to_string(),
+        HashMap::new(),
+        false,
+    ),
+    1, // stage order
 )?;
 
 // Example: Integrity verification stage
 let integrity_stage = PipelineStage::new(
     "verify".to_string(),
-    Algorithm::sha256(),
-    3, // stage order
+    StageType::Checksum,
+    StageConfiguration::new(
+        "sha256".to_string(),
+        HashMap::new(),
+        false,
+    ),
+    2, // stage order
 )?;
 <span class="boring">}</span></code></pre></pre>
 <h2 id="stage-execution-order"><a class="header" href="#stage-execution-order">Stage Execution Order</a></h2>
@@ -746,26 +762,66 @@ Input File → Verify → Decrypt → Decompress → Output File
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>vec![
-    PipelineStage::new("compress", Algorithm::brotli(), 1)?,
-    PipelineStage::new("encrypt", Algorithm::aes_256_gcm(), 2)?,
-    PipelineStage::new("verify", Algorithm::blake3(), 3)?,
+    PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new("brotli".to_string(), HashMap::new(), false),
+        0,
+    )?,
+    PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new("aes256gcm".to_string(), HashMap::new(), false),
+        1,
+    )?,
+    PipelineStage::new(
+        "verify".to_string(),
+        StageType::Checksum,
+        StageConfiguration::new("blake3".to_string(), HashMap::new(), false),
+        2,
+    )?,
 ]
 <span class="boring">}</span></code></pre></pre>
 <h3 id="maximum-speed"><a class="header" href="#maximum-speed">Maximum Speed</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>vec![
-    PipelineStage::new("compress", Algorithm::lz4(), 1)?,
-    PipelineStage::new("encrypt", Algorithm::chacha20_poly1305(), 2)?,
+    PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new("lz4".to_string(), HashMap::new(), false),
+        0,
+    )?,
+    PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new("chacha20poly1305".to_string(), HashMap::new(), false),
+        1,
+    )?,
 ]
 <span class="boring">}</span></code></pre></pre>
 <h3 id="balanced-approach"><a class="header" href="#balanced-approach">Balanced Approach</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>vec![
-    PipelineStage::new("compress", Algorithm::zstd(), 1)?,
-    PipelineStage::new("encrypt", Algorithm::aes_256_gcm(), 2)?,
-    PipelineStage::new("verify", Algorithm::sha256(), 3)?,
+    PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new("zstd".to_string(), HashMap::new(), false),
+        0,
+    )?,
+    PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new("aes256gcm".to_string(), HashMap::new(), false),
+        1,
+    )?,
+    PipelineStage::new(
+        "verify".to_string(),
+        StageType::Checksum,
+        StageConfiguration::new("sha256".to_string(), HashMap::new(), false),
+        2,
+    )?,
 ]
 <span class="boring">}</span></code></pre></pre>
 <h2 id="parallel-processing"><a class="header" href="#parallel-processing">Parallel Processing</a></h2>
@@ -800,9 +856,14 @@ Input File → Verify → Decrypt → Decompress → Output File
 </span><span class="boring">fn main() {
 </span>// This will fail - wrong algorithm for stage type
 PipelineStage::new(
-    "compress",
-    Algorithm::aes_256_gcm(), // Encryption algorithm!
-    1
+    "compress".to_string(),
+    StageType::Compression,
+    StageConfiguration::new(
+        "aes256gcm".to_string(), // ❌ Encryption algorithm in compression stage!
+        HashMap::new(),
+        false,
+    ),
+    0,
 ) // ❌ Error: Algorithm not compatible with stage type
 <span class="boring">}</span></code></pre></pre>
 <h2 id="extending-with-custom-stages"><a class="header" href="#extending-with-custom-stages">Extending with Custom Stages</a></h2>
@@ -21080,44 +21141,85 @@ impl ChunkSize {
 <span class="boring">}</span></code></pre></pre>
 <h3 id="43-database-schema"><a class="header" href="#43-database-schema">4.3 Database Schema</a></h3>
 <p><strong>Schema Management:</strong> Using <code>sqlx</code> with migrations</p>
-<pre><code class="language-sql">-- migrations/001_initial_schema.sql
+<pre><code class="language-sql">-- migrations/20250101000000_initial_schema.sql
 
+-- Pipelines table: stores pipeline configurations
 CREATE TABLE IF NOT EXISTS pipelines (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
+    archived BOOLEAN NOT NULL DEFAULT false,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
 
-CREATE INDEX idx_pipelines_name ON pipelines(name);
+-- Pipeline configuration: key-value pairs for pipeline settings
+CREATE TABLE IF NOT EXISTS pipeline_configuration (
+    pipeline_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (pipeline_id, key),
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
 
+-- Pipeline stages: defines processing stages in a pipeline
 CREATE TABLE IF NOT EXISTS pipeline_stages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     pipeline_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    order_num INTEGER NOT NULL,
-    config TEXT NOT NULL,
-    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE,
-    UNIQUE (pipeline_id, name),
-    UNIQUE (pipeline_id, order_num)
+    stage_type TEXT NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    stage_order INTEGER NOT NULL,
+    algorithm TEXT NOT NULL,
+    parallel_processing BOOLEAN NOT NULL DEFAULT FALSE,
+    chunk_size INTEGER,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_stages_pipeline ON pipeline_stages(pipeline_id);
-
-CREATE TABLE IF NOT EXISTS file_metadata (
-    id TEXT PRIMARY KEY,
-    original_path TEXT NOT NULL,
-    processed_path TEXT NOT NULL,
-    pipeline_id TEXT NOT NULL,
-    original_size INTEGER NOT NULL,
-    processed_size INTEGER NOT NULL,
-    checksum TEXT,
-    processed_at TEXT NOT NULL,
-    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id)
+-- Stage parameters: configuration for individual stages
+CREATE TABLE IF NOT EXISTS stage_parameters (
+    stage_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (stage_id, key),
+    FOREIGN KEY (stage_id) REFERENCES pipeline_stages(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_metadata_pipeline ON file_metadata(pipeline_id);
+-- Processing metrics: tracks pipeline execution metrics
+CREATE TABLE IF NOT EXISTS processing_metrics (
+    pipeline_id TEXT PRIMARY KEY,
+    bytes_processed INTEGER NOT NULL DEFAULT 0,
+    bytes_total INTEGER NOT NULL DEFAULT 0,
+    chunks_processed INTEGER NOT NULL DEFAULT 0,
+    chunks_total INTEGER NOT NULL DEFAULT 0,
+    start_time_rfc3339 TEXT,
+    end_time_rfc3339 TEXT,
+    processing_duration_ms INTEGER,
+    throughput_bytes_per_second REAL NOT NULL DEFAULT 0.0,
+    compression_ratio REAL,
+    error_count INTEGER NOT NULL DEFAULT 0,
+    warning_count INTEGER NOT NULL DEFAULT 0,
+    input_file_size_bytes INTEGER NOT NULL DEFAULT 0,
+    output_file_size_bytes INTEGER NOT NULL DEFAULT 0,
+    input_file_checksum TEXT,
+    output_file_checksum TEXT,
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_pipeline_stages_pipeline_id ON pipeline_stages(pipeline_id);
+CREATE INDEX IF NOT EXISTS idx_pipeline_stages_order ON pipeline_stages(pipeline_id, stage_order);
+CREATE INDEX IF NOT EXISTS idx_pipeline_configuration_pipeline_id ON pipeline_configuration(pipeline_id);
+CREATE INDEX IF NOT EXISTS idx_stage_parameters_stage_id ON stage_parameters(stage_id);
+CREATE INDEX IF NOT EXISTS idx_pipelines_name ON pipelines(name) WHERE archived = false;
 </code></pre>
 <h3 id="44-binary-file-format-adapipe"><a class="header" href="#44-binary-file-format-adapipe">4.4 Binary File Format (.adapipe)</a></h3>
 <p><strong>Format Specification:</strong></p>
@@ -21222,26 +21324,45 @@ pipeline create \
     --stages compress:zstd,encrypt:aes256gcm
 </code></pre>
 <p><strong>Future: Library API:</strong></p>
-<pre><pre class="playground"><code class="language-rust">use pipeline::{Pipeline, PipelineStage, StageType};
+<pre><pre class="playground"><code class="language-rust">use pipeline_domain::entities::{Pipeline, PipelineStage, StageType, StageConfiguration};
+use std::collections::HashMap;
 
 #[tokio::main]
-async fn main() -&gt; Result&lt;()&gt; {
-    // Create pipeline
-    let pipeline = Pipeline::builder()
-        .name("my-pipeline")
-        .add_stage(
-            PipelineStage::compression("compress", "zstd", 1)?
-        )
-        .add_stage(
-            PipelineStage::encryption("encrypt", "aes256gcm", 2)?
-        )
-        .build()?;
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Create pipeline stages
+    let compression_stage = PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new(
+            "zstd".to_string(),
+            HashMap::new(),
+            false,
+        ),
+        0,
+    )?;
 
-    // Process file
-    let processor = PipelineProcessor::new()?;
-    let output = processor.process(&amp;pipeline, "input.txt").await?;
+    let encryption_stage = PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new(
+            "aes256gcm".to_string(),
+            HashMap::new(),
+            false,
+        ),
+        1,
+    )?;
 
-    println!("Processed: {:?}", output);
+    // Create pipeline with stages
+    let pipeline = Pipeline::new(
+        "my-pipeline".to_string(),
+        vec![compression_stage, encryption_stage],
+    )?;
+
+    // Process file (future implementation)
+    // let processor = PipelineProcessor::new()?;
+    // let output = processor.process(&amp;pipeline, "input.txt").await?;
+
+    println!("Pipeline created: {}", pipeline.name());
     Ok(())
 }</code></pre></pre>
 <h3 id="52-internal-apis"><a class="header" href="#52-internal-apis">5.2 Internal APIs</a></h3>
@@ -21373,14 +21494,23 @@ impl PipelineProcessor {
 <span class="boring">}</span></code></pre></pre>
 <h3 id="74-builder-pattern"><a class="header" href="#74-builder-pattern">7.4 Builder Pattern</a></h3>
 <p><strong>Purpose:</strong> Construct complex objects step by step.</p>
-<p><strong>Example:</strong></p>
+<p><strong>Note:</strong> Builder pattern is a potential future enhancement. Current API uses direct construction.</p>
+<p><strong>Current API:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let pipeline = Pipeline::builder()
+</span>let pipeline = Pipeline::new(
+    "my-pipeline".to_string(),
+    vec![compression_stage, encryption_stage],
+)?;
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Potential Future Builder API:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Not yet implemented - potential future enhancement
+let pipeline = Pipeline::builder()
     .name("my-pipeline")
     .add_stage(compression_stage)
     .add_stage(encryption_stage)
-    .chunk_size(2_097_152)
     .build()?;
 <span class="boring">}</span></code></pre></pre>
 <h3 id="75-command-pattern"><a class="header" href="#75-command-pattern">7.5 Command Pattern</a></h3>
@@ -21696,7 +21826,7 @@ pub fn process_chunks_parallel(
         │    (35)     │
         ├─────────────┤
         │   Unit      │  ← Many, fast, focused
-        │    (68)     │
+        │   (314)     │
         └─────────────┘
 </code></pre>
 <p><strong>Rationale:</strong></p>
@@ -21713,7 +21843,7 @@ pub fn process_chunks_parallel(
 <li>Location: <code>#[cfg(test)]</code> modules within source files</li>
 <li>Scope: Single function/struct in isolation</li>
 <li>Run with: <code>cargo test --lib</code></li>
-<li>Count: 68 tests</li>
+<li>Count: 314 tests (68 bootstrap + 90 pipeline + 156 pipeline-domain)</li>
 <li>Example: <code>pipeline-domain/src/entities/pipeline_stage.rs:590-747</code></li>
 </ul>
 <p><strong>Integration Tests:</strong></p>
@@ -21743,9 +21873,9 @@ pub fn process_chunks_parallel(
 <ul>
 <li>Location: Doc comments with <code>```</code> code blocks</li>
 <li>Run with: <code>cargo test --doc</code></li>
-<li>Count: 25 tests</li>
+<li>Count: 27 tests (12 ignored)</li>
 </ul>
-<p><strong>Total Test Count: 141 tests</strong></p>
+<p><strong>Total Test Count: 389 tests</strong> (15 ignored)</p>
 <hr />
 <h2 id="3-test-levels"><a class="header" href="#3-test-levels">3. Test Levels</a></h2>
 <h3 id="31-unit-testing"><a class="header" href="#31-unit-testing">3.1 Unit Testing</a></h3>
@@ -22361,7 +22491,7 @@ cargo deny check
 <h3 id="91-test-metrics"><a class="header" href="#91-test-metrics">9.1 Test Metrics</a></h3>
 <p><strong>Key Metrics:</strong></p>
 <ul>
-<li>Test count: 141 tests</li>
+<li>Test count: 389 tests (15 ignored)</li>
 <li>Test pass rate: Target 100%</li>
 <li>Code coverage: Target 80%+</li>
 <li>Test execution time: &lt; 20 seconds for full suite</li>
@@ -22379,12 +22509,12 @@ time cargo test
 </code></pre>
 <h3 id="92-test-reporting"><a class="header" href="#92-test-reporting">9.2 Test Reporting</a></h3>
 <p><strong>Console Output:</strong></p>
-<pre><code>running 141 tests
+<pre><code>running 389 tests
 test unit::test_pipeline_creation ... ok
 test integration::test_repository_save ... ok
 test e2e::test_complete_workflow ... ok
 
-test result: ok. 141 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.34s
+test result: ok. 374 passed; 0 failed; 15 ignored; 0 measured; 0 filtered out; finished in 15.67s
 </code></pre>
 <p><strong>Coverage Report:</strong></p>
 <pre><code>|| Tested/Total Lines:
@@ -22544,15 +22674,15 @@ This Software Test Plan</li>
 <h3 id="122-test-code"><a class="header" href="#122-test-code">12.2 Test Code</a></h3>
 <ul>
 <li><input disabled="" type="checkbox" checked=""/>
-68 unit tests in source files</li>
+314 unit tests in source files (68 bootstrap + 90 pipeline + 156 pipeline-domain)</li>
 <li><input disabled="" type="checkbox" checked=""/>
-35 integration tests in <code>tests/integration/</code></li>
+35 integration tests in <code>tests/integration/</code> (3 ignored)</li>
 <li><input disabled="" type="checkbox" checked=""/>
 11 E2E tests in <code>tests/e2e/</code></li>
 <li><input disabled="" type="checkbox" checked=""/>
 2 architecture compliance tests</li>
 <li><input disabled="" type="checkbox" checked=""/>
-25 documentation tests</li>
+27 documentation tests (12 ignored)</li>
 <li><input disabled="" type="checkbox"/>
 Benchmark suite (TODO)</li>
 <li><input disabled="" type="checkbox"/>
@@ -22600,7 +22730,7 @@ Property-based tests (TODO)</li>
 <h2 id="14-conclusion"><a class="header" href="#14-conclusion">14. Conclusion</a></h2>
 <p>This Software Test Plan establishes a comprehensive testing strategy for the Optimized Adaptive Pipeline system. Key highlights:</p>
 <ul>
-<li><strong>141 tests</strong> across all levels (unit, integration, E2E, architecture, doc)</li>
+<li><strong>389 tests</strong> across all levels (314 unit, 35 integration, 11 E2E, 2 architecture, 27 doc)</li>
 <li><strong>Organized structure</strong> following Rust best practices</li>
 <li><strong>Automated CI/CD</strong> integration for continuous quality</li>
 <li><strong>High coverage goals</strong> (80%+ overall, 90%+ domain layer)</li>
