@@ -363,12 +363,32 @@ async fn cpu_worker_task(
         // Each write goes to a different file position, so they don't conflict.
 
         // Prepare chunk for .adapipe file format
-        // The .adapipe format includes a nonce (number used once) for security
-        // TODO: In production, this would come from the encryption stage
-        let nonce = [0u8; 12]; // Placeholder nonce (12 bytes for AES-GCM)
+        // Extract nonce from encrypted data if encryption was applied
+        // When encryption runs, it prepends a 12-byte nonce to the encrypted data
+        let (nonce, chunk_data) = if file_chunk.data().len() >= 12 {
+            // Check if this chunk was encrypted by looking at processing context
+            let is_encrypted = local_context
+                .metadata()
+                .get("encrypted")
+                .map(|v| v == "true")
+                .unwrap_or(false);
+
+            if is_encrypted {
+                // Extract nonce (first 12 bytes) from encrypted data
+                let mut nonce_array = [0u8; 12];
+                nonce_array.copy_from_slice(&file_chunk.data()[..12]);
+                (nonce_array, file_chunk.data()[12..].to_vec())
+            } else {
+                // No encryption: use zero nonce as placeholder, keep all data
+                ([0u8; 12], file_chunk.data().to_vec())
+            }
+        } else {
+            // Data too small to contain nonce: use zero nonce, keep all data
+            ([0u8; 12], file_chunk.data().to_vec())
+        };
 
         // Convert processed FileChunk to ChunkFormat for binary format
-        let chunk_format = ChunkFormat::new(nonce, file_chunk.data().to_vec());
+        let chunk_format = ChunkFormat::new(nonce, chunk_data);
 
         // Direct concurrent write to calculated position
         writer
@@ -923,8 +943,26 @@ impl PipelineService for PipelineServiceImpl {
                             }
 
                             // Prepare and write chunk
-                            let nonce = [0u8; 12]; // TODO: Get from encryption stage
-                            let chunk_format = ChunkFormat::new(nonce, file_chunk.data().to_vec());
+                            // Extract nonce from encrypted data if encryption was applied
+                            let (nonce, chunk_data) = if file_chunk.data().len() >= 12 {
+                                let is_encrypted = local_context
+                                    .metadata()
+                                    .get("encrypted")
+                                    .map(|v| v == "true")
+                                    .unwrap_or(false);
+
+                                if is_encrypted {
+                                    let mut nonce_array = [0u8; 12];
+                                    nonce_array.copy_from_slice(&file_chunk.data()[..12]);
+                                    (nonce_array, file_chunk.data()[12..].to_vec())
+                                } else {
+                                    ([0u8; 12], file_chunk.data().to_vec())
+                                }
+                            } else {
+                                ([0u8; 12], file_chunk.data().to_vec())
+                            };
+
+                            let chunk_format = ChunkFormat::new(nonce, chunk_data);
                             writer_clone
                                 .write_chunk_at_position(chunk_format, chunk_msg.chunk_index as u64)
                                 .await?;
