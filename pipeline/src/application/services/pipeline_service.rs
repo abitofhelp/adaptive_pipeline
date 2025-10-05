@@ -775,7 +775,7 @@ impl PipelineService for PipelineServiceImpl {
         // STEP 2: Create thread-safe writer
         // Writer uses &self for concurrent writes (no mutex on individual writes!)
         // But we wrap in Arc for sharing, and Mutex is needed only for finalization
-        let binary_writer = self.binary_format_service.create_writer(output_path, header.clone())?;
+        let binary_writer = self.binary_format_service.create_writer(output_path, header.clone()).await?;
         let writer_shared = Arc::new(binary_writer);
 
         // Create progress indicator for this operation

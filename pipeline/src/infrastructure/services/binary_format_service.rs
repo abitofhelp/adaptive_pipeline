@@ -50,7 +50,7 @@ use tokio::sync::Mutex;
 #[async_trait]
 pub trait BinaryFormatService: Send + Sync {
     /// Creates a new .adapipe format writer for streaming processed output
-    fn create_writer(
+    async fn create_writer(
         &self,
         output_path: &Path,
         header: FileHeader,
@@ -133,13 +133,14 @@ impl BinaryFormatServiceImpl {
 
 #[async_trait]
 impl BinaryFormatService for BinaryFormatServiceImpl {
-    fn create_writer(
+    async fn create_writer(
         &self,
         output_path: &Path,
         header: FileHeader,
     ) -> Result<Box<dyn BinaryFormatWriter>, PipelineError> {
-        // Create a buffered writer that will write chunks on finalize
-        Ok(Box::new(BufferedBinaryWriter::new(output_path.to_path_buf(), header)))
+        // Create a streaming writer that supports concurrent writes
+        let writer = StreamingBinaryWriter::new(output_path, header).await?;
+        Ok(Box::new(writer))
     }
 
     async fn create_reader(&self, input_path: &Path) -> Result<Box<dyn BinaryFormatReader>, PipelineError> {
@@ -328,10 +329,16 @@ impl StreamingBinaryWriter {
 #[async_trait]
 impl BinaryFormatWriter for StreamingBinaryWriter {
     fn write_chunk(&mut self, chunk: ChunkFormat) -> Result<(), PipelineError> {
-        // TODO: Implement write_chunk method with proper parameters
-        Err(PipelineError::InvalidConfiguration(
-            "write_chunk not yet implemented".to_string(),
-        ))
+        // Sequential write using current chunk count as sequence number
+        // This allows StreamingBinaryWriter to work for both sequential (tests) and
+        // concurrent (production) writes
+        let sequence_number = self.chunks_written.load(Ordering::Relaxed);
+
+        // Use async write_chunk_at_position internally
+        // We need to block on the async operation since write_chunk is sync
+        tokio::runtime::Handle::current().block_on(async {
+            self.write_chunk_at_position(chunk, sequence_number).await
+        })
     }
 
     /// Writes a processed chunk at a specific position for concurrent
@@ -752,9 +759,9 @@ mod tests {
         let chunk1 = ChunkFormat::new([1u8; 12], vec![0xde, 0xad, 0xbe, 0xef]);
         let chunk2 = ChunkFormat::new([2u8; 12], vec![0xca, 0xfe, 0xba, 0xbe]);
 
-        // Write file using BufferedBinaryWriter
+        // Write file using StreamingBinaryWriter
         let service = BinaryFormatServiceImpl::new();
-        let mut writer = service.create_writer(&test_file_path, header.clone()).unwrap();
+        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
         writer.write_chunk(chunk1.clone()).unwrap();
         writer.write_chunk(chunk2.clone()).unwrap();
 
@@ -815,7 +822,7 @@ mod tests {
 
         // Write file
         let service = BinaryFormatServiceImpl::new();
-        let mut writer = service.create_writer(&test_file_path, header.clone()).unwrap();
+        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
         writer.write_chunk(chunk.clone()).unwrap();
         let final_header = header.clone();
         writer.finalize(final_header).await.unwrap();
@@ -851,7 +858,7 @@ mod tests {
         let chunk2 = ChunkFormat::new([8u8; 12], vec![0x11, 0x22, 0x33, 0x44]);
 
         let service = BinaryFormatServiceImpl::new();
-        let mut writer = service.create_writer(&test_file_path, header.clone()).unwrap();
+        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
         writer.write_chunk(chunk1).unwrap();
         writer.write_chunk(chunk2).unwrap();
         let final_header = header.clone();
@@ -886,7 +893,7 @@ mod tests {
 
         // Write file
         let service = BinaryFormatServiceImpl::new();
-        let mut writer = service.create_writer(&test_file_path, header.clone()).unwrap();
+        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
         writer.write_chunk(chunk1.clone()).unwrap();
         writer.write_chunk(chunk2.clone()).unwrap();
         writer.write_chunk(chunk3.clone()).unwrap();
