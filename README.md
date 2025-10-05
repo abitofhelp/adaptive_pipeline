@@ -1,6 +1,6 @@
 # Optimized Adaptive Pipeline RS
 
-A **production-grade**, **high-performance** file processing system built with Rust, featuring advanced concurrency patterns, adaptive performance optimization, and enterprise-level reliability. This project demonstrates professional Rust development with Channel-based Architecture, Domain-Driven Design, and comprehensive error handling.
+A **production-grade**, **high-performance** file processing system built with Rust, featuring advanced concurrency patterns, adaptive performance optimization, and enterprise-level reliability. This project demonstrates professional Rust development with Channel-based Architecture, Domain-Driven Design, pipeline expansion through custom stages, and comprehensive error handling.
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
