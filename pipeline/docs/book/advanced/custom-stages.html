@@ -183,13 +183,571 @@
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
 <strong>Authors:</strong> Michael Gardner
 <strong>Status:</strong> Draft</p>
-<p>Creating custom pipeline stages.</p>
-<h2 id="stage-interface"><a class="header" href="#stage-interface">Stage Interface</a></h2>
-<p>TODO: Show stage trait</p>
-<h2 id="implementation-example"><a class="header" href="#implementation-example">Implementation Example</a></h2>
-<p>TODO: Show complete example</p>
+<p>This chapter provides a step-by-step guide to creating custom pipeline stages, from defining the stage type through implementation, testing, and integration.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Custom stages allow you to extend the pipeline with specialized data processing operations:</p>
+<ul>
+<li><strong>Data Sanitization</strong>: Remove PII, redact sensitive information</li>
+<li><strong>Data Validation</strong>: Enforce schemas, validate formats</li>
+<li><strong>Data Transformation</strong>: Convert formats, restructure data</li>
+<li><strong>Data Enrichment</strong>: Add metadata, annotations, tags</li>
+<li><strong>Custom Business Logic</strong>: Domain-specific operations</li>
+</ul>
+<p><strong>Key Concepts:</strong></p>
+<ul>
+<li><strong>StageType</strong>: Enum variant identifying the stage category</li>
+<li><strong>StageConfiguration</strong>: Parameters for stage behavior</li>
+<li><strong>Service Trait</strong>: Domain interface defining stage operations</li>
+<li><strong>Service Implementation</strong>: Infrastructure adapter performing the work</li>
+<li><strong>Processing Context</strong>: Shared state for metrics and metadata</li>
+</ul>
+<h2 id="stage-implementation-steps"><a class="header" href="#stage-implementation-steps">Stage Implementation Steps</a></h2>
+<h3 id="step-1-define-stage-type"><a class="header" href="#step-1-define-stage-type">Step 1: Define Stage Type</a></h3>
+<p>Add a new variant to the <code>StageType</code> enum:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// pipeline-domain/src/entities/pipeline_stage.rs
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StageType {
+    Compression,
+    Encryption,
+    Transform,
+    Checksum,
+    PassThrough,
+
+    // Custom stage type
+    Sanitization,  // Data sanitization
+}
+
+impl std::fmt::Display for StageType {
+    fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter&lt;'_&gt;) -&gt; std::fmt::Result {
+        match self {
+            // ... existing types ...
+            StageType::Sanitization =&gt; write!(f, "sanitization"),
+        }
+    }
+}
+
+impl std::str::FromStr for StageType {
+    type Err = PipelineError;
+
+    fn from_str(s: &amp;str) -&gt; Result&lt;Self, Self::Err&gt; {
+        match s.to_lowercase().as_str() {
+            // ... existing types ...
+            "sanitization" =&gt; Ok(StageType::Sanitization),
+            _ =&gt; Err(PipelineError::InvalidConfiguration(format!(
+                "Unknown stage type: {}",
+                s
+            ))),
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="step-2-define-domain-service-trait"><a class="header" href="#step-2-define-domain-service-trait">Step 2: Define Domain Service Trait</a></h3>
+<p>Create a trait in the domain layer:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// pipeline-domain/src/services/sanitization_service.rs
+
+use crate::{FileChunk, PipelineError, ProcessingContext};
+
+/// Trait for data sanitization services
+///
+/// This service removes or redacts sensitive information from file chunks,
+/// such as PII (personally identifiable information).
+pub trait SanitizationService: Send + Sync {
+    /// Sanitize a file chunk by removing sensitive data
+    ///
+    /// # Arguments
+    ///
+    /// * `chunk` - File chunk to sanitize
+    /// * `context` - Processing context for metrics
+    ///
+    /// # Returns
+    ///
+    /// Sanitized chunk with sensitive data removed or redacted
+    fn sanitize(
+        &amp;self,
+        chunk: FileChunk,
+        context: &amp;mut ProcessingContext,
+    ) -&gt; Result&lt;FileChunk, PipelineError&gt;;
+
+    /// Detect sensitive patterns in chunk
+    ///
+    /// # Returns
+    ///
+    /// Count of sensitive patterns found
+    fn detect_sensitive_data(
+        &amp;self,
+        chunk: &amp;FileChunk,
+    ) -&gt; Result&lt;usize, PipelineError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="step-3-implement-infrastructure-service"><a class="header" href="#step-3-implement-infrastructure-service">Step 3: Implement Infrastructure Service</a></h3>
+<p>Create the concrete implementation:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// pipeline/src/infrastructure/services/sanitization_service_impl.rs
+
+use pipeline_domain::services::SanitizationService;
+use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
+use regex::Regex;
+use std::sync::LazyLock;
+
+/// Regular expressions for detecting sensitive data
+static EMAIL_REGEX: LazyLock&lt;Regex&gt; =
+    LazyLock::new(|| Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b").unwrap());
+
+static SSN_REGEX: LazyLock&lt;Regex&gt; =
+    LazyLock::new(|| Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").unwrap());
+
+static PHONE_REGEX: LazyLock&lt;Regex&gt; =
+    LazyLock::new(|| Regex::new(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b").unwrap());
+
+static CREDIT_CARD_REGEX: LazyLock&lt;Regex&gt; =
+    LazyLock::new(|| Regex::new(r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b").unwrap());
+
+/// Sanitization service implementation using regex patterns
+pub struct RegexSanitizationService {
+    redaction_placeholder: String,
+}
+
+impl RegexSanitizationService {
+    pub fn new() -&gt; Self {
+        Self {
+            redaction_placeholder: "[REDACTED]".to_string(),
+        }
+    }
+
+    pub fn with_placeholder(placeholder: impl Into&lt;String&gt;) -&gt; Self {
+        Self {
+            redaction_placeholder: placeholder.into(),
+        }
+    }
+
+    fn redact_emails(&amp;self, text: &amp;str) -&gt; String {
+        EMAIL_REGEX.replace_all(text, &amp;self.redaction_placeholder).to_string()
+    }
+
+    fn redact_ssns(&amp;self, text: &amp;str) -&gt; String {
+        SSN_REGEX.replace_all(text, &amp;self.redaction_placeholder).to_string()
+    }
+
+    fn redact_phones(&amp;self, text: &amp;str) -&gt; String {
+        PHONE_REGEX.replace_all(text, &amp;self.redaction_placeholder).to_string()
+    }
+
+    fn redact_credit_cards(&amp;self, text: &amp;str) -&gt; String {
+        CREDIT_CARD_REGEX.replace_all(text, &amp;self.redaction_placeholder).to_string()
+    }
+}
+
+impl SanitizationService for RegexSanitizationService {
+    fn sanitize(
+        &amp;self,
+        chunk: FileChunk,
+        context: &amp;mut ProcessingContext,
+    ) -&gt; Result&lt;FileChunk, PipelineError&gt; {
+        let start = std::time::Instant::now();
+
+        // Convert chunk data to string
+        let text = String::from_utf8_lossy(chunk.data());
+
+        // Apply sanitization
+        let sanitized = self.redact_emails(&amp;text);
+        let sanitized = self.redact_ssns(&amp;sanitized);
+        let sanitized = self.redact_phones(&amp;sanitized);
+        let sanitized = self.redact_credit_cards(&amp;sanitized);
+
+        // Update context
+        let duration = start.elapsed();
+        context.add_bytes_processed(chunk.data().len() as u64);
+        context.record_stage_duration(duration);
+
+        // Create sanitized chunk
+        let mut result = FileChunk::new(
+            chunk.sequence_number(),
+            chunk.file_offset(),
+            sanitized.into_bytes(),
+        );
+
+        result.set_metadata(chunk.metadata().clone());
+
+        Ok(result)
+    }
+
+    fn detect_sensitive_data(
+        &amp;self,
+        chunk: &amp;FileChunk,
+    ) -&gt; Result&lt;usize, PipelineError&gt; {
+        let text = String::from_utf8_lossy(chunk.data());
+
+        let email_count = EMAIL_REGEX.find_iter(&amp;text).count();
+        let ssn_count = SSN_REGEX.find_iter(&amp;text).count();
+        let phone_count = PHONE_REGEX.find_iter(&amp;text).count();
+        let cc_count = CREDIT_CARD_REGEX.find_iter(&amp;text).count();
+
+        Ok(email_count + ssn_count + phone_count + cc_count)
+    }
+}
+
+impl Default for RegexSanitizationService {
+    fn default() -&gt; Self {
+        Self::new()
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="step-4-register-stage-in-pipeline"><a class="header" href="#step-4-register-stage-in-pipeline">Step 4: Register Stage in Pipeline</a></h3>
+<p>Add the stage to pipeline configuration:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pipeline_domain::entities::{PipelineStage, StageType, StageConfiguration};
+use std::collections::HashMap;
+
+// Create sanitization stage
+let stage = PipelineStage::new(
+    StageType::Sanitization,
+    "pii-removal",
+    StageConfiguration::new(
+        "regex".to_string(),
+        HashMap::from([
+            ("placeholder".to_string(), "[REDACTED]".to_string()),
+        ]),
+        true,  // Parallel processing enabled
+    ),
+);
+
+// Add to pipeline
+pipeline.add_stage(stage)?;
+<span class="boring">}</span></code></pre></pre>
+<h3 id="step-5-integrate-with-stage-executor"><a class="header" href="#step-5-integrate-with-stage-executor">Step 5: Integrate with Stage Executor</a></h3>
+<p>Update the stage executor to handle the new stage type:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// pipeline/src/infrastructure/execution/stage_executor_impl.rs
+
+impl StageExecutor for StageExecutorImpl {
+    async fn execute(
+        &amp;self,
+        stage: &amp;PipelineStage,
+        chunk: FileChunk,
+        context: &amp;mut ProcessingContext,
+    ) -&gt; Result&lt;FileChunk, PipelineError&gt; {
+        match stage.stage_type() {
+            // ... existing types ...
+
+            StageType::Sanitization =&gt; {
+                let service = self.sanitization_service
+                    .as_ref()
+                    .ok_or_else(|| PipelineError::ServiceNotConfigured(
+                        "SanitizationService not configured".to_string()
+                    ))?;
+
+                service.sanitize(chunk, context)
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="complete-example-data-validation-stage"><a class="header" href="#complete-example-data-validation-stage">Complete Example: Data Validation Stage</a></h2>
+<p>Here's a complete example implementing a data validation stage:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// 1. Add StageType variant
+pub enum StageType {
+    // ... existing ...
+    Validation,
+}
+
+// 2. Define domain trait
+pub trait ValidationService: Send + Sync {
+    fn validate(
+        &amp;self,
+        chunk: FileChunk,
+        context: &amp;mut ProcessingContext,
+    ) -&gt; Result&lt;FileChunk, PipelineError&gt;;
+}
+
+// 3. Implement infrastructure service
+pub struct JsonSchemaValidationService {
+    schema: serde_json::Value,
+}
+
+impl JsonSchemaValidationService {
+    pub fn new(schema: serde_json::Value) -&gt; Self {
+        Self { schema }
+    }
+}
+
+impl ValidationService for JsonSchemaValidationService {
+    fn validate(
+        &amp;self,
+        chunk: FileChunk,
+        context: &amp;mut ProcessingContext,
+    ) -&gt; Result&lt;FileChunk, PipelineError&gt; {
+        use jsonschema::JSONSchema;
+
+        let start = std::time::Instant::now();
+
+        // Parse chunk data as JSON
+        let data: serde_json::Value = serde_json::from_slice(chunk.data())
+            .map_err(|e| PipelineError::ValidationError(format!("Invalid JSON: {}", e)))?;
+
+        // Validate against schema
+        let compiled_schema = JSONSchema::compile(&amp;self.schema)
+            .map_err(|e| PipelineError::ValidationError(format!("Invalid schema: {}", e)))?;
+
+        if let Err(errors) = compiled_schema.validate(&amp;data) {
+            let error_messages: Vec&lt;String&gt; = errors
+                .map(|e| e.to_string())
+                .collect();
+
+            return Err(PipelineError::ValidationError(format!(
+                "Validation failed: {}",
+                error_messages.join(", ")
+            )));
+        }
+
+        // Update context
+        let duration = start.elapsed();
+        context.add_bytes_processed(chunk.data().len() as u64);
+        context.record_stage_duration(duration);
+
+        Ok(chunk)  // Return unchanged if valid
+    }
+}
+
+// 4. Usage in pipeline
+let schema = serde_json::json!({
+    "type": "object",
+    "properties": {
+        "name": { "type": "string" },
+        "age": { "type": "number", "minimum": 0 }
+    },
+    "required": ["name", "age"]
+});
+
+let validation_service = Arc::new(JsonSchemaValidationService::new(schema));
+
+let stage = PipelineStage::new(
+    StageType::Validation,
+    "json-schema",
+    StageConfiguration::new(
+        "jsonschema".to_string(),
+        HashMap::new(),
+        false,  // Sequential validation
+    ),
+);
+
+pipeline.add_stage(stage)?;
+<span class="boring">}</span></code></pre></pre>
 <h2 id="testing-custom-stages"><a class="header" href="#testing-custom-stages">Testing Custom Stages</a></h2>
-<p>TODO: Show testing approach</p>
+<h3 id="unit-tests"><a class="header" href="#unit-tests">Unit Tests</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sanitization_redacts_emails() {
+        let service = RegexSanitizationService::new();
+        let test_data = b"Contact: user@example.com for details";
+
+        let chunk = FileChunk::new(0, 0, test_data.to_vec());
+        let mut context = ProcessingContext::new();
+
+        let result = service.sanitize(chunk, &amp;mut context).unwrap();
+
+        let sanitized_text = String::from_utf8(result.data().to_vec()).unwrap();
+        assert!(sanitized_text.contains("[REDACTED]"));
+        assert!(!sanitized_text.contains("user@example.com"));
+    }
+
+    #[test]
+    fn test_sanitization_detects_multiple_patterns() {
+        let service = RegexSanitizationService::new();
+        let test_data = b"Email: test@example.com, SSN: 123-45-6789, Phone: 555-123-4567";
+
+        let chunk = FileChunk::new(0, 0, test_data.to_vec());
+
+        let count = service.detect_sensitive_data(&amp;chunk).unwrap();
+        assert_eq!(count, 3);  // Email + SSN + Phone
+    }
+
+    #[test]
+    fn test_validation_rejects_invalid_json() {
+        let schema = serde_json::json!({
+            "type": "object",
+            "properties": {
+                "name": { "type": "string" }
+            },
+            "required": ["name"]
+        });
+
+        let service = JsonSchemaValidationService::new(schema);
+        let invalid_data = b"{ \"age\": 25 }";  // Missing required "name"
+
+        let chunk = FileChunk::new(0, 0, invalid_data.to_vec());
+        let mut context = ProcessingContext::new();
+
+        let result = service.validate(chunk, &amp;mut context);
+        assert!(result.is_err());
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="integration-tests"><a class="header" href="#integration-tests">Integration Tests</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_custom_stage_in_pipeline() {
+    // Create pipeline with custom stage
+    let mut pipeline = Pipeline::new();
+
+    let sanitization_stage = PipelineStage::new(
+        StageType::Sanitization,
+        "pii-removal",
+        StageConfiguration::default(),
+    );
+
+    pipeline.add_stage(sanitization_stage).unwrap();
+
+    // Process test data
+    let test_data = b"User: john@example.com, SSN: 123-45-6789";
+    let result = pipeline.process(test_data).await.unwrap();
+
+    // Verify sanitization
+    let output = String::from_utf8(result).unwrap();
+    assert!(!output.contains("john@example.com"));
+    assert!(!output.contains("123-45-6789"));
+    assert!(output.contains("[REDACTED]"));
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-stateless-services"><a class="header" href="#1-stateless-services">1. Stateless Services</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Stateless service (thread-safe)
+pub struct MyService {
+    config: MyConfig,  // Immutable configuration
+}
+
+impl MyService for MyServiceImpl {
+    fn process(&amp;self, chunk: FileChunk, context: &amp;mut ProcessingContext)
+        -&gt; Result&lt;FileChunk, PipelineError&gt;
+    {
+        // No mutable state - safe for concurrent use
+    }
+}
+
+// ❌ Bad: Stateful service (not thread-safe)
+pub struct MyService {
+    processed_count: usize,  // Mutable state without synchronization!
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-proper-error-handling"><a class="header" href="#2-proper-error-handling">2. Proper Error Handling</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Specific error types
+fn validate(&amp;self, chunk: FileChunk) -&gt; Result&lt;FileChunk, PipelineError&gt; {
+    let data = serde_json::from_slice(chunk.data())
+        .map_err(|e| PipelineError::ValidationError(format!("Invalid JSON: {}", e)))?;
+
+    // ...
+}
+
+// ❌ Bad: Generic errors
+fn validate(&amp;self, chunk: FileChunk) -&gt; Result&lt;FileChunk, PipelineError&gt; {
+    let data = serde_json::from_slice(chunk.data()).unwrap();  // Panics!
+    // ...
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-update-processing-context"><a class="header" href="#3-update-processing-context">3. Update Processing Context</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Track metrics
+fn process(&amp;self, chunk: FileChunk, context: &amp;mut ProcessingContext)
+    -&gt; Result&lt;FileChunk, PipelineError&gt;
+{
+    let start = std::time::Instant::now();
+
+    // ... do work ...
+
+    context.add_bytes_processed(chunk.data().len() as u64);
+    context.record_stage_duration(start.elapsed());
+
+    Ok(result)
+}
+
+// ❌ Bad: No metrics
+fn process(&amp;self, chunk: FileChunk, context: &amp;mut ProcessingContext)
+    -&gt; Result&lt;FileChunk, PipelineError&gt;
+{
+    // ... do work ...
+    Ok(result)  // No metrics recorded!
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="4-preserve-chunk-metadata"><a class="header" href="#4-preserve-chunk-metadata">4. Preserve Chunk Metadata</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Preserve metadata
+let mut result = FileChunk::new(
+    chunk.sequence_number(),
+    chunk.file_offset(),
+    processed_data,
+);
+result.set_metadata(chunk.metadata().clone());
+
+// ❌ Bad: Lose metadata
+let result = FileChunk::new(0, 0, processed_data);  // Lost sequence info!
+<span class="boring">}</span></code></pre></pre>
+<h2 id="related-topics"><a class="header" href="#related-topics">Related Topics</a></h2>
+<ul>
+<li>See <a href="extending.html">Extending the Pipeline</a> for overview of extension points</li>
+<li>See <a href="custom-algorithms.html">Custom Algorithms</a> for algorithm implementation</li>
+<li>See <a href="../architecture/layers.html">Architecture</a> for layered architecture principles</li>
+</ul>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>Creating custom stages involves:</p>
+<ol>
+<li><strong>Define StageType</strong>: Add enum variant for stage category</li>
+<li><strong>Define Service Trait</strong>: Create domain interface in <code>pipeline-domain</code></li>
+<li><strong>Implement Service</strong>: Build infrastructure adapter in <code>pipeline</code></li>
+<li><strong>Register Stage</strong>: Add to pipeline configuration</li>
+<li><strong>Integrate Executor</strong>: Update stage executor to handle new type</li>
+<li><strong>Test Thoroughly</strong>: Unit and integration tests</li>
+</ol>
+<p><strong>Key Takeaways:</strong></p>
+<ul>
+<li>Keep services stateless for thread safety</li>
+<li>Use specific error types for better diagnostics</li>
+<li>Update processing context with metrics</li>
+<li>Preserve chunk metadata through transformations</li>
+<li>Add comprehensive tests (unit + integration)</li>
+<li>Document configuration options and behavior</li>
+</ul>
+<p><strong>Stage Development Checklist:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Define StageType enum variant</li>
+<li><input disabled="" type="checkbox"/>
+Create domain service trait</li>
+<li><input disabled="" type="checkbox"/>
+Implement infrastructure service</li>
+<li><input disabled="" type="checkbox"/>
+Add unit tests for service</li>
+<li><input disabled="" type="checkbox"/>
+Register in pipeline configuration</li>
+<li><input disabled="" type="checkbox"/>
+Update stage executor</li>
+<li><input disabled="" type="checkbox"/>
+Add integration tests</li>
+<li><input disabled="" type="checkbox"/>
+Document usage and configuration</li>
+<li><input disabled="" type="checkbox"/>
+Benchmark performance (if applicable)</li>
+</ul>
 
                     </main>
 

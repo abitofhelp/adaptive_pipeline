@@ -183,13 +183,728 @@
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
 <strong>Authors:</strong> Michael Gardner
 <strong>Status:</strong> Draft</p>
-<p>Thread pool configuration and tuning.</p>
+<p>This chapter explores the pipeline's thread pool architecture, configuration strategies, and tuning guidelines for optimal performance across different workload types.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The pipeline employs a <strong>dual thread pool</strong> architecture that separates async I/O operations from sync CPU-bound computations:</p>
+<ul>
+<li><strong>Tokio Runtime</strong>: Handles async I/O operations (file reads/writes, database queries, network)</li>
+<li><strong>Rayon Thread Pools</strong>: Handles parallel CPU-bound operations (compression, encryption, hashing)</li>
+</ul>
+<p>This separation prevents CPU-intensive work from blocking async tasks and ensures optimal resource utilization.</p>
 <h2 id="thread-pool-architecture"><a class="header" href="#thread-pool-architecture">Thread Pool Architecture</a></h2>
-<p>TODO: Explain thread pooling</p>
-<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
-<p>TODO: Show configuration</p>
+<h3 id="dual-pool-design"><a class="header" href="#dual-pool-design">Dual Pool Design</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                    Async Layer (Tokio)                      │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Multi-threaded Tokio Runtime                        │   │
+│  │  - Work-stealing scheduler                           │   │
+│  │  - Async I/O operations                              │   │
+│  │  - Task coordination                                 │   │
+│  │  - Event loop management                             │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                                │
+                                │ spawn_blocking()
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  Sync Layer (Rayon Pools)                   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  CPU-Bound Pool (rayon-cpu-{N})                      │   │
+│  │  - Compression operations                            │   │
+│  │  - Encryption/decryption                             │   │
+│  │  - Checksum calculation                              │   │
+│  │  - Complex transformations                           │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Mixed Workload Pool (rayon-mixed-{N})               │   │
+│  │  - File processing with transformations              │   │
+│  │  - Database operations with calculations             │   │
+│  │  - Network operations with data processing           │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="thread-naming-convention"><a class="header" href="#thread-naming-convention">Thread Naming Convention</a></h3>
+<p>All worker threads are named for debugging and profiling:</p>
+<ul>
+<li><strong>Tokio threads</strong>: Default Tokio naming (<code>tokio-runtime-worker-{N}</code>)</li>
+<li><strong>Rayon CPU pool</strong>: <code>rayon-cpu-{N}</code> where N is the thread index</li>
+<li><strong>Rayon mixed pool</strong>: <code>rayon-mixed-{N}</code> where N is the thread index</li>
+</ul>
+<p>This naming convention enables:</p>
+<ul>
+<li>Easy identification in profilers (e.g., <code>perf</code>, <code>flamegraph</code>)</li>
+<li>Clear thread attribution in stack traces</li>
+<li>Simplified debugging of concurrency issues</li>
+</ul>
+<h2 id="tokio-runtime-configuration"><a class="header" href="#tokio-runtime-configuration">Tokio Runtime Configuration</a></h2>
+<h3 id="default-configuration"><a class="header" href="#default-configuration">Default Configuration</a></h3>
+<p>The pipeline uses Tokio's default multi-threaded runtime:</p>
+<pre><pre class="playground"><code class="language-rust">#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    // Tokio runtime initialized with default settings
+    run_pipeline().await
+}</code></pre></pre>
+<p><strong>Default Tokio Settings:</strong></p>
+<ul>
+<li><strong>Worker threads</strong>: Equal to number of CPU cores (via <code>std::thread::available_parallelism()</code>)</li>
+<li><strong>Thread stack size</strong>: 2 MiB per thread</li>
+<li><strong>Work-stealing</strong>: Enabled (automatic task balancing)</li>
+<li><strong>I/O driver</strong>: Enabled (async file I/O, network)</li>
+<li><strong>Time driver</strong>: Enabled (async timers, delays)</li>
+</ul>
+<h3 id="custom-runtime-configuration"><a class="header" href="#custom-runtime-configuration">Custom Runtime Configuration</a></h3>
+<p>For advanced use cases, you can configure the Tokio runtime explicitly:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use tokio::runtime::Runtime;
+
+fn create_custom_runtime() -&gt; Runtime {
+    Runtime::builder()
+        .worker_threads(8)          // Override thread count
+        .thread_stack_size(3 * 1024 * 1024) // 3 MiB stack
+        .thread_name("pipeline-async")
+        .enable_all()               // Enable I/O and time drivers
+        .build()
+        .expect("Failed to create Tokio runtime")
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Configuration Parameters:</strong></p>
+<ul>
+<li><code>worker_threads(usize)</code>: Number of worker threads (defaults to CPU cores)</li>
+<li><code>thread_stack_size(usize)</code>: Stack size per thread in bytes (default: 2 MiB)</li>
+<li><code>thread_name(impl Into&lt;String&gt;)</code>: Thread name prefix for debugging</li>
+<li><code>enable_all()</code>: Enable both I/O and time drivers</li>
+</ul>
+<h2 id="rayon-thread-pool-configuration"><a class="header" href="#rayon-thread-pool-configuration">Rayon Thread Pool Configuration</a></h2>
+<h3 id="global-pool-manager"><a class="header" href="#global-pool-manager">Global Pool Manager</a></h3>
+<p>The pipeline uses a global <code>RAYON_POOLS</code> manager with two specialized pools:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pipeline::infrastructure::config::rayon_config::RAYON_POOLS;
+
+// Access CPU-bound pool
+let cpu_pool = RAYON_POOLS.cpu_bound_pool();
+
+// Access mixed workload pool
+let mixed_pool = RAYON_POOLS.mixed_workload_pool();
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Implementation</strong> (<code>pipeline/src/infrastructure/config/rayon_config.rs</code>):</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct RayonPoolManager {
+    cpu_bound_pool: Arc&lt;rayon::ThreadPool&gt;,
+    mixed_workload_pool: Arc&lt;rayon::ThreadPool&gt;,
+}
+
+impl RayonPoolManager {
+    pub fn new() -&gt; Result&lt;Self, PipelineError&gt; {
+        let available_cores = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(WorkerCount::DEFAULT_WORKERS);
+
+        // CPU-bound pool: Use optimal worker count for CPU-intensive ops
+        let cpu_worker_count = WorkerCount::optimal_for_processing_type(
+            100 * 1024 * 1024,  // Assume 100MB default file size
+            available_cores,
+            true,               // CPU-intensive = true
+        );
+
+        let cpu_bound_pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(cpu_worker_count.count())
+            .thread_name(|i| format!("rayon-cpu-{}", i))
+            .build()?;
+
+        // Mixed workload pool: Use fewer threads to avoid contention
+        let mixed_worker_count = (available_cores / 2).max(WorkerCount::MIN_WORKERS);
+
+        let mixed_workload_pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(mixed_worker_count)
+            .thread_name(|i| format!("rayon-mixed-{}", i))
+            .build()?;
+
+        Ok(Self {
+            cpu_bound_pool: Arc::new(cpu_bound_pool),
+            mixed_workload_pool: Arc::new(mixed_workload_pool),
+        })
+    }
+}
+
+// Global static instance
+pub static RAYON_POOLS: std::sync::LazyLock&lt;RayonPoolManager&gt; =
+    std::sync::LazyLock::new(|| RayonPoolManager::new()
+        .expect("Failed to initialize Rayon pools"));
+<span class="boring">}</span></code></pre></pre>
+<h3 id="cpu-bound-pool"><a class="header" href="#cpu-bound-pool">CPU-Bound Pool</a></h3>
+<p><strong>Purpose</strong>: Maximize throughput for CPU-intensive operations</p>
+<p><strong>Workload Types:</strong></p>
+<ul>
+<li>Data compression (Brotli, LZ4, Zstandard)</li>
+<li>Data encryption/decryption (AES-256-GCM, ChaCha20-Poly1305)</li>
+<li>Checksum calculation (SHA-256, BLAKE3)</li>
+<li>Complex data transformations</li>
+</ul>
+<p><strong>Thread Count Strategy:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Uses WorkerCount::optimal_for_processing_type()
+// For CPU-intensive work, allocates up to available_cores threads
+let cpu_worker_count = WorkerCount::optimal_for_processing_type(
+    file_size,
+    available_cores,
+    true  // CPU-intensive
+);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Typical Thread Counts</strong> (on 8-core system):</p>
+<ul>
+<li>Small files (&lt; 50 MB): 6-14 workers (aggressive parallelism)</li>
+<li>Medium files (50-500 MB): 5-12 workers (balanced approach)</li>
+<li>Large files (&gt; 500 MB): 8-12 workers (moderate parallelism)</li>
+<li>Huge files (&gt; 2 GB): 3-6 workers (conservative, avoid overhead)</li>
+</ul>
+<h3 id="mixed-workload-pool"><a class="header" href="#mixed-workload-pool">Mixed Workload Pool</a></h3>
+<p><strong>Purpose</strong>: Handle operations with both CPU and I/O components</p>
+<p><strong>Workload Types:</strong></p>
+<ul>
+<li>File processing with transformations</li>
+<li>Database operations with calculations</li>
+<li>Network operations with data processing</li>
+</ul>
+<p><strong>Thread Count Strategy:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Uses half the cores to avoid contention with I/O operations
+let mixed_worker_count = (available_cores / 2).max(WorkerCount::MIN_WORKERS);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Typical Thread Counts</strong> (on 8-core system):</p>
+<ul>
+<li>4 threads (half of 8 cores)</li>
+<li>Minimum: 1 thread (WorkerCount::MIN_WORKERS)</li>
+<li>Maximum: 16 threads (half of MAX_WORKERS = 32)</li>
+</ul>
+<h2 id="the-spawn_blocking-pattern"><a class="header" href="#the-spawn_blocking-pattern">The spawn_blocking Pattern</a></h2>
+<h3 id="purpose"><a class="header" href="#purpose">Purpose</a></h3>
+<p><code>tokio::task::spawn_blocking</code> bridges async and sync code by running synchronous CPU-bound operations on a dedicated blocking thread pool <strong>without blocking the Tokio async runtime</strong>.</p>
+<h3 id="when-to-use-spawn_blocking"><a class="header" href="#when-to-use-spawn_blocking">When to Use spawn_blocking</a></h3>
+<p><strong>Always use for:</strong></p>
+<ul>
+<li>✅ CPU-intensive operations (compression, encryption, hashing)</li>
+<li>✅ Blocking I/O that can't be made async</li>
+<li>✅ Long-running computations (&gt; 10-100 μs)</li>
+<li>✅ Sync library calls that may block</li>
+</ul>
+<p><strong>Never use for:</strong></p>
+<ul>
+<li>❌ Quick operations (&lt; 10 μs)</li>
+<li>❌ Already async operations</li>
+<li>❌ Pure data transformations (use inline instead)</li>
+</ul>
+<h3 id="usage-pattern"><a class="header" href="#usage-pattern">Usage Pattern</a></h3>
+<p><strong>Basic spawn_blocking:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use tokio::task;
+
+async fn compress_chunk_async(
+    chunk: FileChunk,
+    config: &amp;CompressionConfig,
+) -&gt; Result&lt;FileChunk, PipelineError&gt; {
+    let config = config.clone();
+
+    // Move CPU-bound work to blocking thread pool
+    task::spawn_blocking(move || {
+        // This runs on a dedicated blocking thread
+        compress_chunk_sync(chunk, &amp;config)
+    })
+    .await
+    .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+}
+
+fn compress_chunk_sync(
+    chunk: FileChunk,
+    config: &amp;CompressionConfig,
+) -&gt; Result&lt;FileChunk, PipelineError&gt; {
+    // Expensive CPU-bound operation
+    // This will NOT block the Tokio async runtime
+    let compressed_data = brotli::compress(&amp;chunk.data, config.level)?;
+    Ok(FileChunk::new(compressed_data))
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Rayon inside spawn_blocking</strong> (recommended for batch parallelism):</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn compress_chunks_parallel(
+    chunks: Vec&lt;FileChunk&gt;,
+    config: &amp;CompressionConfig,
+) -&gt; Result&lt;Vec&lt;FileChunk&gt;, PipelineError&gt; {
+    use rayon::prelude::*;
+
+    let config = config.clone();
+
+    // Entire Rayon batch runs on blocking thread pool
+    tokio::task::spawn_blocking(move || {
+        // Use CPU-bound pool for compression
+        RAYON_POOLS.cpu_bound_pool().install(|| {
+            chunks
+                .into_par_iter()
+                .map(|chunk| compress_chunk_sync(chunk, &amp;config))
+                .collect::&lt;Result&lt;Vec&lt;_&gt;, _&gt;&gt;()
+        })
+    })
+    .await
+    .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li><code>spawn_blocking</code> returns a <code>JoinHandle&lt;T&gt;</code></li>
+<li>Must <code>.await</code> the handle to get the result</li>
+<li>Errors are wrapped in <code>JoinError</code> (handle with <code>map_err</code>)</li>
+<li>Data must be <code>Send + 'static</code> (use <code>clone()</code> or <code>move</code>)</li>
+</ul>
+<h3 id="spawn_blocking-thread-pool"><a class="header" href="#spawn_blocking-thread-pool">spawn_blocking Thread Pool</a></h3>
+<p>Tokio maintains a <strong>separate blocking thread pool</strong> for <code>spawn_blocking</code>:</p>
+<ul>
+<li><strong>Default size</strong>: 512 threads (very large to handle many blocking operations)</li>
+<li><strong>Thread creation</strong>: On-demand (lazy initialization)</li>
+<li><strong>Thread lifetime</strong>: Threads terminate after being idle for 10 seconds</li>
+<li><strong>Stack size</strong>: 2 MiB per thread (same as Tokio async threads)</li>
+</ul>
+<p><strong>Why 512 threads?</strong></p>
+<ul>
+<li>Blocking operations may wait indefinitely (file I/O, database queries)</li>
+<li>Need many threads to prevent starvation</li>
+<li>Threads are cheap (created on-demand, destroyed when idle)</li>
+</ul>
+<h2 id="worker-count-optimization"><a class="header" href="#worker-count-optimization">Worker Count Optimization</a></h2>
+<h3 id="workercount-value-object"><a class="header" href="#workercount-value-object">WorkerCount Value Object</a></h3>
+<p>The pipeline uses a sophisticated <code>WorkerCount</code> value object for adaptive thread allocation:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pipeline_domain::value_objects::WorkerCount;
+
+// Optimal for file size (empirically validated)
+let workers = WorkerCount::optimal_for_file_size(file_size);
+
+// Optimal for file size + system resources
+let workers = WorkerCount::optimal_for_file_and_system(file_size, available_cores);
+
+// Optimal for processing type (CPU-intensive vs I/O-intensive)
+let workers = WorkerCount::optimal_for_processing_type(
+    file_size,
+    available_cores,
+    is_cpu_intensive,
+);
+<span class="boring">}</span></code></pre></pre>
+<h3 id="optimization-strategies"><a class="header" href="#optimization-strategies">Optimization Strategies</a></h3>
+<p><strong>Empirically Validated</strong> (based on benchmarks):</p>
+<div class="table-wrapper"><table><thead><tr><th>File Size</th><th>Worker Count</th><th>Strategy</th><th>Performance Gain</th></tr></thead><tbody>
+<tr><td>&lt; 1 MB (tiny)</td><td>1-2</td><td>Minimal parallelism</td><td>N/A</td></tr>
+<tr><td>1-50 MB (small)</td><td>6-14</td><td>Aggressive parallelism</td><td>+102% (5 MB)</td></tr>
+<tr><td>50-500 MB (medium)</td><td>5-12</td><td>Balanced approach</td><td>+70% (50 MB)</td></tr>
+<tr><td>500 MB-2 GB (large)</td><td>8-12</td><td>Moderate parallelism</td><td>Balanced</td></tr>
+<tr><td>&gt; 2 GB (huge)</td><td>3-6</td><td>Conservative strategy</td><td>+76% (2 GB)</td></tr>
+</tbody></table>
+</div>
+<p><strong>Why these strategies?</strong></p>
+<ul>
+<li><strong>Small files</strong>: High parallelism amortizes task overhead quickly</li>
+<li><strong>Medium files</strong>: Balanced approach for consistent performance</li>
+<li><strong>Large files</strong>: Moderate parallelism to manage memory and coordination overhead</li>
+<li><strong>Huge files</strong>: Conservative to avoid excessive memory pressure and thread contention</li>
+</ul>
+<h3 id="configuration-options"><a class="header" href="#configuration-options">Configuration Options</a></h3>
+<p><strong>Via CLI:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use bootstrap::config::AppConfig;
+
+let config = AppConfig::builder()
+    .app_name("pipeline")
+    .worker_threads(8)  // Override automatic detection
+    .build();
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Via Environment Variable:</strong></p>
+<pre><code class="language-bash">export ADAPIPE_WORKER_COUNT=8
+./pipeline process input.txt
+</code></pre>
+<p><strong>Programmatic:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let worker_count = config.worker_threads()
+    .map(WorkerCount::new)
+    .unwrap_or_else(|| WorkerCount::default_for_system());
+<span class="boring">}</span></code></pre></pre>
 <h2 id="tuning-guidelines"><a class="header" href="#tuning-guidelines">Tuning Guidelines</a></h2>
-<p>TODO: Add tuning guidance</p>
+<h3 id="1-start-with-defaults"><a class="header" href="#1-start-with-defaults">1. Start with Defaults</a></h3>
+<p><strong>Recommendation</strong>: Use default settings for most workloads.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Let WorkerCount choose optimal values
+let workers = WorkerCount::optimal_for_file_size(file_size);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Why?</strong></p>
+<ul>
+<li>Empirically validated strategies</li>
+<li>Adapts to system resources</li>
+<li>Handles edge cases (tiny files, huge files)</li>
+</ul>
+<h3 id="2-cpu-intensive-workloads"><a class="header" href="#2-cpu-intensive-workloads">2. CPU-Intensive Workloads</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>High CPU utilization (&gt; 80%)</li>
+<li>Low I/O wait time</li>
+<li>Operations: Compression, encryption, hashing</li>
+</ul>
+<p><strong>Tuning:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Use CPU-bound pool
+RAYON_POOLS.cpu_bound_pool().install(|| {
+    // Parallel CPU-intensive work
+});
+
+// Or increase worker count
+let workers = WorkerCount::new(available_cores);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Guidelines:</strong></p>
+<ul>
+<li>Match worker count to CPU cores (1x to 1.5x)</li>
+<li>Avoid excessive oversubscription (&gt; 2x cores)</li>
+<li>Monitor context switching with <code>perf stat</code></li>
+</ul>
+<h3 id="3-io-intensive-workloads"><a class="header" href="#3-io-intensive-workloads">3. I/O-Intensive Workloads</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Low CPU utilization (&lt; 50%)</li>
+<li>High I/O wait time</li>
+<li>Operations: File reads, database queries, network</li>
+</ul>
+<p><strong>Tuning:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Use mixed workload pool or reduce workers
+let workers = WorkerCount::optimal_for_processing_type(
+    file_size,
+    available_cores,
+    false,  // Not CPU-intensive
+);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Guidelines:</strong></p>
+<ul>
+<li>Use fewer workers (0.5x to 1x cores)</li>
+<li>Rely on async I/O instead of parallelism</li>
+<li>Consider increasing I/O buffer sizes</li>
+</ul>
+<h3 id="4-memory-constrained-systems"><a class="header" href="#4-memory-constrained-systems">4. Memory-Constrained Systems</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>High memory usage</li>
+<li>Swapping or OOM errors</li>
+<li>Large files (&gt; 1 GB)</li>
+</ul>
+<p><strong>Tuning:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Reduce worker count to limit memory
+let workers = WorkerCount::new(3);  // Conservative
+
+// Or increase chunk size to reduce memory overhead
+let chunk_size = ChunkSize::new(64 * 1024 * 1024);  // 64 MB chunks
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Guidelines:</strong></p>
+<ul>
+<li>Limit workers to 3-6 for huge files (&gt; 2 GB)</li>
+<li>Increase chunk size to reduce parallel memory allocations</li>
+<li>Monitor RSS memory with <code>htop</code> or <code>ps</code></li>
+</ul>
+<h3 id="5-profiling-and-measurement"><a class="header" href="#5-profiling-and-measurement">5. Profiling and Measurement</a></h3>
+<p><strong>Tools:</strong></p>
+<ul>
+<li><strong>perf</strong>: CPU profiling, context switches, cache misses</li>
+<li><strong>flamegraph</strong>: Visual CPU time breakdown</li>
+<li><strong>htop</strong>: Real-time CPU and memory usage</li>
+<li><strong>tokio-console</strong>: Async task monitoring</li>
+</ul>
+<p><strong>Example: perf stat:</strong></p>
+<pre><code class="language-bash">perf stat -e cycles,instructions,context-switches,cache-misses \
+    ./pipeline process large-file.bin
+</code></pre>
+<p><strong>Metrics to monitor:</strong></p>
+<ul>
+<li><strong>CPU utilization</strong>: Should be 70-95% for CPU-bound work</li>
+<li><strong>Context switches</strong>: High (&gt; 10k/sec) indicates oversubscription</li>
+<li><strong>Cache misses</strong>: High indicates memory contention</li>
+<li><strong>Task throughput</strong>: Measure chunks processed per second</li>
+</ul>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="pattern-1-fan-out-cpu-work"><a class="header" href="#pattern-1-fan-out-cpu-work">Pattern 1: Fan-Out CPU Work</a></h3>
+<p>Distribute CPU-bound work across Rayon pool:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use rayon::prelude::*;
+
+async fn process_chunks_parallel(
+    chunks: Vec&lt;FileChunk&gt;,
+) -&gt; Result&lt;Vec&lt;FileChunk&gt;, PipelineError&gt; {
+    tokio::task::spawn_blocking(move || {
+        RAYON_POOLS.cpu_bound_pool().install(|| {
+            chunks
+                .into_par_iter()
+                .map(|chunk| {
+                    // CPU-intensive per-chunk work
+                    compress_and_encrypt(chunk)
+                })
+                .collect::&lt;Result&lt;Vec&lt;_&gt;, _&gt;&gt;()
+        })
+    })
+    .await??
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="pattern-2-bounded-parallelism"><a class="header" href="#pattern-2-bounded-parallelism">Pattern 2: Bounded Parallelism</a></h3>
+<p>Limit concurrent CPU-bound tasks with semaphore:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use tokio::sync::Semaphore;
+
+async fn process_with_limit(
+    chunks: Vec&lt;FileChunk&gt;,
+    max_parallel: usize,
+) -&gt; Result&lt;Vec&lt;FileChunk&gt;, PipelineError&gt; {
+    let semaphore = Arc::new(Semaphore::new(max_parallel));
+
+    let futures = chunks.into_iter().map(|chunk| {
+        let permit = semaphore.clone();
+        async move {
+            let _guard = permit.acquire().await.unwrap();
+
+            // Run CPU-bound work on blocking pool
+            tokio::task::spawn_blocking(move || {
+                compress_chunk_sync(chunk)
+            })
+            .await?
+        }
+    });
+
+    futures::future::try_join_all(futures).await
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="pattern-3-mixed-asyncsync-pipeline"><a class="header" href="#pattern-3-mixed-asyncsync-pipeline">Pattern 3: Mixed Async/Sync Pipeline</a></h3>
+<p>Combine async I/O with sync CPU-bound stages:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn process_file_pipeline(path: &amp;Path) -&gt; Result&lt;(), PipelineError&gt; {
+    // Stage 1: Async file read
+    let chunks = read_file_chunks(path).await?;
+
+    // Stage 2: Sync CPU-bound processing (spawn_blocking + Rayon)
+    let processed = tokio::task::spawn_blocking(move || {
+        RAYON_POOLS.cpu_bound_pool().install(|| {
+            chunks.into_par_iter()
+                .map(|chunk| compress_and_encrypt(chunk))
+                .collect::&lt;Result&lt;Vec&lt;_&gt;, _&gt;&gt;()
+        })
+    })
+    .await??;
+
+    // Stage 3: Async file write
+    write_chunks(path, processed).await?;
+
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
+<h3 id="thread-creation-overhead"><a class="header" href="#thread-creation-overhead">Thread Creation Overhead</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Operation</th><th>Time</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Tokio runtime initialization</td><td>~1-5 ms</td><td>One-time cost at startup</td></tr>
+<tr><td>Rayon pool creation</td><td>~500 μs</td><td>One-time cost (global static)</td></tr>
+<tr><td>spawn_blocking task</td><td>~10-50 μs</td><td>Per-task overhead</td></tr>
+<tr><td>Rayon parallel iteration</td><td>~5-20 μs</td><td>Per-iteration overhead</td></tr>
+<tr><td>Thread context switch</td><td>~1-5 μs</td><td>Depends on workload and OS</td></tr>
+</tbody></table>
+</div>
+<p><strong>Guidelines:</strong></p>
+<ul>
+<li>Amortize overhead with work units &gt; 100 μs</li>
+<li>Batch small operations to reduce per-task overhead</li>
+<li>Avoid spawning tasks for trivial work (&lt; 10 μs)</li>
+</ul>
+<h3 id="scalability"><a class="header" href="#scalability">Scalability</a></h3>
+<p><strong>Linear Scaling</strong> (ideal):</p>
+<ul>
+<li>CPU-bound operations with independent chunks</li>
+<li>Small files (&lt; 50 MB) with 6-14 workers</li>
+<li>Minimal memory contention</li>
+</ul>
+<p><strong>Sub-Linear Scaling</strong> (common):</p>
+<ul>
+<li>Large files (&gt; 500 MB) due to memory bandwidth limits</li>
+<li>Mixed workloads with I/O contention</li>
+<li>High worker counts (&gt; 12) with coordination overhead</li>
+</ul>
+<p><strong>Performance Cliff</strong> (avoid):</p>
+<ul>
+<li>Excessive worker count (&gt; 2x CPU cores)</li>
+<li>Memory pressure causing swapping</li>
+<li>Lock contention in shared data structures</li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-use-appropriate-thread-pool"><a class="header" href="#1-use-appropriate-thread-pool">1. Use Appropriate Thread Pool</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: CPU-intensive work on CPU-bound pool
+RAYON_POOLS.cpu_bound_pool().install(|| {
+    chunks.par_iter().map(|c| compress(c)).collect()
+});
+
+// ❌ Bad: Using wrong pool or no pool
+chunks.iter().map(|c| compress(c)).collect()  // Sequential!
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-wrap-rayon-with-spawn_blocking"><a class="header" href="#2-wrap-rayon-with-spawn_blocking">2. Wrap Rayon with spawn_blocking</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Rayon work inside spawn_blocking
+tokio::task::spawn_blocking(move || {
+    RAYON_POOLS.cpu_bound_pool().install(|| {
+        // Parallel work
+    })
+})
+.await?
+
+// ❌ Bad: Rayon work directly in async context
+RAYON_POOLS.cpu_bound_pool().install(|| {
+    // This blocks the async runtime!
+})
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-let-workercount-optimize"><a class="header" href="#3-let-workercount-optimize">3. Let WorkerCount Optimize</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Use empirically validated strategies
+let workers = WorkerCount::optimal_for_file_size(file_size);
+
+// ❌ Bad: Arbitrary fixed count
+let workers = 8;  // May be too many or too few!
+<span class="boring">}</span></code></pre></pre>
+<h3 id="4-monitor-and-measure"><a class="header" href="#4-monitor-and-measure">4. Monitor and Measure</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Measure actual performance
+let start = Instant::now();
+let result = process_chunks(chunks).await?;
+let duration = start.elapsed();
+info!("Processed {} chunks in {:?}", chunks.len(), duration);
+
+// ❌ Bad: Assume defaults are optimal without measurement
+<span class="boring">}</span></code></pre></pre>
+<h3 id="5-avoid-oversubscription"><a class="header" href="#5-avoid-oversubscription">5. Avoid Oversubscription</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Bounded parallelism based on cores
+let max_workers = available_cores.min(WorkerCount::MAX_WORKERS);
+
+// ❌ Bad: Unbounded parallelism
+let workers = chunks.len();  // Could be thousands!
+<span class="boring">}</span></code></pre></pre>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="issue-1-high-context-switching"><a class="header" href="#issue-1-high-context-switching">Issue 1: High Context Switching</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li><code>perf stat</code> shows &gt; 10k context switches/sec</li>
+<li>High CPU usage but low throughput</li>
+</ul>
+<p><strong>Causes:</strong></p>
+<ul>
+<li>Too many worker threads (&gt; 2x cores)</li>
+<li>Rayon pool size exceeds optimal</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Reduce Rayon pool size
+let workers = WorkerCount::new(available_cores);  // Not 2x
+
+// Or use sequential processing for small workloads
+if chunks.len() &lt; 10 {
+    chunks.into_iter().map(process).collect()
+} else {
+    chunks.into_par_iter().map(process).collect()
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="issue-2-spawn_blocking-blocking-async-runtime"><a class="header" href="#issue-2-spawn_blocking-blocking-async-runtime">Issue 2: spawn_blocking Blocking Async Runtime</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>Async tasks become slow</li>
+<li>Other async operations stall</li>
+</ul>
+<p><strong>Causes:</strong></p>
+<ul>
+<li>Long-running CPU work directly in async fn (no spawn_blocking)</li>
+<li>Blocking I/O in async context</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Use spawn_blocking for CPU work
+async fn process_chunk(chunk: FileChunk) -&gt; Result&lt;FileChunk&gt; {
+    tokio::task::spawn_blocking(move || {
+        // CPU-intensive work here
+        compress_chunk_sync(chunk)
+    })
+    .await?
+}
+
+// ❌ Bad: CPU work blocking async runtime
+async fn process_chunk(chunk: FileChunk) -&gt; Result&lt;FileChunk&gt; {
+    compress_chunk_sync(chunk)  // Blocks entire runtime!
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="issue-3-memory-pressure-with-many-workers"><a class="header" href="#issue-3-memory-pressure-with-many-workers">Issue 3: Memory Pressure with Many Workers</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>High memory usage (&gt; 80% RAM)</li>
+<li>Swapping or OOM errors</li>
+</ul>
+<p><strong>Causes:</strong></p>
+<ul>
+<li>Too many concurrent chunks allocated</li>
+<li>Large chunk size × high worker count</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Reduce worker count for large files
+let workers = if file_size &gt; 2 * GB {
+    WorkerCount::new(3)  // Conservative for huge files
+} else {
+    WorkerCount::optimal_for_file_size(file_size)
+};
+
+// Or reduce chunk size
+let chunk_size = ChunkSize::new(16 * MB);  // Smaller chunks
+<span class="boring">}</span></code></pre></pre>
+<h2 id="related-topics"><a class="header" href="#related-topics">Related Topics</a></h2>
+<ul>
+<li>See <a href="concurrency.html">Concurrency Model</a> for async/await patterns</li>
+<li>See <a href="resources.html">Resource Management</a> for memory and task limits</li>
+<li>See <a href="../advanced/performance.html">Performance Optimization</a> for benchmarking strategies</li>
+<li>See <a href="../advanced/profiling.html">Profiling</a> for detailed performance analysis</li>
+</ul>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>The pipeline's dual thread pool architecture provides:</p>
+<ol>
+<li><strong>Tokio Runtime</strong>: Async I/O operations with work-stealing scheduler</li>
+<li><strong>Rayon Pools</strong>: Parallel CPU-bound work with specialized pools</li>
+<li><strong>spawn_blocking</strong>: Bridge between async and sync without blocking</li>
+<li><strong>WorkerCount</strong>: Empirically validated thread allocation strategies</li>
+<li><strong>Tuning</strong>: Guidelines for CPU-intensive, I/O-intensive, and memory-constrained workloads</li>
+</ol>
+<p><strong>Key Takeaways:</strong></p>
+<ul>
+<li>Use CPU-bound pool for compression, encryption, hashing</li>
+<li>Wrap Rayon work with <code>spawn_blocking</code> in async contexts</li>
+<li>Let <code>WorkerCount</code> optimize based on file size and system resources</li>
+<li>Monitor performance with <code>perf</code>, <code>flamegraph</code>, and metrics</li>
+<li>Tune based on actual measurements, not assumptions</li>
+</ul>
 
                     </main>
 

@@ -175,25 +175,1058 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="software-test-plan"><a class="header" href="#software-test-plan">Software Test Plan</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
+                        <h1 id="software-test-plan-stp"><a class="header" href="#software-test-plan-stp">Software Test Plan (STP)</a></h1>
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
 <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
 <strong>License File:</strong> See the LICENSE file in the project root.
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<p>Software test plan and strategy.</p>
-<h2 id="introduction"><a class="header" href="#introduction">Introduction</a></h2>
-<p>TODO: Add STP introduction</p>
-<h2 id="test-strategy"><a class="header" href="#test-strategy">Test Strategy</a></h2>
-<p>TODO: Add test strategy</p>
-<h2 id="test-levels"><a class="header" href="#test-levels">Test Levels</a></h2>
-<p>TODO: List test levels (unit, integration, system)</p>
-<h2 id="test-cases"><a class="header" href="#test-cases">Test Cases</a></h2>
-<p>TODO: Add key test cases</p>
-<h2 id="test-environment"><a class="header" href="#test-environment">Test Environment</a></h2>
-<p>TODO: Describe test environment</p>
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
+<hr />
+<h2 id="1-introduction"><a class="header" href="#1-introduction">1. Introduction</a></h2>
+<h3 id="11-purpose"><a class="header" href="#11-purpose">1.1 Purpose</a></h3>
+<p>This Software Test Plan (STP) defines the testing strategy, approach, and organization for the Optimized Adaptive Pipeline system. It ensures the system meets all functional and non-functional requirements specified in the SRS through comprehensive, systematic testing.</p>
+<p><strong>Intended Audience:</strong></p>
+<ul>
+<li>QA engineers implementing tests</li>
+<li>Developers writing testable code</li>
+<li>Project managers tracking test progress</li>
+<li>Stakeholders evaluating quality assurance</li>
+</ul>
+<h3 id="12-scope"><a class="header" href="#12-scope">1.2 Scope</a></h3>
+<p><strong>Testing Coverage:</strong></p>
+<ul>
+<li>Unit testing of all domain, application, and infrastructure components</li>
+<li>Integration testing of component interactions</li>
+<li>End-to-end testing of complete workflows</li>
+<li>Architecture compliance testing</li>
+<li>Performance and benchmark testing</li>
+<li>Security testing</li>
+</ul>
+<p><strong>Out of Scope:</strong></p>
+<ul>
+<li>User acceptance testing (no end users yet)</li>
+<li>Load testing (single-machine application)</li>
+<li>Penetration testing (no network exposure)</li>
+<li>GUI testing (CLI only)</li>
+</ul>
+<h3 id="13-test-objectives"><a class="header" href="#13-test-objectives">1.3 Test Objectives</a></h3>
+<ol>
+<li><strong>Verify Correctness</strong>: Ensure all requirements are met</li>
+<li><strong>Validate Design</strong>: Confirm architectural compliance</li>
+<li><strong>Ensure Quality</strong>: Maintain high code quality standards</li>
+<li><strong>Prevent Regression</strong>: Catch bugs before they reach production</li>
+<li><strong>Document Behavior</strong>: Tests serve as living documentation</li>
+<li><strong>Enable Refactoring</strong>: Safe code changes through comprehensive tests</li>
+</ol>
+<h3 id="14-references"><a class="header" href="#14-references">1.4 References</a></h3>
+<ul>
+<li><a href="../reference/srs.html">Software Requirements Specification (SRS)</a></li>
+<li><a href="design.html">Software Design Document (SDD)</a></li>
+<li><a href="../../../../docs/TEST_ORGANIZATION.html">Test Organization Documentation</a></li>
+<li>Rust Testing Documentation: https://doc.rust-lang.org/book/ch11-00-testing.html</li>
+</ul>
+<hr />
+<h2 id="2-test-strategy"><a class="header" href="#2-test-strategy">2. Test Strategy</a></h2>
+<h3 id="21-testing-approach"><a class="header" href="#21-testing-approach">2.1 Testing Approach</a></h3>
+<p><strong>Test-Driven Development (TDD):</strong></p>
+<ul>
+<li>Write tests before implementation when feasible</li>
+<li>Red-Green-Refactor cycle</li>
+<li>Tests as specification</li>
+</ul>
+<p><strong>Behavior-Driven Development (BDD):</strong></p>
+<ul>
+<li>Given-When-Then structure for integration tests</li>
+<li>Readable test names describing behavior</li>
+<li>Focus on outcomes, not implementation</li>
+</ul>
+<p><strong>Property-Based Testing:</strong></p>
+<ul>
+<li>Use Proptest for algorithmic correctness</li>
+<li>Generate random inputs to find edge cases</li>
+<li>Verify invariants hold for all inputs</li>
+</ul>
+<h3 id="22-test-pyramid"><a class="header" href="#22-test-pyramid">2.2 Test Pyramid</a></h3>
+<pre><code>        ┌─────────────┐
+        │   E2E (11)  │  ← Few, slow, high-level
+        ├─────────────┤
+        │Integration  │  ← Medium count, medium speed
+        │    (35)     │
+        ├─────────────┤
+        │   Unit      │  ← Many, fast, focused
+        │    (68)     │
+        └─────────────┘
+</code></pre>
+<p><strong>Rationale:</strong></p>
+<ul>
+<li>Most tests are fast unit tests for quick feedback</li>
+<li>Integration tests verify component collaboration</li>
+<li>E2E tests validate complete user workflows</li>
+<li>Architecture tests ensure design compliance</li>
+</ul>
+<h3 id="23-test-organization-post-reorganization"><a class="header" href="#23-test-organization-post-reorganization">2.3 Test Organization (Post-Reorganization)</a></h3>
+<p>Following Rust best practices:</p>
+<p><strong>Unit Tests:</strong></p>
+<ul>
+<li>Location: <code>#[cfg(test)]</code> modules within source files</li>
+<li>Scope: Single function/struct in isolation</li>
+<li>Run with: <code>cargo test --lib</code></li>
+<li>Count: 68 tests</li>
+<li>Example: <code>pipeline-domain/src/entities/pipeline_stage.rs:590-747</code></li>
+</ul>
+<p><strong>Integration Tests:</strong></p>
+<ul>
+<li>Location: <code>pipeline/tests/integration/</code></li>
+<li>Entry: <code>pipeline/tests/integration.rs</code></li>
+<li>Scope: Multiple components working together</li>
+<li>Run with: <code>cargo test --test integration</code></li>
+<li>Count: 35 tests (3 ignored pending work)</li>
+</ul>
+<p><strong>End-to-End Tests:</strong></p>
+<ul>
+<li>Location: <code>pipeline/tests/e2e/</code></li>
+<li>Entry: <code>pipeline/tests/e2e.rs</code></li>
+<li>Scope: Complete workflows from input to output</li>
+<li>Run with: <code>cargo test --test e2e</code></li>
+<li>Count: 11 tests</li>
+</ul>
+<p><strong>Architecture Compliance Tests:</strong></p>
+<ul>
+<li>Location: <code>pipeline/tests/architecture_compliance_test.rs</code></li>
+<li>Scope: Validate DDD, Clean Architecture, Hexagonal Architecture</li>
+<li>Run with: <code>cargo test --test architecture_compliance_test</code></li>
+<li>Count: 2 tests</li>
+</ul>
+<p><strong>Documentation Tests:</strong></p>
+<ul>
+<li>Location: Doc comments with <code>```</code> code blocks</li>
+<li>Run with: <code>cargo test --doc</code></li>
+<li>Count: 25 tests</li>
+</ul>
+<p><strong>Total Test Count: 141 tests</strong></p>
+<hr />
+<h2 id="3-test-levels"><a class="header" href="#3-test-levels">3. Test Levels</a></h2>
+<h3 id="31-unit-testing"><a class="header" href="#31-unit-testing">3.1 Unit Testing</a></h3>
+<p><strong>Objectives:</strong></p>
+<ul>
+<li>Test individual functions and methods in isolation</li>
+<li>Verify domain logic correctness</li>
+<li>Ensure edge cases are handled</li>
+<li>Validate error conditions</li>
+</ul>
+<p><strong>Coverage Goals:</strong></p>
+<ul>
+<li>Domain layer: 90%+ line coverage</li>
+<li>Application layer: 85%+ line coverage</li>
+<li>Infrastructure layer: 75%+ line coverage</li>
+</ul>
+<p><strong>Example Test Structure:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pipeline_creation_validates_name() {
+        // Given: Empty name
+        let name = "";
+        let stages = vec![create_test_stage()];
+
+        // When: Creating pipeline
+        let result = Pipeline::new(name.to_string(), stages);
+
+        // Then: Should fail validation
+        assert!(result.is_err());
+        assert!(matches!(result, Err(PipelineError::InvalidName(_))));
+    }
+
+    #[test]
+    fn test_pipeline_requires_at_least_one_stage() {
+        // Given: Valid name but no stages
+        let name = "test-pipeline";
+        let stages = vec![];
+
+        // When: Creating pipeline
+        let result = Pipeline::new(name.to_string(), stages);
+
+        // Then: Should fail validation
+        assert!(result.is_err());
+        assert!(matches!(result, Err(PipelineError::NoStages)));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Key Test Categories:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Description</th><th>Example</th></tr></thead><tbody>
+<tr><td>Happy Path</td><td>Normal, expected inputs</td><td>Valid pipeline creation</td></tr>
+<tr><td>Edge Cases</td><td>Boundary conditions</td><td>Empty strings, max values</td></tr>
+<tr><td>Error Handling</td><td>Invalid inputs</td><td>Malformed data, constraints violated</td></tr>
+<tr><td>Invariants</td><td>Domain rules always hold</td><td>Stage order uniqueness</td></tr>
+</tbody></table>
+</div>
+<h3 id="32-integration-testing"><a class="header" href="#32-integration-testing">3.2 Integration Testing</a></h3>
+<p><strong>Objectives:</strong></p>
+<ul>
+<li>Test component interactions</li>
+<li>Verify interfaces between layers</li>
+<li>Validate repository operations</li>
+<li>Test service collaboration</li>
+</ul>
+<p><strong>Test Structure:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_pipeline_repository_save_and_retrieve() {
+    // Given: In-memory repository and pipeline
+    let repo = Arc::new(InMemoryPipelineRepository::new());
+    let pipeline = create_test_pipeline();
+
+    // When: Saving and retrieving pipeline
+    repo.save(&amp;pipeline).await.unwrap();
+    let retrieved = repo.find_by_name(&amp;pipeline.name)
+        .await
+        .unwrap()
+        .unwrap();
+
+    // Then: Retrieved pipeline matches original
+    assert_eq!(retrieved.name, pipeline.name);
+    assert_eq!(retrieved.stages.len(), pipeline.stages.len());
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Integration Test Suites:</strong></p>
+<ol>
+<li>
+<p><strong>Application Layer Integration</strong> (<code>application_integration_test.rs</code>)</p>
+<ul>
+<li>Command execution</li>
+<li>Use case orchestration</li>
+<li>Service coordination</li>
+</ul>
+</li>
+<li>
+<p><strong>Application Services</strong> (<code>application_services_integration_test.rs</code>)</p>
+<ul>
+<li>Service interactions</li>
+<li>Transaction handling</li>
+<li>Error propagation</li>
+</ul>
+</li>
+<li>
+<p><strong>Domain Services</strong> (<code>domain_services_test.rs</code>)</p>
+<ul>
+<li>Compression service integration</li>
+<li>Encryption service integration</li>
+<li>Checksum service integration</li>
+<li>File I/O service integration</li>
+</ul>
+</li>
+<li>
+<p><strong>Schema Integration</strong> (<code>schema_integration_test.rs</code>)</p>
+<ul>
+<li>Database creation</li>
+<li>Schema migrations</li>
+<li>Idempotent initialization</li>
+</ul>
+</li>
+<li>
+<p><strong>Pipeline Name Validation</strong> (<code>pipeline_name_validation_tests.rs</code>)</p>
+<ul>
+<li>Name normalization</li>
+<li>Validation rules</li>
+<li>Reserved names</li>
+</ul>
+</li>
+</ol>
+<h3 id="33-end-to-end-testing"><a class="header" href="#33-end-to-end-testing">3.3 End-to-End Testing</a></h3>
+<p><strong>Objectives:</strong></p>
+<ul>
+<li>Validate complete user workflows</li>
+<li>Test real file processing scenarios</li>
+<li>Verify .adapipe format correctness</li>
+<li>Ensure restoration matches original</li>
+</ul>
+<p><strong>Test Structure:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_e2e_complete_pipeline_workflow() {
+    // Given: Test input file and pipeline configuration
+    let input_path = create_test_file_with_content("Hello, World!");
+    let pipeline = create_secure_pipeline(); // compress + encrypt + checksum
+
+    // When: Processing the file
+    let processor = PipelineProcessor::new()?;
+    let output_path = processor.process(&amp;pipeline, &amp;input_path).await?;
+
+    // Then: Output file should exist and be valid .adapipe format
+    assert!(output_path.exists());
+    assert!(output_path.extension().unwrap() == "adapipe");
+
+    // And: Can restore original file
+    let restored_path = processor.restore(&amp;output_path).await?;
+    let restored_content = fs::read_to_string(&amp;restored_path).await?;
+    assert_eq!(restored_content, "Hello, World!");
+
+    // Cleanup
+    cleanup_test_files(&amp;[input_path, output_path, restored_path])?;
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>E2E Test Scenarios:</strong></p>
+<ol>
+<li>
+<p><strong>Binary Format Complete Roundtrip</strong> (<code>e2e_binary_format_test.rs</code>)</p>
+<ul>
+<li>Process file through all stages</li>
+<li>Verify .adapipe format structure</li>
+<li>Restore and compare with original</li>
+<li>Test large files (memory mapping)</li>
+<li>Test corruption detection</li>
+<li>Test version compatibility</li>
+</ul>
+</li>
+<li>
+<p><strong>Restoration Pipeline</strong> (<code>e2e_restore_pipeline_test.rs</code>)</p>
+<ul>
+<li>Multi-stage restoration</li>
+<li>Stage ordering (reverse of processing)</li>
+<li>Real-world document restoration</li>
+<li>File header roundtrip</li>
+<li>Chunk processing verification</li>
+</ul>
+</li>
+</ol>
+<h3 id="34-architecture-compliance-testing"><a class="header" href="#34-architecture-compliance-testing">3.4 Architecture Compliance Testing</a></h3>
+<p><strong>Objectives:</strong></p>
+<ul>
+<li>Enforce architectural boundaries</li>
+<li>Validate design patterns</li>
+<li>Ensure dependency rules</li>
+<li>Verify SOLID principles</li>
+</ul>
+<p><strong>Test Structure:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_ddd_compliance() {
+    println!("Testing DDD Compliance");
+
+    // Test domain entities in isolation
+    test_domain_entity_isolation().await;
+
+    // Test value objects for immutability
+    test_value_object_patterns().await;
+
+    // Test domain services through interfaces
+    test_domain_service_interfaces().await;
+
+    println!("✅ DDD Compliance: PASSED");
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Compliance Checks:</strong></p>
+<ol>
+<li>
+<p><strong>Domain-Driven Design (DDD)</strong></p>
+<ul>
+<li>Entities tested in isolation</li>
+<li>Value objects immutable</li>
+<li>Domain services use interfaces</li>
+<li>Aggregates maintain consistency</li>
+</ul>
+</li>
+<li>
+<p><strong>Clean Architecture</strong></p>
+<ul>
+<li>Dependency flow is inward only</li>
+<li>Use cases independent</li>
+<li>Infrastructure tested through abstractions</li>
+</ul>
+</li>
+<li>
+<p><strong>Hexagonal Architecture</strong></p>
+<ul>
+<li>Primary ports (driving adapters) tested</li>
+<li>Secondary ports (driven adapters) mocked</li>
+<li>Application core isolated</li>
+</ul>
+</li>
+<li>
+<p><strong>Dependency Inversion Principle</strong></p>
+<ul>
+<li>High-level modules depend on abstractions</li>
+<li>Low-level modules implement abstractions</li>
+<li>Abstractions remain stable</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="4-test-automation"><a class="header" href="#4-test-automation">4. Test Automation</a></h2>
+<h3 id="41-continuous-integration"><a class="header" href="#41-continuous-integration">4.1 Continuous Integration</a></h3>
+<p><strong>CI Pipeline:</strong></p>
+<pre><code class="language-yaml"># .github/workflows/ci.yml (example)
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run unit tests
+        run: cargo test --lib
+      - name: Run integration tests
+        run: cargo test --test integration
+      - name: Run E2E tests
+        run: cargo test --test e2e
+      - name: Run architecture tests
+        run: cargo test --test architecture_compliance_test
+      - name: Run doc tests
+        run: cargo test --doc
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+      - name: Generate coverage
+        run: cargo tarpaulin --out Xml
+      - name: Upload to codecov
+        uses: codecov/codecov-action@v3
+</code></pre>
+<h3 id="42-pre-commit-hooks"><a class="header" href="#42-pre-commit-hooks">4.2 Pre-commit Hooks</a></h3>
+<p><strong>Git Hooks:</strong></p>
+<pre><code class="language-bash">#!/bin/sh
+# .git/hooks/pre-commit
+
+# Run tests
+cargo test --lib || exit 1
+
+# Check formatting
+cargo fmt -- --check || exit 1
+
+# Run clippy
+cargo clippy -- -D warnings || exit 1
+
+echo "✅ All pre-commit checks passed"
+</code></pre>
+<h3 id="43-test-commands"><a class="header" href="#43-test-commands">4.3 Test Commands</a></h3>
+<p><strong>Quick Feedback (fast):</strong></p>
+<pre><code class="language-bash">cargo test --lib  # Unit tests only (~1 second)
+</code></pre>
+<p><strong>Full Test Suite:</strong></p>
+<pre><code class="language-bash">cargo test  # All tests (~15 seconds)
+</code></pre>
+<p><strong>Specific Test Suites:</strong></p>
+<pre><code class="language-bash">cargo test --test integration          # Integration tests
+cargo test --test e2e                  # E2E tests
+cargo test --test architecture_compliance_test  # Architecture tests
+cargo test --doc                       # Documentation tests
+</code></pre>
+<p><strong>With Coverage:</strong></p>
+<pre><code class="language-bash">cargo tarpaulin --out Html --output-dir coverage/
+</code></pre>
+<hr />
+<h2 id="5-testing-tools-and-frameworks"><a class="header" href="#5-testing-tools-and-frameworks">5. Testing Tools and Frameworks</a></h2>
+<h3 id="51-core-testing-framework"><a class="header" href="#51-core-testing-framework">5.1 Core Testing Framework</a></h3>
+<p><strong>Built-in Rust Testing:</strong></p>
+<ul>
+<li><code>#[test]</code> attribute for unit tests</li>
+<li><code>#[tokio::test]</code> for async tests</li>
+<li><code>assert!</code>, <code>assert_eq!</code>, <code>assert_ne!</code> macros</li>
+<li><code>#[should_panic]</code> for error testing</li>
+</ul>
+<p><strong>Async Testing:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_async_operation() {
+    let result = async_function().await;
+    assert!(result.is_ok());
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="52-mocking-and-test-doubles"><a class="header" href="#52-mocking-and-test-doubles">5.2 Mocking and Test Doubles</a></h3>
+<p><strong>Mockall:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[automock]
+#[async_trait]
+pub trait PipelineRepository {
+    async fn save(&amp;self, pipeline: &amp;Pipeline) -&gt; Result&lt;()&gt;;
+    async fn find_by_id(&amp;self, id: &amp;str) -&gt; Result&lt;Option&lt;Pipeline&gt;&gt;;
+}
+
+#[tokio::test]
+async fn test_with_mock_repository() {
+    let mut mock_repo = MockPipelineRepository::new();
+    mock_repo
+        .expect_save()
+        .times(1)
+        .returning(|_| Ok(()));
+
+    let service = PipelineService::new(Arc::new(mock_repo));
+    let result = service.create_pipeline("test").await;
+
+    assert!(result.is_ok());
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="53-property-based-testing"><a class="header" href="#53-property-based-testing">5.3 Property-Based Testing</a></h3>
+<p><strong>Proptest:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn test_chunk_size_always_valid(size in 1024usize..=100_000_000) {
+        // Given: Any size within valid range
+        let chunk_size = ChunkSize::new(size);
+
+        // Then: Should always succeed
+        prop_assert!(chunk_size.is_ok());
+        prop_assert_eq!(chunk_size.unwrap().value(), size);
+    }
+
+    #[test]
+    fn test_compression_roundtrip(
+        data in prop::collection::vec(any::&lt;u8&gt;(), 0..10000)
+    ) {
+        // Given: Random byte array
+        let compressed = compress(&amp;data)?;
+        let decompressed = decompress(&amp;compressed)?;
+
+        // Then: Should match original
+        prop_assert_eq!(data, decompressed);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="54-benchmarking"><a class="header" href="#54-benchmarking">5.4 Benchmarking</a></h3>
+<p><strong>Criterion:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn bench_compression(c: &amp;mut Criterion) {
+    let data = vec![0u8; 1_000_000]; // 1 MB
+
+    c.bench_function("brotli_compression", |b| {
+        b.iter(|| {
+            let adapter = BrotliAdapter::new(6);
+            adapter.compress(black_box(&amp;data))
+        })
+    });
+
+    c.bench_function("zstd_compression", |b| {
+        b.iter(|| {
+            let adapter = ZstdAdapter::new(3);
+            adapter.compress(black_box(&amp;data))
+        })
+    });
+}
+
+criterion_group!(benches, bench_compression);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Run Benchmarks:</strong></p>
+<pre><code class="language-bash">cargo bench
+</code></pre>
+<h3 id="55-code-coverage"><a class="header" href="#55-code-coverage">5.5 Code Coverage</a></h3>
+<p><strong>Cargo-tarpaulin:</strong></p>
+<pre><code class="language-bash"># Install
+cargo install cargo-tarpaulin
+
+# Generate coverage report
+cargo tarpaulin --out Html --output-dir coverage/
+
+# View report
+open coverage/index.html
+</code></pre>
+<p><strong>Coverage Goals:</strong></p>
+<ul>
+<li>Overall: 80%+ line coverage</li>
+<li>Domain layer: 90%+ coverage</li>
+<li>Critical paths: 95%+ coverage</li>
+</ul>
+<hr />
+<h2 id="6-test-data-management"><a class="header" href="#6-test-data-management">6. Test Data Management</a></h2>
+<h3 id="61-test-fixtures"><a class="header" href="#61-test-fixtures">6.1 Test Fixtures</a></h3>
+<p><strong>Fixture Organization:</strong></p>
+<pre><code>testdata/
+├── input/
+│   ├── sample.txt
+│   ├── large_file.bin (10 MB)
+│   └── document.pdf
+├── expected/
+│   ├── sample_compressed.bin
+│   └── sample_encrypted.bin
+└── schemas/
+    └── v1_pipeline.json
+</code></pre>
+<p><strong>Fixture Helpers:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn create_test_file(content: &amp;str) -&gt; PathBuf {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("test_file.txt");
+    std::fs::write(&amp;file_path, content).unwrap();
+    file_path
+}
+
+pub fn create_test_pipeline() -&gt; Pipeline {
+    Pipeline::builder()
+        .name("test-pipeline")
+        .add_stage(compression_stage("compress", "zstd", 1))
+        .add_stage(encryption_stage("encrypt", "aes256gcm", 2))
+        .build()
+        .unwrap()
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="62-test-database"><a class="header" href="#62-test-database">6.2 Test Database</a></h3>
+<p><strong>In-Memory SQLite:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn create_test_db() -&gt; SqlitePool {
+    let pool = SqlitePoolOptions::new()
+        .connect(":memory:")
+        .await
+        .unwrap();
+
+    // Run migrations
+    sqlx::migrate!("./migrations")
+        .run(&amp;pool)
+        .await
+        .unwrap();
+
+    pool
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Test Isolation:</strong></p>
+<ul>
+<li>Each test gets fresh database</li>
+<li>Transactions rolled back after test</li>
+<li>No test interdependencies</li>
+</ul>
+<hr />
+<h2 id="7-performance-testing"><a class="header" href="#7-performance-testing">7. Performance Testing</a></h2>
+<h3 id="71-benchmark-suites"><a class="header" href="#71-benchmark-suites">7.1 Benchmark Suites</a></h3>
+<p><strong>Algorithm Benchmarks:</strong></p>
+<ul>
+<li>Compression algorithms (Brotli, Zstd, Gzip, LZ4)</li>
+<li>Encryption algorithms (AES-256-GCM, ChaCha20-Poly1305)</li>
+<li>Hashing algorithms (SHA-256, SHA-512, BLAKE3)</li>
+</ul>
+<p><strong>File Size Benchmarks:</strong></p>
+<ul>
+<li>Small files (&lt; 1 MB)</li>
+<li>Medium files (1-100 MB)</li>
+<li>Large files (&gt; 100 MB)</li>
+</ul>
+<p><strong>Concurrency Benchmarks:</strong></p>
+<ul>
+<li>Single-threaded vs multi-threaded</li>
+<li>Async vs sync I/O</li>
+<li>Chunk size variations</li>
+</ul>
+<h3 id="72-performance-regression-testing"><a class="header" href="#72-performance-regression-testing">7.2 Performance Regression Testing</a></h3>
+<p><strong>Baseline Establishment:</strong></p>
+<pre><code class="language-bash"># Run benchmarks and save baseline
+cargo bench -- --save-baseline main
+</code></pre>
+<p><strong>Regression Detection:</strong></p>
+<pre><code class="language-bash"># Compare against baseline
+cargo bench -- --baseline main
+</code></pre>
+<p><strong>CI Integration:</strong></p>
+<ul>
+<li>Fail PR if &gt;10% performance degradation</li>
+<li>Alert on &gt;5% degradation</li>
+<li>Celebrate &gt;10% improvement</li>
+</ul>
+<hr />
+<h2 id="8-security-testing"><a class="header" href="#8-security-testing">8. Security Testing</a></h2>
+<h3 id="81-input-validation-testing"><a class="header" href="#81-input-validation-testing">8.1 Input Validation Testing</a></h3>
+<p><strong>Test Cases:</strong></p>
+<ul>
+<li>Path traversal attempts (<code>../../etc/passwd</code>)</li>
+<li>Command injection attempts</li>
+<li>SQL injection (SQLx prevents, but verify)</li>
+<li>Buffer overflow attempts</li>
+<li>Invalid UTF-8 sequences</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_rejects_path_traversal() {
+    let malicious_path = "../../etc/passwd";
+    let result = validate_input_path(malicious_path);
+    assert!(result.is_err());
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="82-cryptographic-testing"><a class="header" href="#82-cryptographic-testing">8.2 Cryptographic Testing</a></h3>
+<p><strong>Test Cases:</strong></p>
+<ul>
+<li>Key derivation reproducibility</li>
+<li>Encryption/decryption roundtrips</li>
+<li>Authentication tag verification</li>
+<li>Nonce uniqueness</li>
+<li>Secure memory wiping</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn test_encryption_with_wrong_key_fails() {
+    let data = b"secret data";
+    let correct_key = generate_key();
+    let wrong_key = generate_key();
+
+    let encrypted = encrypt(data, &amp;correct_key).await?;
+    let result = decrypt(&amp;encrypted, &amp;wrong_key).await;
+
+    assert!(result.is_err());
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="83-dependency-security"><a class="header" href="#83-dependency-security">8.3 Dependency Security</a></h3>
+<p><strong>Cargo-audit:</strong></p>
+<pre><code class="language-bash"># Install
+cargo install cargo-audit
+
+# Check for vulnerabilities
+cargo audit
+
+# CI integration
+cargo audit --deny warnings
+</code></pre>
+<p><strong>Cargo-deny:</strong></p>
+<pre><code class="language-bash"># Check licenses and security
+cargo deny check
+</code></pre>
+<hr />
+<h2 id="9-test-metrics-and-reporting"><a class="header" href="#9-test-metrics-and-reporting">9. Test Metrics and Reporting</a></h2>
+<h3 id="91-test-metrics"><a class="header" href="#91-test-metrics">9.1 Test Metrics</a></h3>
+<p><strong>Key Metrics:</strong></p>
+<ul>
+<li>Test count: 141 tests</li>
+<li>Test pass rate: Target 100%</li>
+<li>Code coverage: Target 80%+</li>
+<li>Test execution time: &lt; 20 seconds for full suite</li>
+<li>Benchmark performance: Track trends</li>
+</ul>
+<p><strong>Tracking:</strong></p>
+<pre><code class="language-bash"># Test count
+cargo test -- --list | wc -l
+
+# Coverage
+cargo tarpaulin --out Json | jq '.coverage'
+
+# Execution time
+time cargo test
+</code></pre>
+<h3 id="92-test-reporting"><a class="header" href="#92-test-reporting">9.2 Test Reporting</a></h3>
+<p><strong>Console Output:</strong></p>
+<pre><code>running 141 tests
+test unit::test_pipeline_creation ... ok
+test integration::test_repository_save ... ok
+test e2e::test_complete_workflow ... ok
+
+test result: ok. 141 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.34s
+</code></pre>
+<p><strong>Coverage Report:</strong></p>
+<pre><code>|| Tested/Total Lines:
+|| src/domain/entities/pipeline.rs: 95/100 (95%)
+|| src/domain/services/compression.rs: 87/95 (91.6%)
+|| Overall: 2847/3421 (83.2%)
+</code></pre>
+<p><strong>Benchmark Report:</strong></p>
+<pre><code>brotli_compression      time:   [45.2 ms 46.1 ms 47.0 ms]
+                        change: [-2.3% +0.1% +2.5%] (p = 0.91 &gt; 0.05)
+                        No change in performance detected.
+
+zstd_compression        time:   [12.5 ms 12.7 ms 12.9 ms]
+                        change: [-8.2% -6.5% -4.8%] (p = 0.00 &lt; 0.05)
+                        Performance has improved.
+</code></pre>
+<hr />
+<h2 id="10-test-maintenance"><a class="header" href="#10-test-maintenance">10. Test Maintenance</a></h2>
+<h3 id="101-test-review-process"><a class="header" href="#101-test-review-process">10.1 Test Review Process</a></h3>
+<p><strong>Code Review Checklist:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Tests cover new functionality</li>
+<li><input disabled="" type="checkbox"/>
+Tests follow naming conventions</li>
+<li><input disabled="" type="checkbox"/>
+Tests are independent and isolated</li>
+<li><input disabled="" type="checkbox"/>
+Test data is appropriate</li>
+<li><input disabled="" type="checkbox"/>
+Assertions are clear and specific</li>
+<li><input disabled="" type="checkbox"/>
+Edge cases are tested</li>
+<li><input disabled="" type="checkbox"/>
+Error conditions are tested</li>
+</ul>
+<h3 id="102-test-refactoring"><a class="header" href="#102-test-refactoring">10.2 Test Refactoring</a></h3>
+<p><strong>When to Refactor Tests:</strong></p>
+<ul>
+<li>Duplicate test logic (extract helpers)</li>
+<li>Brittle tests (too coupled to implementation)</li>
+<li>Slow tests (optimize or move to integration)</li>
+<li>Unclear test names (rename for clarity)</li>
+</ul>
+<p><strong>Test Helpers:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Instead of duplicating this in every test:
+#[test]
+fn test_something() {
+    let stage = PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration {
+            algorithm: "zstd".to_string(),
+            parameters: HashMap::new(),
+            parallel_processing: false,
+            chunk_size: None,
+        },
+        1
+    ).unwrap();
+    // ...
+}
+
+// Extract helper:
+fn create_compression_stage(name: &amp;str, order: usize) -&gt; PipelineStage {
+    PipelineStage::compression(name, "zstd", order).unwrap()
+}
+
+#[test]
+fn test_something() {
+    let stage = create_compression_stage("compress", 1);
+    // ...
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="103-flaky-test-prevention"><a class="header" href="#103-flaky-test-prevention">10.3 Flaky Test Prevention</a></h3>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Time-dependent tests</li>
+<li>Filesystem race conditions</li>
+<li>Nondeterministic ordering</li>
+<li>Shared state between tests</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li>Mock time with <code>mockall</code></li>
+<li>Use unique temp directories</li>
+<li>Sort collections before assertions</li>
+<li>Ensure test isolation</li>
+</ul>
+<hr />
+<h2 id="11-test-schedule"><a class="header" href="#11-test-schedule">11. Test Schedule</a></h2>
+<h3 id="111-development-workflow"><a class="header" href="#111-development-workflow">11.1 Development Workflow</a></h3>
+<p><strong>During Development:</strong></p>
+<pre><code class="language-bash"># Quick check (unit tests only)
+cargo test --lib
+
+# Before commit
+cargo test &amp;&amp; cargo clippy
+</code></pre>
+<p><strong>Before Push:</strong></p>
+<pre><code class="language-bash"># Full test suite
+cargo test
+
+# Check formatting
+cargo fmt -- --check
+
+# Lint
+cargo clippy -- -D warnings
+</code></pre>
+<p><strong>Before Release:</strong></p>
+<pre><code class="language-bash"># All tests
+cargo test
+
+# Benchmarks
+cargo bench
+
+# Coverage
+cargo tarpaulin
+
+# Security audit
+cargo audit
+</code></pre>
+<h3 id="112-cicd-integration"><a class="header" href="#112-cicd-integration">11.2 CI/CD Integration</a></h3>
+<p><strong>On Every Commit:</strong></p>
+<ul>
+<li>Unit tests</li>
+<li>Integration tests</li>
+<li>Clippy linting</li>
+<li>Format checking</li>
+</ul>
+<p><strong>On Pull Request:</strong></p>
+<ul>
+<li>Full test suite</li>
+<li>Coverage report</li>
+<li>Benchmark comparison</li>
+<li>Security audit</li>
+</ul>
+<p><strong>On Release:</strong></p>
+<ul>
+<li>Full test suite</li>
+<li>Performance benchmarks</li>
+<li>Security scan</li>
+<li>Documentation build</li>
+</ul>
+<hr />
+<h2 id="12-test-deliverables"><a class="header" href="#12-test-deliverables">12. Test Deliverables</a></h2>
+<h3 id="121-test-documentation"><a class="header" href="#121-test-documentation">12.1 Test Documentation</a></h3>
+<ul>
+<li><input disabled="" type="checkbox" checked=""/>
+Test Organization Guide (<code>docs/TEST_ORGANIZATION.md</code>)</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Architecture Compliance Tests (<code>tests/architecture_compliance_test.rs</code>)</li>
+<li><input disabled="" type="checkbox" checked=""/>
+This Software Test Plan</li>
+</ul>
+<h3 id="122-test-code"><a class="header" href="#122-test-code">12.2 Test Code</a></h3>
+<ul>
+<li><input disabled="" type="checkbox" checked=""/>
+68 unit tests in source files</li>
+<li><input disabled="" type="checkbox" checked=""/>
+35 integration tests in <code>tests/integration/</code></li>
+<li><input disabled="" type="checkbox" checked=""/>
+11 E2E tests in <code>tests/e2e/</code></li>
+<li><input disabled="" type="checkbox" checked=""/>
+2 architecture compliance tests</li>
+<li><input disabled="" type="checkbox" checked=""/>
+25 documentation tests</li>
+<li><input disabled="" type="checkbox"/>
+Benchmark suite (TODO)</li>
+<li><input disabled="" type="checkbox"/>
+Property-based tests (TODO)</li>
+</ul>
+<h3 id="123-test-reports"><a class="header" href="#123-test-reports">12.3 Test Reports</a></h3>
+<p><strong>Generated Artifacts:</strong></p>
+<ul>
+<li>Test execution report (console output)</li>
+<li>Coverage report (HTML, XML)</li>
+<li>Benchmark report (HTML, JSON)</li>
+<li>Security audit report</li>
+</ul>
+<hr />
+<h2 id="13-risks-and-mitigation"><a class="header" href="#13-risks-and-mitigation">13. Risks and Mitigation</a></h2>
+<h3 id="131-testing-risks"><a class="header" href="#131-testing-risks">13.1 Testing Risks</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Risk</th><th>Impact</th><th>Probability</th><th>Mitigation</th></tr></thead><tbody>
+<tr><td>Flaky tests</td><td>Medium</td><td>Low</td><td>Test isolation, deterministic behavior</td></tr>
+<tr><td>Slow tests</td><td>Medium</td><td>Medium</td><td>Optimize, parallelize, tiered testing</td></tr>
+<tr><td>Low coverage</td><td>High</td><td>Low</td><td>Coverage tracking, CI enforcement</td></tr>
+<tr><td>Missing edge cases</td><td>High</td><td>Medium</td><td>Property-based testing, code review</td></tr>
+<tr><td>Test maintenance burden</td><td>Medium</td><td>High</td><td>Helper functions, clear conventions</td></tr>
+</tbody></table>
+</div>
+<h3 id="132-mitigation-strategies"><a class="header" href="#132-mitigation-strategies">13.2 Mitigation Strategies</a></h3>
+<p><strong>Flaky Tests:</strong></p>
+<ul>
+<li>Run tests multiple times in CI</li>
+<li>Investigate and fix immediately</li>
+<li>Use deterministic test data</li>
+</ul>
+<p><strong>Slow Tests:</strong></p>
+<ul>
+<li>Profile test execution</li>
+<li>Optimize slow tests</li>
+<li>Move to higher test level if appropriate</li>
+</ul>
+<p><strong>Low Coverage:</strong></p>
+<ul>
+<li>Track coverage in CI</li>
+<li>Require minimum coverage for PRs</li>
+<li>Review uncovered code paths</li>
+</ul>
+<hr />
+<h2 id="14-conclusion"><a class="header" href="#14-conclusion">14. Conclusion</a></h2>
+<p>This Software Test Plan establishes a comprehensive testing strategy for the Optimized Adaptive Pipeline system. Key highlights:</p>
+<ul>
+<li><strong>141 tests</strong> across all levels (unit, integration, E2E, architecture, doc)</li>
+<li><strong>Organized structure</strong> following Rust best practices</li>
+<li><strong>Automated CI/CD</strong> integration for continuous quality</li>
+<li><strong>High coverage goals</strong> (80%+ overall, 90%+ domain layer)</li>
+<li><strong>Multiple testing approaches</strong> (TDD, BDD, property-based)</li>
+<li><strong>Performance monitoring</strong> through benchmarks</li>
+<li><strong>Security validation</strong> through audits and crypto testing</li>
+</ul>
+<p>The testing strategy ensures the system meets all requirements, maintains high quality, and remains maintainable as it evolves.</p>
+<hr />
+<h2 id="appendix-a-test-command-reference"><a class="header" href="#appendix-a-test-command-reference">Appendix A: Test Command Reference</a></h2>
+<pre><code class="language-bash"># Run all tests
+cargo test
+
+# Run specific test levels
+cargo test --lib                    # Unit tests only
+cargo test --test integration       # Integration tests
+cargo test --test e2e              # E2E tests
+cargo test --test architecture_compliance_test  # Architecture tests
+cargo test --doc                    # Doc tests
+
+# Run specific test
+cargo test test_pipeline_creation
+
+# Run tests matching pattern
+cargo test pipeline
+
+# Show test output
+cargo test -- --nocapture
+
+# Run tests in parallel (default)
+cargo test
+
+# Run tests serially
+cargo test -- --test-threads=1
+
+# Generate coverage
+cargo tarpaulin --out Html
+
+# Run benchmarks
+cargo bench
+
+# Security audit
+cargo audit
+</code></pre>
+<hr />
+<h2 id="appendix-b-test-naming-conventions"><a class="header" href="#appendix-b-test-naming-conventions">Appendix B: Test Naming Conventions</a></h2>
+<p><strong>Unit Tests:</strong></p>
+<ul>
+<li><code>test_&lt;function&gt;_&lt;scenario&gt;_&lt;expected_result&gt;</code></li>
+<li>Example: <code>test_pipeline_creation_with_empty_name_fails</code></li>
+</ul>
+<p><strong>Integration Tests:</strong></p>
+<ul>
+<li><code>test_&lt;component&gt;_&lt;interaction&gt;_&lt;expected_result&gt;</code></li>
+<li>Example: <code>test_repository_save_and_retrieve_pipeline</code></li>
+</ul>
+<p><strong>E2E Tests:</strong></p>
+<ul>
+<li><code>test_e2e_&lt;workflow&gt;_&lt;scenario&gt;</code></li>
+<li>Example: <code>test_e2e_complete_pipeline_roundtrip</code></li>
+</ul>
+<p><strong>Property Tests:</strong></p>
+<ul>
+<li><code>test_&lt;property&gt;_holds_for_all_&lt;inputs&gt;</code></li>
+<li>Example: <code>test_compression_roundtrip_succeeds_for_all_data</code></li>
+</ul>
 
                     </main>
 

@@ -183,13 +183,600 @@
 <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
 <strong>Authors:</strong> Michael Gardner
 <strong>Status:</strong> Draft</p>
-<p>Profiling tools and techniques.</p>
+<p>This chapter covers profiling tools and techniques for identifying performance bottlenecks, analyzing CPU usage, memory allocation patterns, and optimizing the pipeline's runtime characteristics.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p><strong>Profiling</strong> is the process of measuring where your program spends time and allocates memory. Unlike benchmarking (which measures aggregate performance), profiling provides detailed insights into:</p>
+<ul>
+<li><strong>CPU hotspots</strong>: Which functions consume the most CPU time</li>
+<li><strong>Memory allocation</strong>: Where and how much memory is allocated</li>
+<li><strong>Lock contention</strong>: Where threads wait for synchronization</li>
+<li><strong>Cache misses</strong>: Memory access patterns affecting performance</li>
+</ul>
+<p><strong>When to profile:</strong></p>
+<ul>
+<li>✅ After identifying performance issues in benchmarks</li>
+<li>✅ When optimizing critical paths</li>
+<li>✅ When investigating unexplained slowness</li>
+<li>✅ Before and after major architectural changes</li>
+</ul>
+<p><strong>When NOT to profile:</strong></p>
+<ul>
+<li>❌ Before establishing performance goals</li>
+<li>❌ On trivial workloads (profile representative cases)</li>
+<li>❌ Without benchmarks (profile after quantifying the issue)</li>
+</ul>
 <h2 id="profiling-tools"><a class="header" href="#profiling-tools">Profiling Tools</a></h2>
-<p>TODO: List tools (flamegraph, perf, etc.)</p>
+<h3 id="cpu-profiling-tools"><a class="header" href="#cpu-profiling-tools">CPU Profiling Tools</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Tool</th><th>Platform</th><th>Sampling</th><th>Instrumentation</th><th>Overhead</th><th>Output</th></tr></thead><tbody>
+<tr><td><strong>perf</strong></td><td>Linux</td><td>Yes</td><td>No</td><td>Low (1-5%)</td><td>Text/perf.data</td></tr>
+<tr><td><strong>flamegraph</strong></td><td>All</td><td>Yes</td><td>No</td><td>Low (1-5%)</td><td>SVG</td></tr>
+<tr><td><strong>samply</strong></td><td>All</td><td>Yes</td><td>No</td><td>Low (1-5%)</td><td>Firefox Profiler</td></tr>
+<tr><td><strong>Instruments</strong></td><td>macOS</td><td>Yes</td><td>Optional</td><td>Low-Med</td><td>GUI</td></tr>
+<tr><td><strong>VTune</strong></td><td>Linux/Windows</td><td>Yes</td><td>Optional</td><td>Med</td><td>GUI</td></tr>
+</tbody></table>
+</div>
+<p><strong>Recommended for Rust:</strong></p>
+<ul>
+<li><strong>Linux</strong>: <code>perf</code> + <code>flamegraph</code></li>
+<li><strong>macOS</strong>: <code>samply</code> or Instruments</li>
+<li><strong>Windows</strong>: VTune or Windows Performance Analyzer</li>
+</ul>
+<h3 id="memory-profiling-tools"><a class="header" href="#memory-profiling-tools">Memory Profiling Tools</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Tool</th><th>Platform</th><th>Heap</th><th>Leaks</th><th>Peak Usage</th><th>Output</th></tr></thead><tbody>
+<tr><td><strong>valgrind (massif)</strong></td><td>Linux/macOS</td><td>Yes</td><td>No</td><td>Yes</td><td>Text/ms_print</td></tr>
+<tr><td><strong>heaptrack</strong></td><td>Linux</td><td>Yes</td><td>Yes</td><td>Yes</td><td>GUI</td></tr>
+<tr><td><strong>dhat</strong></td><td>Linux/macOS</td><td>Yes</td><td>No</td><td>Yes</td><td>JSON/Web UI</td></tr>
+<tr><td><strong>Instruments</strong></td><td>macOS</td><td>Yes</td><td>Yes</td><td>Yes</td><td>GUI</td></tr>
+</tbody></table>
+</div>
+<p><strong>Recommended for Rust:</strong></p>
+<ul>
+<li><strong>Linux</strong>: <code>heaptrack</code> or <code>dhat</code></li>
+<li><strong>macOS</strong>: Instruments (Allocations template)</li>
+<li><strong>Memory leaks</strong>: <code>valgrind (memcheck)</code></li>
+</ul>
 <h2 id="cpu-profiling"><a class="header" href="#cpu-profiling">CPU Profiling</a></h2>
-<p>TODO: Show CPU profiling</p>
+<h3 id="using-perf-linux"><a class="header" href="#using-perf-linux">Using <code>perf</code> (Linux)</a></h3>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install perf
+sudo apt-get install linux-tools-common linux-tools-generic  # Ubuntu/Debian
+sudo dnf install perf  # Fedora
+
+# Build with debug symbols
+cargo build --release --bin pipeline
+
+# Enable perf for non-root users
+echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid
+</code></pre>
+<p><strong>Record profile:</strong></p>
+<pre><code class="language-bash"># Profile pipeline execution
+perf record --call-graph dwarf \
+    ./target/release/pipeline process testdata/large-file.bin
+
+# Output: perf.data
+</code></pre>
+<p><strong>Analyze results:</strong></p>
+<pre><code class="language-bash"># Interactive TUI
+perf report
+
+# Text summary
+perf report --stdio
+
+# Function call graph
+perf report --stdio --no-children
+
+# Top functions
+perf report --stdio | head -20
+</code></pre>
+<p><strong>Example output:</strong></p>
+<pre><code class="language-text"># Overhead  Command   Shared Object     Symbol
+# ........  ........  ................  .......................
+    45.23%  pipeline  libbrotli.so      BrotliEncoderCompress
+    18.91%  pipeline  pipeline          rayon::iter::collect
+    12.34%  pipeline  libcrypto.so      AES_encrypt
+     8.72%  pipeline  pipeline          tokio::runtime::task
+     6.45%  pipeline  libc.so           memcpy
+     3.21%  pipeline  pipeline          std::io::Write::write_all
+</code></pre>
+<p><strong>Interpretation:</strong></p>
+<ul>
+<li><strong>45% in BrotliEncoderCompress</strong>: Compression is the hotspot</li>
+<li><strong>19% in rayon::iter::collect</strong>: Parallel iteration overhead</li>
+<li><strong>12% in AES_encrypt</strong>: Encryption is expensive but expected</li>
+<li><strong>9% in Tokio task</strong>: Async runtime overhead</li>
+</ul>
+<p><strong>Optimization targets:</strong></p>
+<ol>
+<li>Use faster compression (LZ4 instead of Brotli)</li>
+<li>Reduce Rayon parallelism overhead (larger chunks)</li>
+<li>Use AES-NI hardware acceleration</li>
+</ol>
+<h3 id="using-flamegraph-all-platforms"><a class="header" href="#using-flamegraph-all-platforms">Using Flamegraph (All Platforms)</a></h3>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install cargo-flamegraph
+cargo install flamegraph
+
+# Linux: Install perf (see above)
+
+# macOS: Install DTrace (built-in)
+
+# Windows: Install WPA (Windows Performance Analyzer)
+</code></pre>
+<p><strong>Generate flamegraph:</strong></p>
+<pre><code class="language-bash"># Profile and generate SVG
+cargo flamegraph --bin pipeline -- process testdata/large-file.bin
+
+# Output: flamegraph.svg
+open flamegraph.svg
+</code></pre>
+<p><strong>Flamegraph structure:</strong></p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                     main (100%)                             │ ← Root
+├─────────────────────┬───────────────────┬───────────────────┤
+│ tokio::runtime (50%)│ rayon::iter (30%) │ other (20%)       │
+├──────┬──────┬───────┼─────────┬─────────┴───────────────────┤
+│ I/O  │ task │ ... │compress │ encrypt │ hash │ ...          │
+│ 20%  │ 15%  │  15%│   18%   │   8%    │  4%  │              │
+└──────┴──────┴───────┴─────────┴─────────┴──────┴─────────────┘
+</code></pre>
+<p><strong>Reading flamegraphs:</strong></p>
+<ul>
+<li><strong>Width</strong>: Percentage of CPU time (wider = more time)</li>
+<li><strong>Height</strong>: Call stack depth (bottom = entry point, top = leaf functions)</li>
+<li><strong>Color</strong>: Random (for visual distinction, not meaningful)</li>
+<li><strong>Interactive</strong>: Click to zoom, search functions</li>
+</ul>
+<p><strong>Example analysis:</strong></p>
+<p>If you see:</p>
+<pre><code class="language-text">main → tokio::runtime → spawn_blocking → rayon::par_iter → compress → brotli
+                                                               45%
+</code></pre>
+<p><strong>Interpretation:</strong></p>
+<ul>
+<li>45% of time spent in Brotli compression</li>
+<li>Called through Rayon parallel iteration</li>
+<li>Spawned from Tokio's blocking thread pool</li>
+</ul>
+<p><strong>Action:</strong></p>
+<ul>
+<li>Evaluate if 45% compression time is acceptable</li>
+<li>If too slow, switch to LZ4 or reduce compression level</li>
+</ul>
+<h3 id="using-samply-all-platforms"><a class="header" href="#using-samply-all-platforms">Using Samply (All Platforms)</a></h3>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install samply
+cargo install samply
+</code></pre>
+<p><strong>Profile and view:</strong></p>
+<pre><code class="language-bash"># Profile and open in Firefox Profiler
+samply record --release -- cargo run --bin pipeline -- process testdata/large-file.bin
+
+# Automatically opens in Firefox Profiler web UI
+</code></pre>
+<p><strong>Firefox Profiler features:</strong></p>
+<ul>
+<li><strong>Timeline view</strong>: See CPU usage over time</li>
+<li><strong>Call tree</strong>: Hierarchical function breakdown</li>
+<li><strong>Flame graph</strong>: Interactive flamegraph</li>
+<li><strong>Marker timeline</strong>: Custom events and annotations</li>
+<li><strong>Thread activity</strong>: Per-thread CPU usage</li>
+</ul>
+<p><strong>Advantages over static flamegraphs:</strong></p>
+<ul>
+<li>✅ Interactive (zoom, filter, search)</li>
+<li>✅ Timeline view (see activity over time)</li>
+<li>✅ Multi-threaded visualization</li>
+<li>✅ Easy sharing (web-based)</li>
+</ul>
 <h2 id="memory-profiling"><a class="header" href="#memory-profiling">Memory Profiling</a></h2>
-<p>TODO: Show memory profiling</p>
+<h3 id="using-valgrind-massif-linuxmacos"><a class="header" href="#using-valgrind-massif-linuxmacos">Using Valgrind Massif (Linux/macOS)</a></h3>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install valgrind
+sudo apt-get install valgrind  # Ubuntu/Debian
+brew install valgrind  # macOS (Intel only)
+</code></pre>
+<p><strong>Profile heap usage:</strong></p>
+<pre><code class="language-bash"># Run with Massif
+valgrind --tool=massif --massif-out-file=massif.out \
+    ./target/release/pipeline process testdata/large-file.bin
+
+# Visualize results
+ms_print massif.out
+</code></pre>
+<p><strong>Example output:</strong></p>
+<pre><code class="language-text">--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+  0              0                0                0             0            0
+  1        123,456       64,000,000       64,000,000             0            0
+  2        234,567      128,000,000      128,000,000             0            0
+  3        345,678      192,000,000      192,000,000             0            0  ← Peak
+  4        456,789      128,000,000      128,000,000             0            0
+  5        567,890       64,000,000       64,000,000             0            0
+  6        678,901                0                0             0            0
+
+Peak memory: 192 MB
+
+Top allocations:
+    45.2%  (87 MB)  Vec::with_capacity (chunk buffer)
+    23.1%  (44 MB)  Vec::with_capacity (compressed data)
+    15.7%  (30 MB)  Box::new (encryption context)
+    ...
+</code></pre>
+<p><strong>Interpretation:</strong></p>
+<ul>
+<li><strong>Peak memory</strong>: 192 MB</li>
+<li><strong>Main contributor</strong>: 87 MB chunk buffers (45%)</li>
+<li><strong>Growth pattern</strong>: Linear increase then decrease (expected for streaming)</li>
+</ul>
+<p><strong>Optimization:</strong></p>
+<ul>
+<li>Reduce chunk size to lower peak memory</li>
+<li>Reuse buffers instead of allocating new ones</li>
+<li>Use <code>SmallVec</code> for small allocations</li>
+</ul>
+<h3 id="using-heaptrack-linux"><a class="header" href="#using-heaptrack-linux">Using Heaptrack (Linux)</a></h3>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install heaptrack
+sudo apt-get install heaptrack heaptrack-gui  # Ubuntu/Debian
+</code></pre>
+<p><strong>Profile and analyze:</strong></p>
+<pre><code class="language-bash"># Record heap usage
+heaptrack ./target/release/pipeline process testdata/large-file.bin
+
+# Output: heaptrack.pipeline.12345.gz
+
+# Analyze with GUI
+heaptrack_gui heaptrack.pipeline.12345.gz
+</code></pre>
+<p><strong>Heaptrack GUI features:</strong></p>
+<ul>
+<li><strong>Summary</strong>: Total allocations, peak memory, leaked memory</li>
+<li><strong>Top allocators</strong>: Functions allocating the most</li>
+<li><strong>Flame graph</strong>: Allocation call chains</li>
+<li><strong>Timeline</strong>: Memory usage over time</li>
+<li><strong>Leak detection</strong>: Allocated but never freed</li>
+</ul>
+<p><strong>Example metrics:</strong></p>
+<pre><code class="language-text">Total allocations: 1,234,567
+Total allocated: 15.2 GB
+Peak heap: 192 MB
+Peak RSS: 256 MB
+Leaked: 0 bytes
+</code></pre>
+<p><strong>Top allocators:</strong></p>
+<pre><code class="language-text">1. Vec::with_capacity (chunk buffer)        5.4 GB  (35%)
+2. tokio::spawn (task allocation)           2.1 GB  (14%)
+3. Vec::with_capacity (compressed data)     1.8 GB  (12%)
+</code></pre>
+<h3 id="using-dhat-linuxmacos"><a class="header" href="#using-dhat-linuxmacos">Using DHAT (Linux/macOS)</a></h3>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Install valgrind with DHAT
+sudo apt-get install valgrind
+</code></pre>
+<p><strong>Profile with DHAT:</strong></p>
+<pre><code class="language-bash"># Run with DHAT
+valgrind --tool=dhat --dhat-out-file=dhat.out \
+    ./target/release/pipeline process testdata/large-file.bin
+
+# Output: dhat.out.12345
+
+# View in web UI
+dhat_viewer dhat.out.12345
+# Or upload to https://nnethercote.github.io/dh_view/dh_view.html
+</code></pre>
+<p><strong>DHAT metrics:</strong></p>
+<ul>
+<li><strong>Total bytes allocated</strong>: Cumulative allocation size</li>
+<li><strong>Total blocks allocated</strong>: Number of allocations</li>
+<li><strong>Peak bytes</strong>: Maximum heap size</li>
+<li><strong>Average block size</strong>: Typical allocation size</li>
+<li><strong>Short-lived</strong>: Allocations freed quickly</li>
+</ul>
+<p><strong>Example output:</strong></p>
+<pre><code class="language-text">Total:     15.2 GB in 1,234,567 blocks
+Peak:      192 MB
+At t-gmax: 187 MB in 145 blocks
+At t-end:  0 B in 0 blocks
+
+Top allocation sites:
+  1. 35.4% (5.4 GB in 98,765 blocks)
+     Vec::with_capacity (file_io.rs:123)
+     ← chunk buffer allocation
+
+  2. 14.2% (2.1 GB in 567,890 blocks)
+     tokio::spawn (runtime.rs:456)
+     ← task overhead
+
+  3. 11.8% (1.8 GB in 45,678 blocks)
+     Vec::with_capacity (compression.rs:789)
+     ← compressed buffer
+</code></pre>
+<h2 id="profiling-workflows"><a class="header" href="#profiling-workflows">Profiling Workflows</a></h2>
+<h3 id="workflow-1-identify-cpu-hotspot"><a class="header" href="#workflow-1-identify-cpu-hotspot">Workflow 1: Identify CPU Hotspot</a></h3>
+<p><strong>1. Establish baseline (benchmark):</strong></p>
+<pre><code class="language-bash">cargo bench --bench file_io_benchmark -- --save-baseline before
+</code></pre>
+<p><strong>2. Profile with perf + flamegraph:</strong></p>
+<pre><code class="language-bash">cargo flamegraph --bin pipeline -- process testdata/large-file.bin
+open flamegraph.svg
+</code></pre>
+<p><strong>3. Identify hotspot:</strong></p>
+<p>Look for wide bars in flamegraph (e.g., 45% in <code>BrotliEncoderCompress</code>).</p>
+<p><strong>4. Optimize:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Before: Brotli (slow, high compression)
+let compression = CompressionAlgorithm::Brotli;
+
+// After: LZ4 (fast, lower compression)
+let compression = CompressionAlgorithm::Lz4;
+<span class="boring">}</span></code></pre></pre>
+<p><strong>5. Verify improvement:</strong></p>
+<pre><code class="language-bash">cargo flamegraph --bin pipeline -- process testdata/large-file.bin
+# Check if Brotli bar shrunk
+
+cargo bench --bench file_io_benchmark -- --baseline before
+# Expect: Performance has improved
+</code></pre>
+<h3 id="workflow-2-reduce-memory-usage"><a class="header" href="#workflow-2-reduce-memory-usage">Workflow 2: Reduce Memory Usage</a></h3>
+<p><strong>1. Profile heap usage:</strong></p>
+<pre><code class="language-bash">heaptrack ./target/release/pipeline process testdata/large-file.bin
+heaptrack_gui heaptrack.pipeline.12345.gz
+</code></pre>
+<p><strong>2. Identify large allocations:</strong></p>
+<p>Look for top allocators (e.g., 87 MB chunk buffers).</p>
+<p><strong>3. Calculate optimal size:</strong></p>
+<pre><code class="language-text">Current: 64 MB chunks × 8 workers = 512 MB peak
+Target: &lt; 256 MB peak
+Solution: 16 MB chunks × 8 workers = 128 MB peak
+</code></pre>
+<p><strong>4. Reduce chunk size:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Before
+let chunk_size = ChunkSize::from_mb(64)?;
+
+// After
+let chunk_size = ChunkSize::from_mb(16)?;
+<span class="boring">}</span></code></pre></pre>
+<p><strong>5. Verify reduction:</strong></p>
+<pre><code class="language-bash">heaptrack ./target/release/pipeline process testdata/large-file.bin
+# Check peak memory: should be &lt; 256 MB
+</code></pre>
+<h3 id="workflow-3-optimize-parallel-code"><a class="header" href="#workflow-3-optimize-parallel-code">Workflow 3: Optimize Parallel Code</a></h3>
+<p><strong>1. Profile with perf:</strong></p>
+<pre><code class="language-bash">perf record --call-graph dwarf \
+    ./target/release/pipeline process testdata/large-file.bin
+
+perf report --stdio
+</code></pre>
+<p><strong>2. Check for synchronization overhead:</strong></p>
+<pre><code class="language-text">12.3%  pipeline  [kernel]     futex_wait    ← Lock contention
+ 8.7%  pipeline  pipeline     rayon::join    ← Coordination
+ 6.5%  pipeline  pipeline     Arc::clone     ← Reference counting
+</code></pre>
+<p><strong>3. Reduce contention:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Before: Shared mutex (high contention)
+let counter = Arc::new(Mutex::new(0));
+
+// After: Per-thread counters (no contention)
+let counter = Arc::new(AtomicUsize::new(0));
+counter.fetch_add(1, Ordering::Relaxed);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>4. Verify improvement:</strong></p>
+<pre><code class="language-bash">perf record ./target/release/pipeline process testdata/large-file.bin
+perf report --stdio
+# Check if futex_wait reduced
+</code></pre>
+<h2 id="interpreting-results"><a class="header" href="#interpreting-results">Interpreting Results</a></h2>
+<h3 id="cpu-profile-patterns"><a class="header" href="#cpu-profile-patterns">CPU Profile Patterns</a></h3>
+<p><strong>Pattern 1: Single Hotspot</strong></p>
+<pre><code class="language-text">compress_chunk: 65%  ← Dominant function
+encrypt_chunk:  15%
+write_chunk:    10%
+other:          10%
+</code></pre>
+<p><strong>Action</strong>: Optimize the 65% hotspot (use faster algorithm or optimize implementation).</p>
+<p><strong>Pattern 2: Distributed Cost</strong></p>
+<pre><code class="language-text">compress: 20%
+encrypt:  18%
+hash:     15%
+io:       22%
+other:    25%
+</code></pre>
+<p><strong>Action</strong>: No single hotspot. Profile deeper or optimize multiple functions.</p>
+<p><strong>Pattern 3: Framework Overhead</strong></p>
+<pre><code class="language-text">tokio::runtime: 35%  ← High async overhead
+rayon::iter:    25%  ← High parallel overhead
+actual_work:    40%
+</code></pre>
+<p><strong>Action</strong>: Reduce task spawning frequency, batch operations, or use sync code for CPU-bound work.</p>
+<h3 id="memory-profile-patterns"><a class="header" href="#memory-profile-patterns">Memory Profile Patterns</a></h3>
+<p><strong>Pattern 1: Linear Growth</strong></p>
+<pre><code class="language-text">Memory over time:
+  0s:   0 MB
+ 10s:  64 MB
+ 20s: 128 MB  ← Growing linearly
+ 30s: 192 MB
+</code></pre>
+<p><strong>Likely cause</strong>: Streaming processing with bounded buffers (normal).</p>
+<p><strong>Pattern 2: Sawtooth</strong></p>
+<pre><code class="language-text">Memory over time:
+  0-5s:   0 → 128 MB  ← Allocate
+  5s:   128 →   0 MB  ← Free
+  6-11s:  0 → 128 MB  ← Allocate again
+</code></pre>
+<p><strong>Likely cause</strong>: Batch processing with periodic flushing (normal).</p>
+<p><strong>Pattern 3: Unbounded Growth</strong></p>
+<pre><code class="language-text">Memory over time:
+  0s:   0 MB
+ 10s:  64 MB
+ 20s: 158 MB  ← Growing faster than linear
+ 30s: 312 MB
+</code></pre>
+<p><strong>Likely cause</strong>: Memory leak (allocated but never freed).</p>
+<p><strong>Action</strong>: Use heaptrack to identify leak source, ensure proper cleanup with RAII.</p>
+<h2 id="common-performance-issues"><a class="header" href="#common-performance-issues">Common Performance Issues</a></h2>
+<h3 id="issue-1-lock-contention"><a class="header" href="#issue-1-lock-contention">Issue 1: Lock Contention</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>High <code>futex_wait</code> in perf</li>
+<li>Threads spending time in synchronization</li>
+</ul>
+<p><strong>Diagnosis:</strong></p>
+<pre><code class="language-bash">perf record --call-graph dwarf ./target/release/pipeline ...
+perf report | grep futex
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Bad: Shared mutex
+let counter = Arc::new(Mutex::new(0));
+
+// ✅ Good: Atomic
+let counter = Arc::new(AtomicUsize::new(0));
+counter.fetch_add(1, Ordering::Relaxed);
+<span class="boring">}</span></code></pre></pre>
+<h3 id="issue-2-excessive-allocations"><a class="header" href="#issue-2-excessive-allocations">Issue 2: Excessive Allocations</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>High <code>malloc</code> / <code>free</code> in flamegraph</li>
+<li>Poor cache performance</li>
+</ul>
+<p><strong>Diagnosis:</strong></p>
+<pre><code class="language-bash">heaptrack ./target/release/pipeline ...
+# Check "Total allocations" count
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Bad: Allocate per iteration
+for chunk in chunks {
+    let buffer = vec![0; size];  // New allocation every time!
+    process(buffer);
+}
+
+// ✅ Good: Reuse buffer
+let mut buffer = vec![0; size];
+for chunk in chunks {
+    process(&amp;mut buffer);
+    buffer.clear();
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="issue-3-small-task-overhead"><a class="header" href="#issue-3-small-task-overhead">Issue 3: Small Task Overhead</a></h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>High <code>tokio::spawn</code> or <code>rayon::spawn</code> overhead</li>
+<li>More framework time than actual work</li>
+</ul>
+<p><strong>Diagnosis:</strong></p>
+<pre><code class="language-bash">cargo flamegraph --bin pipeline ...
+# Check width of spawn-related functions
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Bad: Spawn per chunk
+for chunk in chunks {
+    tokio::spawn(async move { process(chunk).await });
+}
+
+// ✅ Good: Batch chunks
+tokio::task::spawn_blocking(move || {
+    RAYON_POOLS.cpu_bound_pool().install(|| {
+        chunks.into_par_iter().map(process).collect()
+    })
+})
+<span class="boring">}</span></code></pre></pre>
+<h2 id="profiling-best-practices"><a class="header" href="#profiling-best-practices">Profiling Best Practices</a></h2>
+<h3 id="1-profile-release-builds"><a class="header" href="#1-profile-release-builds">1. Profile Release Builds</a></h3>
+<pre><code class="language-bash"># ✅ Good: Release mode
+cargo build --release
+perf record ./target/release/pipeline ...
+
+# ❌ Bad: Debug mode (10-100x slower, misleading results)
+cargo build
+perf record ./target/debug/pipeline ...
+</code></pre>
+<h3 id="2-use-representative-workloads"><a class="header" href="#2-use-representative-workloads">2. Use Representative Workloads</a></h3>
+<pre><code class="language-bash"># ✅ Good: Large realistic file
+perf record ./target/release/pipeline process testdata/100mb-file.bin
+
+# ❌ Bad: Tiny file (setup overhead dominates)
+perf record ./target/release/pipeline process testdata/1kb-file.bin
+</code></pre>
+<h3 id="3-profile-multiple-scenarios"><a class="header" href="#3-profile-multiple-scenarios">3. Profile Multiple Scenarios</a></h3>
+<pre><code class="language-bash"># Profile different file sizes
+perf record -o perf-small.data ./target/release/pipeline process small.bin
+perf record -o perf-large.data ./target/release/pipeline process large.bin
+
+# Compare results
+perf report -i perf-small.data
+perf report -i perf-large.data
+</code></pre>
+<h3 id="4-combine-profiling-tools"><a class="header" href="#4-combine-profiling-tools">4. Combine Profiling Tools</a></h3>
+<pre><code class="language-bash"># 1. Flamegraph for overview
+cargo flamegraph --bin pipeline -- process test.bin
+
+# 2. perf for detailed analysis
+perf record --call-graph dwarf ./target/release/pipeline process test.bin
+perf report
+
+# 3. Heaptrack for memory
+heaptrack ./target/release/pipeline process test.bin
+</code></pre>
+<h3 id="5-profile-before-and-after-optimizations"><a class="header" href="#5-profile-before-and-after-optimizations">5. Profile Before and After Optimizations</a></h3>
+<pre><code class="language-bash"># Before
+cargo flamegraph -o before.svg --bin pipeline -- process test.bin
+heaptrack -o before.gz ./target/release/pipeline process test.bin
+
+# Make changes...
+
+# After
+cargo flamegraph -o after.svg --bin pipeline -- process test.bin
+heaptrack -o after.gz ./target/release/pipeline process test.bin
+
+# Compare visually
+open before.svg after.svg
+</code></pre>
+<h2 id="related-topics"><a class="header" href="#related-topics">Related Topics</a></h2>
+<ul>
+<li>See <a href="performance.html">Performance Optimization</a> for optimization strategies</li>
+<li>See <a href="benchmarking.html">Benchmarking</a> for performance measurement</li>
+<li>See <a href="thread-pooling.html">Thread Pooling</a> for concurrency tuning</li>
+<li>See <a href="resources.html">Resource Management</a> for resource limits</li>
+</ul>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>Profiling tools and techniques provide:</p>
+<ol>
+<li><strong>CPU Profiling</strong>: Identify hotspots with perf, flamegraph, samply</li>
+<li><strong>Memory Profiling</strong>: Track allocations with heaptrack, DHAT, Massif</li>
+<li><strong>Workflows</strong>: Systematic approaches to optimization</li>
+<li><strong>Pattern Recognition</strong>: Understand common performance issues</li>
+<li><strong>Best Practices</strong>: Profile release builds with representative workloads</li>
+</ol>
+<p><strong>Key Takeaways:</strong></p>
+<ul>
+<li>Use <code>cargo flamegraph</code> for quick CPU profiling (all platforms)</li>
+<li>Use <code>heaptrack</code> for comprehensive memory analysis (Linux)</li>
+<li>Profile release builds (<code>cargo build --release</code>)</li>
+<li>Use representative workloads (large realistic files)</li>
+<li>Combine benchmarking (quantify) with profiling (diagnose)</li>
+<li>Profile before and after optimizations to verify improvements</li>
+</ul>
+<p><strong>Quick Start:</strong></p>
+<pre><code class="language-bash"># CPU profiling
+cargo install flamegraph
+cargo flamegraph --bin pipeline -- process large-file.bin
+
+# Memory profiling (Linux)
+sudo apt-get install heaptrack
+heaptrack ./target/release/pipeline process large-file.bin
+heaptrack_gui heaptrack.pipeline.*.gz
+</code></pre>
 
                     </main>
 
