@@ -224,6 +224,12 @@ PipelineStage::new(
 ) // ❌ Error: Algorithm not compatible with stage type
 ```
 
+## Extending with Custom Stages
+
+The pipeline can be easily extended through custom stages to meet your specific requirements. You can create custom stages that implement your own processing logic, integrate third-party tools, or add specialized transformations.
+
+For detailed information on implementing custom stages, see [Custom Stages](../advanced/custom-stages.md) in the Advanced Topics section.
+
 ## Next Steps
 
 Now that you understand pipeline stages, you can learn about:
@@ -231,3 +237,4 @@ Now that you understand pipeline stages, you can learn about:
 - [Configuration](configuration.md) - How to configure pipelines and stages
 - [Your First Pipeline](first-run.md) - Run your first pipeline
 - [Architecture Overview](../architecture/overview.md) - Deeper dive into the architecture
+- [Custom Stages](../advanced/custom-stages.md) - Create your own custom stage implementations

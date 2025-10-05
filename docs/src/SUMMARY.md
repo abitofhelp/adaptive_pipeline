@@ -22,5 +22,6 @@
 
 # Reference
 
+- [Software Requirements Specification (SRS)](reference/srs.md)
 - [Glossary](reference/glossary.md)
 - [API Documentation](reference/api-docs.md)

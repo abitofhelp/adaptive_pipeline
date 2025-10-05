@@ -76,6 +76,7 @@ The Optimized Adaptive Pipeline provides:
 - Input: Any file type
 - Stages: Compression, encryption, validation
 - Output: Processed `.adapipe` file
+- Memory-mapped files for efficient processing of huge files
 
 **Flexibility**: Configure stages for your needs
 - Enable/disable stages
