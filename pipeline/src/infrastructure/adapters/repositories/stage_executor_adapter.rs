@@ -289,6 +289,15 @@ impl StageExecutor for BasicStageExecutorAdapterAdapter {
     ) -> Result<(), PipelineError> {
         Ok(())
     }
+
+    async fn validate_stage_ordering(
+        &self,
+        _stages: &[pipeline_domain::entities::PipelineStage],
+    ) -> Result<(), PipelineError> {
+        // Adapter doesn't have service registry, so cannot validate ordering
+        // This is a minimal implementation for testing purposes
+        Ok(())
+    }
 }
 
 #[cfg(test)]

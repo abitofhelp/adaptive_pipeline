@@ -612,4 +612,56 @@ impl StageExecutor for BasicStageExecutor {
 
         Ok(())
     }
+
+    async fn validate_stage_ordering(&self, stages: &[PipelineStage]) -> Result<(), PipelineError> {
+        use pipeline_domain::entities::StagePosition;
+
+        // Track if we've encountered a PostBinary stage
+        let mut seen_post_binary = false;
+
+        for (index, stage) in stages.iter().enumerate() {
+            // Skip checksum stages - they're automatically added and managed
+            if *stage.stage_type() == pipeline_domain::entities::StageType::Checksum {
+                continue;
+            }
+
+            // Get the algorithm name to look up the service
+            let algorithm = stage.configuration().algorithm.as_str();
+
+            // Look up the stage service to determine its position
+            let position = match self.stage_services.get(algorithm) {
+                Some(service) => service.position(),
+                None => {
+                    return Err(PipelineError::InvalidConfiguration(format!(
+                        "Cannot validate stage ordering: No StageService registered for algorithm '{}' at position {}",
+                        algorithm, index
+                    )));
+                }
+            };
+
+            // Validate ordering based on position
+            match position {
+                StagePosition::PreBinary => {
+                    if seen_post_binary {
+                        return Err(PipelineError::InvalidConfiguration(format!(
+                            "Invalid stage ordering: PreBinary stage '{}' (algorithm: {}) at position {} cannot appear after PostBinary stages. \
+                             PreBinary stages must execute before compression/encryption.",
+                            stage.name(),
+                            algorithm,
+                            index
+                        )));
+                    }
+                }
+                StagePosition::PostBinary => {
+                    // Mark that we've seen a PostBinary stage
+                    seen_post_binary = true;
+                }
+                StagePosition::Any => {
+                    // Any position can appear anywhere - no restrictions
+                }
+            }
+        }
+
+        Ok(())
+    }
 }

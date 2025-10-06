@@ -1157,6 +1157,12 @@ impl PipelineService for PipelineServiceImpl {
             }
         }
 
+        // Validate stage ordering (PreBinary must come before PostBinary)
+        debug!("Validating stage ordering...");
+        self.stage_executor
+            .validate_stage_ordering(pipeline.stages())
+            .await?;
+
         debug!("Pipeline validation passed");
         Ok(())
     }

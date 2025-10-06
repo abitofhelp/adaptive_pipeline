@@ -198,6 +198,32 @@ pub trait StageExecutor: Send + Sync {
 
     /// Validates stage configuration
     async fn validate_configuration(&self, stage: &PipelineStage) -> Result<(), PipelineError>;
+
+    /// Validates that stages are ordered correctly based on their positions.
+    ///
+    /// Ensures that PreBinary stages come before PostBinary stages in the pipeline.
+    /// Stages with position Any can appear anywhere.
+    ///
+    /// # Arguments
+    ///
+    /// * `stages` - The ordered sequence of pipeline stages to validate
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Stages are properly ordered
+    /// * `Err(PipelineError)` - Stages are misordered or position cannot be determined
+    ///
+    /// # Examples
+    ///
+    /// ```text
+    /// Valid ordering:
+    ///   [PreBinary] -> [PreBinary] -> [PostBinary] -> [PostBinary]
+    ///   [PreBinary] -> [Any] -> [PostBinary]
+    ///
+    /// Invalid ordering:
+    ///   [PostBinary] -> [PreBinary]  // PreBinary after PostBinary
+    /// ```
+    async fn validate_stage_ordering(&self, stages: &[PipelineStage]) -> Result<(), PipelineError>;
 }
 
 /// Resource requirements for stage execution
