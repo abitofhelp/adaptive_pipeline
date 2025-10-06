@@ -87,8 +87,26 @@
 //! }
 //! ```
 
-// Use cases module
+// Use cases module - each CLI command has a corresponding use case
+pub mod benchmark_system;
+pub mod compare_files;
+pub mod create_pipeline;
+pub mod delete_pipeline;
+pub mod list_pipelines;
+pub mod process_file;
 pub mod restore_file;
+pub mod show_pipeline;
+pub mod validate_config;
+pub mod validate_file;
 
-// Re-export commonly used use case functions
+// Re-export use cases for convenient access
+pub use benchmark_system::BenchmarkSystemUseCase;
+pub use compare_files::CompareFilesUseCase;
+pub use create_pipeline::CreatePipelineUseCase;
+pub use delete_pipeline::DeletePipelineUseCase;
+pub use list_pipelines::ListPipelinesUseCase;
+pub use process_file::{ProcessFileConfig, ProcessFileUseCase};
 pub use restore_file::create_restoration_pipeline;
+pub use show_pipeline::ShowPipelineUseCase;
+pub use validate_config::ValidateConfigUseCase;
+pub use validate_file::ValidateFileUseCase;
