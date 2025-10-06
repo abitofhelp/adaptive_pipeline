@@ -99,7 +99,7 @@ use byte_unit::Byte;
 use parking_lot::RwLock;
 use pipeline_domain::entities::{PipelineStage, ProcessingContext};
 use pipeline_domain::repositories::stage_executor::{ResourceRequirements, StageExecutor};
-use pipeline_domain::services::{CompressionService, EncryptionService, KeyMaterial};
+use pipeline_domain::services::StageService;
 use pipeline_domain::value_objects::FileChunk;
 use pipeline_domain::PipelineError;
 use sha2::{Digest, Sha256};
@@ -178,22 +178,23 @@ pub struct BasicStageExecutor {
     _state: Arc<RwLock<()>>,
     // Store running checksums for each stage
     checksums: Arc<RwLock<HashMap<String, Sha256>>>,
-    // Services for actual data transformation
-    compression_service: Arc<dyn CompressionService>,
-    encryption_service: Arc<dyn EncryptionService>,
+    // Registry of stage services by algorithm name
+    // Maps algorithm name (e.g., "brotli", "aes256gcm", "base64") to StageService implementation
+    stage_services: Arc<HashMap<String, Arc<dyn StageService>>>,
 }
 
 impl BasicStageExecutor {
-    /// Creates a new basic stage executor with the provided services.
+    /// Creates a new basic stage executor with the provided stage services.
     ///
-    /// Initializes the executor with the necessary domain services for
-    /// processing different types of pipeline stages. The executor is ready
-    /// to handle stage execution immediately after creation.
+    /// Initializes the executor with a registry of stage services that implement
+    /// the unified `StageService` trait. The executor is ready to handle stage
+    /// execution immediately after creation.
     ///
     /// # Arguments
     ///
-    /// * `compression_service` - Service for handling compression operations
-    /// * `encryption_service` - Service for handling encryption operations
+    /// * `stage_services` - HashMap mapping algorithm names to StageService implementations
+    ///   - Keys: algorithm names (e.g., "brotli", "aes256gcm", "base64", "pii_masking")
+    ///   - Values: Arc-wrapped StageService implementations
     ///
     /// # Returns
     ///
@@ -201,22 +202,28 @@ impl BasicStageExecutor {
     ///
     /// # Examples
     ///
+    /// ```rust,ignore
+    /// use std::sync::Arc;
+    /// use std::collections::HashMap;
+    ///
+    /// let mut services = HashMap::new();
+    /// services.insert("brotli".to_string(), Arc::new(CompressionServiceImpl::new()) as Arc<dyn StageService>);
+    /// services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn StageService>);
+    ///
+    /// let executor = BasicStageExecutor::new(services);
+    /// ```
     ///
     /// # Initialization
     ///
     /// The executor initializes with:
     /// - Empty checksum state for tracking running hashes
-    /// - Service references for compression and encryption
+    /// - Registry of stage services by algorithm name
     /// - Thread-safe state management structures
-    pub fn new(
-        compression_service: Arc<dyn CompressionService>,
-        encryption_service: Arc<dyn EncryptionService>,
-    ) -> Self {
+    pub fn new(stage_services: HashMap<String, Arc<dyn StageService>>) -> Self {
         Self {
             _state: Arc::new(RwLock::new(())),
             checksums: Arc::new(RwLock::new(HashMap::new())),
-            compression_service,
-            encryption_service,
+            stage_services: Arc::new(stage_services),
         }
     }
 
@@ -335,8 +342,11 @@ impl BasicStageExecutor {
         Ok(())
     }
 
-    /// Process stage based on its type and configuration
-    /// This ensures clean separation of concerns between stage types
+    /// Process stage using the unified StageService registry
+    ///
+    /// This method dispatches to the appropriate StageService based on the
+    /// algorithm name in the stage configuration. Special handling for checksum
+    /// stages maintains backward compatibility with incremental hashing.
     async fn process_stage_by_type(
         &self,
         stage: &PipelineStage,
@@ -356,50 +366,38 @@ impl BasicStageExecutor {
         );
 
         tracing::debug!(
-            "📋 Stage type details: {:?}, operation: {} -> dispatching to correct handler",
+            "📋 Stage type details: {:?}, operation: {} -> dispatching via StageService registry",
             stage.stage_type(),
             stage.configuration().operation
         );
 
         let result = match stage.stage_type() {
-            pipeline_domain::entities::pipeline_stage::StageType::Compression => {
-                match stage.configuration().operation {
-                    pipeline_domain::entities::Operation::Forward => {
-                        self.process_compression_stage(stage, chunk, context).await
-                    }
-                    pipeline_domain::entities::Operation::Reverse => {
-                        self.process_decompression_stage(stage, chunk, context).await
-                    }
-                }
-            }
-            pipeline_domain::entities::pipeline_stage::StageType::Encryption => {
-                match stage.configuration().operation {
-                    pipeline_domain::entities::Operation::Forward => {
-                        self.process_encryption_stage(stage, chunk, context).await
-                    }
-                    pipeline_domain::entities::Operation::Reverse => {
-                        self.process_decryption_stage(stage, chunk, context).await
-                    }
-                }
-            }
             pipeline_domain::entities::pipeline_stage::StageType::Checksum => {
-                match stage.configuration().operation {
-                    pipeline_domain::entities::Operation::Forward => {
-                        self.process_checksum_stage(stage, &chunk, context).await?;
-                        Ok(chunk) // Checksum stages don't modify the chunk data
+                // Special handling for checksum - maintains incremental hashing
+                self.process_checksum_stage(stage, &chunk, context).await?;
+                Ok(chunk) // Checksum stages don't modify the chunk data
+            }
+            _ => {
+                // Use unified StageService registry for all other stages
+                let algorithm = stage.configuration().algorithm.as_str();
+
+                match self.stage_services.get(algorithm) {
+                    Some(service) => {
+                        tracing::debug!(
+                            "Found StageService for algorithm '{}', dispatching to process_chunk()",
+                            algorithm
+                        );
+                        service.process_chunk(chunk, stage.configuration(), context)
                     }
-                    pipeline_domain::entities::Operation::Reverse => {
-                        // For reverse, verify and strip checksum if needed
-                        self.process_checksum_stage(stage, &chunk, context).await?;
-                        Ok(chunk) // For now, same behavior - could add strip logic later
+                    None => {
+                        // Algorithm not found in registry - return helpful error
+                        Err(PipelineError::InvalidConfiguration(format!(
+                            "No StageService registered for algorithm '{}'. Available: {:?}",
+                            algorithm,
+                            self.stage_services.keys().collect::<Vec<_>>()
+                        )))
                     }
                 }
-            }
-            pipeline_domain::entities::pipeline_stage::StageType::PassThrough => {
-                self.process_passthrough_stage(stage, chunk, context).await
-            }
-            pipeline_domain::entities::pipeline_stage::StageType::Transform => {
-                self.process_passthrough_stage(stage, chunk, context).await
             }
         };
 
@@ -416,136 +414,6 @@ impl BasicStageExecutor {
         );
 
         result
-    }
-
-    async fn process_compression_stage(
-        &self,
-        stage: &PipelineStage,
-        chunk: FileChunk,
-        context: &mut ProcessingContext,
-    ) -> Result<FileChunk, PipelineError> {
-        // Create compression config from stage
-        let compression_config = pipeline_domain::services::CompressionConfig {
-            algorithm: match stage.configuration().algorithm.as_str() {
-                "brotli" => pipeline_domain::services::CompressionAlgorithm::Brotli,
-                "gzip" => pipeline_domain::services::CompressionAlgorithm::Gzip,
-                "zstd" => pipeline_domain::services::CompressionAlgorithm::Zstd,
-                "lz4" => pipeline_domain::services::CompressionAlgorithm::Lz4,
-                _ => pipeline_domain::services::CompressionAlgorithm::Brotli, // Default
-            },
-            level: pipeline_domain::services::CompressionLevel::Balanced,
-            dictionary: None,
-            window_size: None,
-            parallel_processing: false,
-        };
-        self.compression_service
-            .compress_chunk(chunk, &compression_config, context)
-    }
-
-    async fn process_encryption_stage(
-        &self,
-        stage: &PipelineStage,
-        chunk: FileChunk,
-        context: &mut ProcessingContext,
-    ) -> Result<FileChunk, PipelineError> {
-        // Create encryption config from stage
-        let encryption_config = pipeline_domain::services::EncryptionConfig {
-            algorithm: match stage.configuration().algorithm.as_str() {
-                "aes256gcm" => pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm,
-                "aes128gcm" => pipeline_domain::services::EncryptionAlgorithm::Aes128Gcm,
-                "chacha20poly1305" => pipeline_domain::services::EncryptionAlgorithm::ChaCha20Poly1305,
-                _ => pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm, // Default
-            },
-            key_derivation: pipeline_domain::services::KeyDerivationFunction::Pbkdf2,
-            key_size: 32,
-            nonce_size: 12,
-            salt_size: 32,
-            iterations: 100000,
-            memory_cost: None,
-            parallel_cost: None,
-            associated_data: None,
-        };
-        // Create temporary key material (NOT secure for production)
-        let key_material = KeyMaterial {
-            key: vec![0u8; 32],   // 32-byte key
-            nonce: vec![0u8; 12], // 12-byte nonce
-            salt: vec![0u8; 32],  // 32-byte salt
-            algorithm: encryption_config.algorithm.clone(),
-            created_at: chrono::Utc::now(),
-            expires_at: None,
-        };
-        self.encryption_service
-            .encrypt_chunk(chunk, &encryption_config, &key_material, context)
-    }
-
-    async fn process_decompression_stage(
-        &self,
-        stage: &PipelineStage,
-        chunk: FileChunk,
-        context: &mut ProcessingContext,
-    ) -> Result<FileChunk, PipelineError> {
-        // Create compression config from stage (same as compression, but we'll call decompress)
-        let compression_config = pipeline_domain::services::CompressionConfig {
-            algorithm: match stage.configuration().algorithm.as_str() {
-                "brotli" => pipeline_domain::services::CompressionAlgorithm::Brotli,
-                "gzip" => pipeline_domain::services::CompressionAlgorithm::Gzip,
-                "zstd" => pipeline_domain::services::CompressionAlgorithm::Zstd,
-                "lz4" => pipeline_domain::services::CompressionAlgorithm::Lz4,
-                _ => pipeline_domain::services::CompressionAlgorithm::Brotli, // Default
-            },
-            level: pipeline_domain::services::CompressionLevel::Balanced,
-            dictionary: None,
-            window_size: None,
-            parallel_processing: false,
-        };
-        self.compression_service
-            .decompress_chunk(chunk, &compression_config, context)
-    }
-
-    async fn process_decryption_stage(
-        &self,
-        stage: &PipelineStage,
-        chunk: FileChunk,
-        context: &mut ProcessingContext,
-    ) -> Result<FileChunk, PipelineError> {
-        // Create encryption config from stage (same as encryption, but we'll call decrypt)
-        let encryption_config = pipeline_domain::services::EncryptionConfig {
-            algorithm: match stage.configuration().algorithm.as_str() {
-                "aes256gcm" => pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm,
-                "aes128gcm" => pipeline_domain::services::EncryptionAlgorithm::Aes128Gcm,
-                "chacha20poly1305" => pipeline_domain::services::EncryptionAlgorithm::ChaCha20Poly1305,
-                "aes256-gcm" => pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm, // Also support hyphenated
-                _ => pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm, // Default
-            },
-            key_derivation: pipeline_domain::services::KeyDerivationFunction::Pbkdf2,
-            key_size: 32,
-            nonce_size: 12,
-            salt_size: 32,
-            iterations: 100000,
-            memory_cost: None,
-            parallel_cost: None,
-            associated_data: None,
-        };
-        // Create temporary key material (NOT secure for production)
-        let key_material = KeyMaterial {
-            key: vec![0u8; 32],   // 32-byte key
-            nonce: vec![0u8; 12], // 12-byte nonce
-            salt: vec![0u8; 32],  // 32-byte salt
-            algorithm: encryption_config.algorithm.clone(),
-            created_at: chrono::Utc::now(),
-            expires_at: None,
-        };
-        self.encryption_service
-            .decrypt_chunk(chunk, &encryption_config, &key_material, context)
-    }
-
-    async fn process_passthrough_stage(
-        &self,
-        _stage: &PipelineStage,
-        chunk: FileChunk,
-        _context: &mut ProcessingContext,
-    ) -> Result<FileChunk, PipelineError> {
-        Ok(chunk)
     }
 }
 
@@ -596,29 +464,24 @@ impl StageExecutor for BasicStageExecutor {
     }
 
     async fn can_execute(&self, stage: &PipelineStage) -> Result<bool, PipelineError> {
-        // Basic implementation - check if stage configuration is valid
-        match stage.stage_type() {
-            pipeline_domain::entities::StageType::Compression => Ok(true),
-            pipeline_domain::entities::StageType::Encryption => Ok(true),
+        // Check if we have a StageService registered for this algorithm
+        let algorithm = stage.configuration().algorithm.as_str();
 
-            pipeline_domain::entities::StageType::Checksum => Ok(true),
-            pipeline_domain::entities::StageType::PassThrough => {
-                // For custom stages, we'd need to check if we have the appropriate handler
-                Ok(false)
-            }
-            pipeline_domain::entities::StageType::Transform => {
-                // For transform stages, we'd need to check if we have the appropriate handler
-                Ok(false)
-            }
+        // Checksum stages are always supported (special internal handling)
+        if *stage.stage_type() == pipeline_domain::entities::StageType::Checksum {
+            return Ok(true);
         }
+
+        // For all other stages, check the registry
+        Ok(self.stage_services.contains_key(algorithm))
     }
 
     fn supported_stage_types(&self) -> Vec<String> {
-        vec![
-            "compression".to_string(),
-            "encryption".to_string(),
-            "decryption".to_string(),
-        ]
+        // Return list of supported algorithms from registry
+        let mut algorithms: Vec<String> = self.stage_services.keys().cloned().collect();
+        algorithms.push("checksum".to_string()); // Checksum is always supported
+        algorithms.sort();
+        algorithms
     }
 
     async fn estimate_processing_time(
@@ -730,57 +593,21 @@ impl StageExecutor for BasicStageExecutor {
             ));
         }
 
-        // Validate stage-specific configuration
-        match stage.stage_type() {
-            pipeline_domain::entities::StageType::Compression => {
-                // Validate compression configuration
-                let algorithm = stage.configuration().algorithm.as_str();
-                if !["brotli", "gzip", "zstd"].contains(&algorithm) {
-                    return Err(PipelineError::InvalidConfiguration(format!(
-                        "Unsupported compression algorithm: {}",
-                        algorithm
-                    )));
-                }
-            }
-            pipeline_domain::entities::StageType::Encryption => {
-                // Validate encryption configuration
-                let algorithm = stage.configuration().algorithm.as_str();
-                if !["aes256-gcm", "chacha20-poly1305"].contains(&algorithm) {
-                    return Err(PipelineError::InvalidConfiguration(format!(
-                        "Unsupported encryption algorithm: {}",
-                        algorithm
-                    )));
-                }
-            }
+        // Validate that we have a StageService for this algorithm
+        let algorithm = stage.configuration().algorithm.as_str();
 
-            pipeline_domain::entities::StageType::Checksum => {
-                // Validate integrity/checksum configuration
-                let algorithm = stage.configuration().algorithm.as_str();
-                if !["", "sha256", "sha512", "blake3"].contains(&algorithm) {
-                    return Err(PipelineError::InvalidConfiguration(format!(
-                        "Unsupported integrity algorithm: {}",
-                        algorithm
-                    )));
-                }
-            }
-            pipeline_domain::entities::StageType::PassThrough => {
-                // Custom stages would need specific validation
-                // For now, just check that required parameters are present
-                if stage.configuration().parameters.is_empty() {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "Custom stages require configuration parameters".to_string(),
-                    ));
-                }
-            }
-            pipeline_domain::entities::StageType::Transform => {
-                // Transform stages would need specific validation
-                // For now, just check that required parameters are present
-                if stage.configuration().parameters.is_empty() {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "Transform stages require configuration parameters".to_string(),
-                    ));
-                }
-            }
+        // Checksum stages are always valid (special internal handling)
+        if *stage.stage_type() == pipeline_domain::entities::StageType::Checksum {
+            return Ok(());
+        }
+
+        // For all other stages, check the registry
+        if !self.stage_services.contains_key(algorithm) {
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "No StageService registered for algorithm '{}'. Supported algorithms: {:?}",
+                algorithm,
+                self.supported_stage_types()
+            )));
         }
 
         Ok(())

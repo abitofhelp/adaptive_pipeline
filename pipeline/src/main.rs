@@ -584,13 +584,34 @@ async fn process_file(
     let file_io_service = Arc::new(FileIOServiceImpl::new(Default::default()));
     let binary_format_service = Arc::new(BinaryFormatServiceImpl::new());
 
+    // Build stage service registry
+    // Maps algorithm names to StageService implementations
+    let mut stage_services: HashMap<String, Arc<dyn pipeline_domain::services::StageService>> = HashMap::new();
+
+    // Register compression algorithms
+    stage_services.insert("brotli".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("gzip".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("zstd".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("lz4".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+
+    // Register encryption algorithms
+    stage_services.insert("aes256gcm".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("aes128gcm".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("chacha20poly1305".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+
+    // Register production transform stages
+    use pipeline::infrastructure::services::{Base64EncodingService, PiiMaskingService, TeeService};
+    stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("tee".to_string(), Arc::new(TeeService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+
     // Create pipeline service with proper dependency injection
     let pipeline_service = PipelineServiceImpl::new(
         compression_service.clone(),
         encryption_service.clone(),
         file_io_service,
         pipeline_repository,
-        Arc::new(BasicStageExecutor::new(compression_service, encryption_service)),
+        Arc::new(BasicStageExecutor::new(stage_services)),
         binary_format_service,
     );
 
@@ -2064,10 +2085,21 @@ async fn restore_file_from_adapipe_v2(
     // Create services and stage executor for restoration
     let compression_service = Arc::new(CompressionServiceImpl::new());
     let encryption_service = Arc::new(EncryptionServiceImpl::new());
-    let stage_executor = Arc::new(BasicStageExecutor::new(
-        compression_service.clone(),
-        encryption_service.clone(),
-    ));
+
+    // Build stage service registry for restoration
+    let mut stage_services: HashMap<String, Arc<dyn pipeline_domain::services::StageService>> = HashMap::new();
+    stage_services.insert("brotli".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("gzip".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("zstd".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("lz4".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("aes256gcm".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("aes128gcm".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("chacha20poly1305".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("tee".to_string(), Arc::new(TeeService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+
+    let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
 
     let mut chunks_processed = 0u32;
     let mut bytes_written = 0u64;
@@ -2762,7 +2794,21 @@ async fn stream_restore_with_validation(
     // Create domain services for restoration pipeline
     let compression_service = Arc::new(CompressionServiceImpl::new());
     let encryption_service = Arc::new(EncryptionServiceImpl::new());
-    let stage_executor = Arc::new(BasicStageExecutor::new(compression_service, encryption_service));
+
+    // Build stage service registry for validation
+    let mut stage_services: HashMap<String, Arc<dyn pipeline_domain::services::StageService>> = HashMap::new();
+    stage_services.insert("brotli".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("gzip".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("zstd".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("lz4".to_string(), compression_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("aes256gcm".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("aes128gcm".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("chacha20poly1305".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("tee".to_string(), Arc::new(TeeService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+
+    let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
 
     // Create security context for restoration
     let security_context = SecurityContext::new(
