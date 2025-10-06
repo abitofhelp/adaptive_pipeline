@@ -456,3 +456,39 @@ impl CompressionService for CompressionServiceImpl {
         })
     }
 }
+
+// Implement StageService trait for unified interface
+impl pipeline_domain::services::StageService for CompressionServiceImpl {
+    fn process_chunk(
+        &self,
+        chunk: pipeline_domain::FileChunk,
+        config: &pipeline_domain::entities::StageConfiguration,
+        context: &mut pipeline_domain::ProcessingContext,
+    ) -> Result<pipeline_domain::FileChunk, pipeline_domain::PipelineError> {
+        use pipeline_domain::services::FromParameters;
+
+        // Type-safe extraction of CompressionConfig from parameters
+        let compression_config = CompressionConfig::from_parameters(&config.parameters)?;
+
+        match config.operation {
+            pipeline_domain::entities::Operation::Forward => {
+                self.compress_chunk(chunk, &compression_config, context)
+            }
+            pipeline_domain::entities::Operation::Reverse => {
+                self.decompress_chunk(chunk, &compression_config, context)
+            }
+        }
+    }
+
+    fn position(&self) -> pipeline_domain::entities::StagePosition {
+        pipeline_domain::entities::StagePosition::PreBinary
+    }
+
+    fn is_reversible(&self) -> bool {
+        true
+    }
+
+    fn stage_type(&self) -> pipeline_domain::entities::StageType {
+        pipeline_domain::entities::StageType::Compression
+    }
+}

@@ -172,6 +172,13 @@ use sha2::{Digest, Sha256};
 /// Checksum calculation is CPU-bound and doesn't benefit from async I/O.
 /// For async contexts, use `AsyncChecksumAdapter` from the infrastructure
 /// layer.
+///
+/// # TODO: Unified Stage Interface
+///
+/// This trait will be refactored to extend `StageService` after resolving
+/// method signature conflicts between ChecksumService::process_chunk and
+/// StageService::process_chunk. Currently has different parameters (stage_name
+/// vs config).
 pub trait ChecksumService: Send + Sync {
     /// Process a chunk and update the running checksum
     ///

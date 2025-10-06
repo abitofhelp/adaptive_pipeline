@@ -172,7 +172,15 @@ pub struct CompressionConfig {
 /// defines *what* operations exist, not *how* they execute. Async execution
 /// is an infrastructure concern. Infrastructure adapters can wrap this trait
 /// to provide async interfaces when needed.
-pub trait CompressionService: Send + Sync {
+///
+/// # Unified Stage Interface
+///
+/// This trait extends `StageService`, providing the unified `process_chunk()`
+/// method that all stages implement. The specialized `compress_chunk()` and
+/// `decompress_chunk()` methods are maintained for backward compatibility and
+/// internal use, but `process_chunk()` is the primary interface used by the
+/// pipeline system.
+pub trait CompressionService: super::stage_service::StageService {
     /// Compresses a file chunk using the specified configuration
     ///
     /// This method compresses the data contained in a file chunk according to
@@ -384,6 +392,78 @@ impl CompressionConfig {
             window_size: None,
             parallel_processing: false, // Better compression with single thread
         }
+    }
+}
+
+/// Implementation of `FromParameters` for type-safe config extraction.
+///
+/// This implementation converts `StageConfiguration.parameters` HashMap
+/// into a typed `CompressionConfig` object.
+///
+/// ## Expected Parameters
+///
+/// - **algorithm** (required): Compression algorithm name
+///   - Valid values: "brotli", "gzip", "zstd", "lz4"
+///   - Example: `"algorithm" => "brotli"`
+///
+/// - **level** (optional): Compression level (1-19 depending on algorithm)
+///   - Default: 6 (balanced)
+///   - Example: `"level" => "9"`
+///
+/// - **parallel_processing** (optional): Enable parallel compression
+///   - Valid values: "true", "false"
+///   - Default: false
+///   - Example: `"parallel_processing" => "true"`
+///
+/// ## Usage Example
+///
+/// ```rust
+/// use std::collections::HashMap;
+/// use pipeline_domain::services::{CompressionConfig, FromParameters};
+///
+/// let mut params = HashMap::new();
+/// params.insert("algorithm".to_string(), "brotli".to_string());
+/// params.insert("level".to_string(), "9".to_string());
+///
+/// let config = CompressionConfig::from_parameters(&params).unwrap();
+/// ```
+impl super::stage_service::FromParameters for CompressionConfig {
+    fn from_parameters(params: &std::collections::HashMap<String, String>) -> Result<Self, PipelineError> {
+        use std::str::FromStr;
+
+        // Required: algorithm
+        let algorithm_str = params
+            .get("algorithm")
+            .ok_or_else(|| PipelineError::MissingParameter("algorithm".into()))?;
+
+        let algorithm = match algorithm_str.to_lowercase().as_str() {
+            "brotli" => CompressionAlgorithm::Brotli,
+            "gzip" => CompressionAlgorithm::Gzip,
+            "zstd" => CompressionAlgorithm::Zstd,
+            "lz4" => CompressionAlgorithm::Lz4,
+            other => CompressionAlgorithm::Custom(other.to_string()),
+        };
+
+        // Optional: level (default to balanced)
+        let level = params
+            .get("level")
+            .and_then(|s| s.parse::<u32>().ok())
+            .map(CompressionLevel::Custom)
+            .unwrap_or(CompressionLevel::Balanced);
+
+        // Optional: parallel_processing (default to false)
+        let parallel_processing = params
+            .get("parallel_processing")
+            .and_then(|s| s.parse::<bool>().ok())
+            .unwrap_or(false);
+
+        Ok(Self {
+            algorithm,
+            level,
+            dictionary: None, // Not supported via parameters yet
+            window_size: None, // Not supported via parameters yet
+            parallel_processing,
+        })
     }
 }
 

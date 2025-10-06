@@ -404,6 +404,47 @@ mod tests {
         }
     }
 
+    impl pipeline_domain::services::StageService for FakeEncryptionService {
+        fn process_chunk(
+            &self,
+            chunk: FileChunk,
+            config: &pipeline_domain::entities::pipeline_stage::StageConfiguration,
+            context: &mut ProcessingContext,
+        ) -> Result<FileChunk, PipelineError> {
+            use pipeline_domain::services::FromParameters;
+            let encryption_config = EncryptionConfig::from_parameters(&config.parameters)?;
+
+            // Create fake key material for testing
+            let key_material = KeyMaterial::new(
+                vec![0u8; 32],
+                vec![0u8; 12],
+                vec![0u8; 16],
+                encryption_config.algorithm.clone(),
+            );
+
+            match config.operation {
+                pipeline_domain::entities::Operation::Forward => {
+                    self.encrypt_chunk(chunk, &encryption_config, &key_material, context)
+                }
+                pipeline_domain::entities::Operation::Reverse => {
+                    self.decrypt_chunk(chunk, &encryption_config, &key_material, context)
+                }
+            }
+        }
+
+        fn position(&self) -> pipeline_domain::entities::StagePosition {
+            pipeline_domain::entities::StagePosition::PostBinary
+        }
+
+        fn is_reversible(&self) -> bool {
+            true
+        }
+
+        fn stage_type(&self) -> pipeline_domain::entities::StageType {
+            pipeline_domain::entities::StageType::Encryption
+        }
+    }
+
     #[tokio::test]
     async fn test_async_adapter_pattern() {
         let sync_service = Arc::new(FakeEncryptionService);

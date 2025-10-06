@@ -117,6 +117,7 @@
 use aes_gcm::{AeadInPlace, Aes256Gcm, Key, KeyInit, Nonce};
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
+use base64::{engine::general_purpose, Engine as _};
 use chacha20poly1305::{ChaCha20Poly1305, Key as ChaChaKey, Nonce as ChaChaNonce};
 use ring::rand::{SecureRandom, SystemRandom};
 use scrypt::password_hash::SaltString as ScryptSalt;
@@ -700,5 +701,78 @@ impl EncryptionService for EncryptionServiceImpl {
             EncryptionAlgorithm::ChaCha20Poly1305,
             EncryptionAlgorithm::Aes128Gcm,
         ]
+    }
+}
+
+// Implement StageService trait for unified interface
+impl pipeline_domain::services::StageService for EncryptionServiceImpl {
+    fn process_chunk(
+        &self,
+        chunk: pipeline_domain::FileChunk,
+        config: &pipeline_domain::entities::StageConfiguration,
+        context: &mut pipeline_domain::ProcessingContext,
+    ) -> Result<pipeline_domain::FileChunk, pipeline_domain::PipelineError> {
+        use pipeline_domain::services::FromParameters;
+
+        // Type-safe extraction of EncryptionConfig from parameters
+        let encryption_config = EncryptionConfig::from_parameters(&config.parameters)?;
+
+        // Extract KeyMaterial from parameters
+        // Expected format: base64-encoded key, nonce, salt
+        let key_b64 = config.parameters
+            .get("key")
+            .ok_or_else(|| pipeline_domain::PipelineError::MissingParameter("key".into()))?;
+
+        let nonce_b64 = config.parameters
+            .get("nonce")
+            .ok_or_else(|| pipeline_domain::PipelineError::MissingParameter("nonce".into()))?;
+
+        let salt_b64 = config.parameters
+            .get("salt")
+            .ok_or_else(|| pipeline_domain::PipelineError::MissingParameter("salt".into()))?;
+
+        // Decode base64 strings using Engine API
+        let key = general_purpose::STANDARD.decode(key_b64)
+            .map_err(|e| pipeline_domain::PipelineError::InvalidParameter(
+                format!("Invalid base64 key: {}", e)
+            ))?;
+
+        let nonce = general_purpose::STANDARD.decode(nonce_b64)
+            .map_err(|e| pipeline_domain::PipelineError::InvalidParameter(
+                format!("Invalid base64 nonce: {}", e)
+            ))?;
+
+        let salt = general_purpose::STANDARD.decode(salt_b64)
+            .map_err(|e| pipeline_domain::PipelineError::InvalidParameter(
+                format!("Invalid base64 salt: {}", e)
+            ))?;
+
+        let key_material = KeyMaterial::new(
+            key,
+            nonce,
+            salt,
+            encryption_config.algorithm.clone(),
+        );
+
+        match config.operation {
+            pipeline_domain::entities::Operation::Forward => {
+                self.encrypt_chunk(chunk, &encryption_config, &key_material, context)
+            }
+            pipeline_domain::entities::Operation::Reverse => {
+                self.decrypt_chunk(chunk, &encryption_config, &key_material, context)
+            }
+        }
+    }
+
+    fn position(&self) -> pipeline_domain::entities::StagePosition {
+        pipeline_domain::entities::StagePosition::PreBinary
+    }
+
+    fn is_reversible(&self) -> bool {
+        true
+    }
+
+    fn stage_type(&self) -> pipeline_domain::entities::StageType {
+        pipeline_domain::entities::StageType::Encryption
     }
 }

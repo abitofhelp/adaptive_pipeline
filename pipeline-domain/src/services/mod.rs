@@ -432,7 +432,9 @@ pub mod encryption_service;
 pub mod file_io_service;
 pub mod file_processor_service;
 pub mod pipeline_service;
+pub mod stage_service;
 
 pub use compression_service::*;
 pub use encryption_service::*;
 pub use pipeline_service::*;
+pub use stage_service::{FromParameters, StageService};

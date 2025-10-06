@@ -15,9 +15,18 @@
 //!
 //! - **BinaryFormatService**: Binary .adapipe format reading and writing
 //! - **ProgressIndicator**: Real-time progress tracking and terminal output
+//! - **Base64EncodingService**: Production Base64 encoding/decoding stage
+//! - **PiiMaskingService**: Production PII masking stage (non-reversible)
+//! - **TeeService**: Production data inspection/debugging stage (pass-through)
 
+pub mod base64_encoding_service;
 pub mod binary_format_service;
+pub mod pii_masking_service;
 pub mod progress_indicator_service;
+pub mod tee_service;
 
 // Re-export service implementations
+pub use base64_encoding_service::Base64EncodingService;
 pub use binary_format_service::{BinaryFormatService, BinaryFormatServiceImpl, BinaryFormatWriter};
+pub use pii_masking_service::PiiMaskingService;
+pub use tee_service::TeeService;

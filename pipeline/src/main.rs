@@ -173,6 +173,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
+use tokio::io::AsyncWriteExt;
 use tracing::{debug, error, info, warn};
 
 // Import ChunkSize and WorkerCount for optimal sizing calculations
@@ -1987,11 +1988,177 @@ async fn restore_file_from_adapipe_v2(
     println!("   Source: {}", input.display());
     println!("   Target: {}", target_path.display());
 
-    // TODO: Implement restoration using use_cases::restore_file
-    // This command is currently disabled pending proper use case implementation.
+    // Step 1: Read .adapipe metadata
+    info!("Reading .adapipe file metadata...");
+    let binary_format_service = BinaryFormatServiceImpl::new();
+    let metadata = binary_format_service
+        .read_metadata(&input)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
 
-    println!("⚠️  Restoration temporarily disabled - refactoring in progress");
-    println!("   Use restore_file_from_adapipe_legacy() instead");
+    println!("   📋 Metadata details:");
+    println!("      - Original filename: {}", metadata.original_filename);
+    println!("      - Original size: {} bytes", metadata.original_size);
+    println!("      - Encrypted: {}", metadata.is_encrypted());
+    println!("      - Compressed: {}", metadata.is_compressed());
+    println!("      - Processing steps: {}", metadata.processing_steps.len());
+
+    // Step 2: Validate target path and permissions
+    if target_path.exists() && !overwrite {
+        return Err(anyhow::anyhow!(
+            "Target file already exists: {}\nUse --overwrite to replace it",
+            target_path.display()
+        ));
+    }
+
+    // Step 3: Handle directory creation if needed
+    if let Some(parent_dir) = target_path.parent() {
+        if !parent_dir.exists() {
+            if mkdir {
+                println!("📂 Creating directory: {}", parent_dir.display());
+                std::fs::create_dir_all(parent_dir).map_err(|e| {
+                    if e.kind() == std::io::ErrorKind::PermissionDenied {
+                        anyhow::anyhow!(
+                            "Permission denied: Cannot create directory '{}'\nTry running with elevated privileges",
+                            parent_dir.display()
+                        )
+                    } else {
+                        anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
+                    }
+                })?;
+            } else {
+                return Err(anyhow::anyhow!(
+                    "Output directory does not exist: {}\nUse --mkdir to create it",
+                    parent_dir.display()
+                ));
+            }
+        }
+    }
+
+    // Step 4: Create restoration pipeline using use_cases::restore_file
+    info!("Creating restoration pipeline...");
+    let restoration_pipeline = application::use_cases::create_restoration_pipeline(&metadata)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to create restoration pipeline: {}", e))?;
+
+    println!(
+        "   🔄 Restoration pipeline created with {} stages",
+        restoration_pipeline.stages().len()
+    );
+    for stage in restoration_pipeline.stages() {
+        println!("      - {} (type: {:?})", stage.name(), stage.stage_type());
+    }
+
+    // Step 5: Read chunks from .adapipe file and process through restoration pipeline
+    info!("Starting restoration process...");
+    let mut reader = binary_format_service
+        .create_reader(&input)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to create .adapipe reader: {}", e))?;
+
+    // Create output file
+    let mut output_file = tokio::fs::File::create(&target_path)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
+
+    // Create services and stage executor for restoration
+    let compression_service = Arc::new(CompressionServiceImpl::new());
+    let encryption_service = Arc::new(EncryptionServiceImpl::new());
+    let stage_executor = Arc::new(BasicStageExecutor::new(
+        compression_service.clone(),
+        encryption_service.clone(),
+    ));
+
+    let mut chunks_processed = 0u32;
+    let mut bytes_written = 0u64;
+    let mut current_offset = 0u64;
+
+    // Process each chunk
+    while let Some(chunk_format) = reader
+        .read_next_chunk()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to read chunk: {}", e))?
+    {
+        // Reconstruct FileChunk from ChunkFormat
+        // For encrypted chunks, prepend nonce back to data
+        let chunk_data = if metadata.is_encrypted() {
+            let mut reconstructed_data = chunk_format.nonce.to_vec();
+            reconstructed_data.extend_from_slice(&chunk_format.payload);
+            reconstructed_data
+        } else {
+            chunk_format.payload.clone()
+        };
+
+        let is_final = chunks_processed == metadata.chunk_count - 1;
+        let mut file_chunk = FileChunk::new(chunks_processed as u64, current_offset, chunk_data, is_final)
+            .map_err(|e| anyhow::anyhow!("Failed to create FileChunk: {}", e))?;
+
+        // Create processing context for restoration
+        let security_context = SecurityContext::with_permissions(
+            None,
+            vec![Permission::Read, Permission::Write],
+            SecurityLevel::Internal,
+        );
+        let mut context = ProcessingContext::new(
+            input.clone(),
+            target_path.clone(),
+            metadata.original_size,
+            security_context,
+        );
+
+        // Process through restoration stages (decryption, decompression)
+        for stage in restoration_pipeline.stages() {
+            // Skip checksum stages during restoration
+            if stage.stage_type() == &StageType::Checksum {
+                continue;
+            }
+
+            // Execute stage using stage executor
+            file_chunk = stage_executor
+                .execute(stage, file_chunk, &mut context)
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to execute stage '{}': {}", stage.name(), e))?;
+        }
+
+        // Write restored data to output file
+        output_file
+            .write_all(file_chunk.data())
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to write to output file: {}", e))?;
+
+        bytes_written += file_chunk.data().len() as u64;
+        current_offset += file_chunk.data().len() as u64;
+        chunks_processed += 1;
+
+        if chunks_processed % 100 == 0 {
+            println!(
+                "   📦 Processed {} chunks, {} bytes written",
+                chunks_processed, bytes_written
+            );
+        }
+    }
+
+    // Flush and close output file
+    output_file
+        .flush()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to flush output file: {}", e))?;
+
+    println!("✅ Restoration complete!");
+    println!("   📦 Chunks processed: {}", chunks_processed);
+    println!("   📊 Total bytes written: {} bytes", bytes_written);
+    println!("   📁 Restored file: {}", target_path.display());
+
+    // Verify file size matches original
+    let restored_size = std::fs::metadata(&target_path)?.len();
+    if restored_size != metadata.original_size {
+        println!(
+            "   ⚠️  Warning: Restored file size ({} bytes) doesn't match original size ({} bytes)",
+            restored_size, metadata.original_size
+        );
+    } else {
+        println!("   ✅ File size verified: {} bytes", restored_size);
+    }
 
     Ok(())
 }
@@ -2393,6 +2560,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
             pipeline_domain::value_objects::ProcessingStepType::Encryption => {
                 let decryption_config = StageConfiguration {
                     algorithm: step.algorithm.clone(),
+                    operation: pipeline_domain::entities::Operation::Reverse, // REVERSE for legacy restoration!
                     parameters: step.parameters.clone(),
                     parallel_processing: false,
                     chunk_size: Some(1024 * 1024), // 1MB chunks
@@ -2415,6 +2583,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
             pipeline_domain::value_objects::ProcessingStepType::Compression => {
                 let decompression_config = StageConfiguration {
                     algorithm: step.algorithm.clone(),
+                    operation: pipeline_domain::entities::Operation::Reverse, // REVERSE for legacy restoration!
                     parameters: step.parameters.clone(),
                     parallel_processing: false,
                     chunk_size: Some(1024 * 1024), // 1MB chunks
@@ -2472,6 +2641,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
 
                 let custom_config = StageConfiguration {
                     algorithm: step.algorithm.clone(),
+                    operation: pipeline_domain::entities::Operation::Reverse, // REVERSE for legacy restoration!
                     parameters: step.parameters.clone(),
                     parallel_processing: false,
                     chunk_size: Some(1024 * 1024), // 1MB chunks
@@ -2500,6 +2670,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
     // Stage 3: Integrity verification (always present)
     let verification_config = StageConfiguration {
         algorithm: "sha256".to_string(),
+        operation: pipeline_domain::entities::Operation::Reverse, // REVERSE for legacy restoration!
         parameters: HashMap::new(),
         parallel_processing: false,
         chunk_size: Some(1024 * 1024), // 1MB chunks
@@ -2627,10 +2798,10 @@ async fn stream_restore_with_validation(
             None => break, // No more chunks
         };
 
-        // Combine nonce and encrypted data as expected by decryption service
+        // Combine nonce and payload data as expected by decryption service
         // The encryption service expects: [nonce (12 bytes)] + [encrypted_data]
         let mut chunk_data = chunk_format.nonce.to_vec();
-        chunk_data.extend_from_slice(&chunk_format.encrypted_data);
+        chunk_data.extend_from_slice(&chunk_format.payload);
         let file_chunk = FileChunk::new(
             chunk_sequence as u64,
             bytes_processed,

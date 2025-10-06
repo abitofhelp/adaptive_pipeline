@@ -295,7 +295,15 @@ impl KeyMaterial {
 /// decrypt_chunks_parallel) is an infrastructure concern and has been removed
 /// from the domain trait. Use infrastructure adapters for batch/parallel
 /// operations.
-pub trait EncryptionService: Send + Sync {
+///
+/// # Unified Stage Interface
+///
+/// This trait extends `StageService`, providing the unified `process_chunk()`
+/// method that all stages implement. The specialized `encrypt_chunk()` and
+/// `decrypt_chunk()` methods are maintained for backward compatibility and
+/// internal use, but `process_chunk()` is the primary interface used by the
+/// pipeline system.
+pub trait EncryptionService: super::stage_service::StageService {
     /// Encrypts a file chunk using the specified configuration and key material
     ///
     /// # Note on Async
@@ -508,6 +516,80 @@ impl EncryptionConfig {
             parallel_cost: Some(1),
             associated_data: None,
         }
+    }
+}
+
+/// Implementation of `FromParameters` for type-safe config extraction.
+///
+/// This implementation converts `StageConfiguration.parameters` HashMap
+/// into a typed `EncryptionConfig` object.
+///
+/// ## Expected Parameters
+///
+/// - **algorithm** (required): Encryption algorithm name
+///   - Valid values: "aes256gcm", "aes128gcm", "chacha20poly1305", "xchacha20poly1305"
+///   - Example: `"algorithm" => "aes256gcm"`
+///
+/// - **key_size** (optional): Key size in bytes
+///   - Default: 32
+///   - Example: `"key_size" => "32"`
+///
+/// - **iterations** (optional): KDF iterations
+///   - Default: 3
+///   - Example: `"iterations" => "10000"`
+///
+/// ## Usage Example
+///
+/// ```rust
+/// use std::collections::HashMap;
+/// use pipeline_domain::services::{EncryptionConfig, FromParameters};
+///
+/// let mut params = HashMap::new();
+/// params.insert("algorithm".to_string(), "aes256gcm".to_string());
+///
+/// let config = EncryptionConfig::from_parameters(&params).unwrap();
+/// ```
+impl super::stage_service::FromParameters for EncryptionConfig {
+    fn from_parameters(params: &std::collections::HashMap<String, String>) -> Result<Self, PipelineError> {
+        // Required: algorithm
+        let algorithm_str = params
+            .get("algorithm")
+            .ok_or_else(|| PipelineError::MissingParameter("algorithm".into()))?;
+
+        let algorithm = match algorithm_str.to_lowercase().as_str() {
+            "aes256gcm" | "aes-256-gcm" => EncryptionAlgorithm::Aes256Gcm,
+            "aes128gcm" | "aes-128-gcm" => EncryptionAlgorithm::Aes128Gcm,
+            "chacha20poly1305" | "chacha20-poly1305" => EncryptionAlgorithm::ChaCha20Poly1305,
+            other => {
+                return Err(PipelineError::InvalidParameter(format!(
+                    "Unknown encryption algorithm: {}",
+                    other
+                )))
+            }
+        };
+
+        // Optional parameters with defaults
+        let key_size = params
+            .get("key_size")
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(32);
+
+        let iterations = params
+            .get("iterations")
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(3);
+
+        Ok(Self {
+            algorithm,
+            key_derivation: KeyDerivationFunction::Argon2,
+            key_size,
+            nonce_size: 12,
+            salt_size: 16,
+            iterations,
+            memory_cost: Some(65536), // 64MB default
+            parallel_cost: Some(4),
+            associated_data: None,
+        })
     }
 }
 

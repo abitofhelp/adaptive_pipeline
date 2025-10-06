@@ -251,7 +251,7 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
     }
 
     fn bytes_written(&self) -> u64 {
-        self.chunks.iter().map(|c| (c.encrypted_data.len() as u64) + 16).sum()
+        self.chunks.iter().map(|c| (c.payload.len() as u64) + 16).sum()
     }
 
     fn chunks_written(&self) -> u32 {
@@ -335,8 +335,9 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
         let sequence_number = self.chunks_written.load(Ordering::Relaxed);
 
         // Use async write_chunk_at_position internally
-        // We need to block on the async operation since write_chunk is sync
-        tokio::runtime::Handle::current().block_on(async {
+        // We use futures::executor::block_on instead of tokio's block_on
+        // because it works both inside and outside of a tokio runtime
+        futures::executor::block_on(async {
             self.write_chunk_at_position(chunk, sequence_number).await
         })
     }
@@ -784,13 +785,13 @@ mod tests {
         assert!(read_chunk1.is_some());
         let read_chunk1 = read_chunk1.unwrap();
         assert_eq!(read_chunk1.nonce, chunk1.nonce);
-        assert_eq!(read_chunk1.encrypted_data, chunk1.encrypted_data);
+        assert_eq!(read_chunk1.payload, chunk1.payload);
 
         let read_chunk2 = reader.read_next_chunk().await.unwrap();
         assert!(read_chunk2.is_some());
         let read_chunk2 = read_chunk2.unwrap();
         assert_eq!(read_chunk2.nonce, chunk2.nonce);
-        assert_eq!(read_chunk2.encrypted_data, chunk2.encrypted_data);
+        assert_eq!(read_chunk2.payload, chunk2.payload);
 
         // Test EOF
         let read_chunk3 = reader.read_next_chunk().await.unwrap();
@@ -907,18 +908,18 @@ mod tests {
         reader.seek_to_chunk(2).await.unwrap();
         let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
         assert_eq!(read_chunk.nonce, chunk3.nonce);
-        assert_eq!(read_chunk.encrypted_data, chunk3.encrypted_data);
+        assert_eq!(read_chunk.payload, chunk3.payload);
 
         // Seek back to chunk 0
         reader.seek_to_chunk(0).await.unwrap();
         let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
         assert_eq!(read_chunk.nonce, chunk1.nonce);
-        assert_eq!(read_chunk.encrypted_data, chunk1.encrypted_data);
+        assert_eq!(read_chunk.payload, chunk1.payload);
 
         // Seek to chunk 1
         reader.seek_to_chunk(1).await.unwrap();
         let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
         assert_eq!(read_chunk.nonce, chunk2.nonce);
-        assert_eq!(read_chunk.encrypted_data, chunk2.encrypted_data);
+        assert_eq!(read_chunk.payload, chunk2.payload);
     }
 }

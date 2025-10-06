@@ -356,20 +356,44 @@ impl BasicStageExecutor {
         );
 
         tracing::debug!(
-            "📋 Stage type details: {:?} -> matching against Compression/Encryption/Checksum/PassThrough",
-            stage.stage_type()
+            "📋 Stage type details: {:?}, operation: {} -> dispatching to correct handler",
+            stage.stage_type(),
+            stage.configuration().operation
         );
 
         let result = match stage.stage_type() {
             pipeline_domain::entities::pipeline_stage::StageType::Compression => {
-                self.process_compression_stage(stage, chunk, context).await
+                match stage.configuration().operation {
+                    pipeline_domain::entities::Operation::Forward => {
+                        self.process_compression_stage(stage, chunk, context).await
+                    }
+                    pipeline_domain::entities::Operation::Reverse => {
+                        self.process_decompression_stage(stage, chunk, context).await
+                    }
+                }
             }
             pipeline_domain::entities::pipeline_stage::StageType::Encryption => {
-                self.process_encryption_stage(stage, chunk, context).await
+                match stage.configuration().operation {
+                    pipeline_domain::entities::Operation::Forward => {
+                        self.process_encryption_stage(stage, chunk, context).await
+                    }
+                    pipeline_domain::entities::Operation::Reverse => {
+                        self.process_decryption_stage(stage, chunk, context).await
+                    }
+                }
             }
             pipeline_domain::entities::pipeline_stage::StageType::Checksum => {
-                self.process_checksum_stage(stage, &chunk, context).await?;
-                Ok(chunk) // Checksum stages don't modify the chunk data
+                match stage.configuration().operation {
+                    pipeline_domain::entities::Operation::Forward => {
+                        self.process_checksum_stage(stage, &chunk, context).await?;
+                        Ok(chunk) // Checksum stages don't modify the chunk data
+                    }
+                    pipeline_domain::entities::Operation::Reverse => {
+                        // For reverse, verify and strip checksum if needed
+                        self.process_checksum_stage(stage, &chunk, context).await?;
+                        Ok(chunk) // For now, same behavior - could add strip logic later
+                    }
+                }
             }
             pipeline_domain::entities::pipeline_stage::StageType::PassThrough => {
                 self.process_passthrough_stage(stage, chunk, context).await
@@ -452,6 +476,67 @@ impl BasicStageExecutor {
         };
         self.encryption_service
             .encrypt_chunk(chunk, &encryption_config, &key_material, context)
+    }
+
+    async fn process_decompression_stage(
+        &self,
+        stage: &PipelineStage,
+        chunk: FileChunk,
+        context: &mut ProcessingContext,
+    ) -> Result<FileChunk, PipelineError> {
+        // Create compression config from stage (same as compression, but we'll call decompress)
+        let compression_config = pipeline_domain::services::CompressionConfig {
+            algorithm: match stage.configuration().algorithm.as_str() {
+                "brotli" => pipeline_domain::services::CompressionAlgorithm::Brotli,
+                "gzip" => pipeline_domain::services::CompressionAlgorithm::Gzip,
+                "zstd" => pipeline_domain::services::CompressionAlgorithm::Zstd,
+                "lz4" => pipeline_domain::services::CompressionAlgorithm::Lz4,
+                _ => pipeline_domain::services::CompressionAlgorithm::Brotli, // Default
+            },
+            level: pipeline_domain::services::CompressionLevel::Balanced,
+            dictionary: None,
+            window_size: None,
+            parallel_processing: false,
+        };
+        self.compression_service
+            .decompress_chunk(chunk, &compression_config, context)
+    }
+
+    async fn process_decryption_stage(
+        &self,
+        stage: &PipelineStage,
+        chunk: FileChunk,
+        context: &mut ProcessingContext,
+    ) -> Result<FileChunk, PipelineError> {
+        // Create encryption config from stage (same as encryption, but we'll call decrypt)
+        let encryption_config = pipeline_domain::services::EncryptionConfig {
+            algorithm: match stage.configuration().algorithm.as_str() {
+                "aes256gcm" => pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm,
+                "aes128gcm" => pipeline_domain::services::EncryptionAlgorithm::Aes128Gcm,
+                "chacha20poly1305" => pipeline_domain::services::EncryptionAlgorithm::ChaCha20Poly1305,
+                "aes256-gcm" => pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm, // Also support hyphenated
+                _ => pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm, // Default
+            },
+            key_derivation: pipeline_domain::services::KeyDerivationFunction::Pbkdf2,
+            key_size: 32,
+            nonce_size: 12,
+            salt_size: 32,
+            iterations: 100000,
+            memory_cost: None,
+            parallel_cost: None,
+            associated_data: None,
+        };
+        // Create temporary key material (NOT secure for production)
+        let key_material = KeyMaterial {
+            key: vec![0u8; 32],   // 32-byte key
+            nonce: vec![0u8; 12], // 12-byte nonce
+            salt: vec![0u8; 32],  // 32-byte salt
+            algorithm: encryption_config.algorithm.clone(),
+            created_at: chrono::Utc::now(),
+            expires_at: None,
+        };
+        self.encryption_service
+            .decrypt_chunk(chunk, &encryption_config, &key_material, context)
     }
 
     async fn process_passthrough_stage(

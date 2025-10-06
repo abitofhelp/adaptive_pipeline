@@ -100,6 +100,127 @@ impl std::str::FromStr for StageType {
     }
 }
 
+/// Represents the direction of a stage operation.
+///
+/// This enum enables type-safe bidirectional processing, making it explicit
+/// whether a stage should perform its forward operation (e.g., compress, encrypt)
+/// or its reverse operation (e.g., decompress, decrypt).
+///
+/// # Examples
+///
+/// ```
+/// use pipeline_domain::entities::pipeline_stage::Operation;
+///
+/// let forward = Operation::Forward;
+/// let reverse = Operation::Reverse;
+///
+/// // Default is Forward
+/// assert_eq!(Operation::default(), Operation::Forward);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Operation {
+    /// Forward operation: compress, encrypt, append checksum
+    Forward,
+    /// Reverse operation: decompress, decrypt, verify and strip checksum
+    Reverse,
+}
+
+impl Default for Operation {
+    fn default() -> Self {
+        Operation::Forward
+    }
+}
+
+impl std::fmt::Display for Operation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operation::Forward => write!(f, "forward"),
+            Operation::Reverse => write!(f, "reverse"),
+        }
+    }
+}
+
+/// Represents the position of a stage relative to the binary transformation boundary.
+///
+/// This enum enforces architectural constraints about when stages can execute
+/// relative to compression and encryption operations. It prevents common bugs
+/// like attempting text-based transformations on compressed or encrypted data.
+///
+/// # The Binary Boundary
+///
+/// The "binary boundary" is the point in the pipeline where data transitions from
+/// human-readable/structured format to optimized binary format:
+///
+/// - **Before compression**: Data is in original format (text, JSON, etc.)
+/// - **After compression**: Data is binary-compressed (no longer human-readable)
+/// - **After encryption**: Data is encrypted binary (cannot be parsed/transformed)
+///
+/// # Position Requirements
+///
+/// - **PreBinary stages** must execute BEFORE compression/encryption
+///   - Examples: PII masking, text transformations, Base64 encoding
+///   - Reason: These need to see/modify the actual data content
+///
+/// - **PostBinary stages** execute AFTER compression/encryption
+///   - Examples: Output checksums, metrics collection
+///   - Reason: These operate on the final binary format
+///
+/// - **Any stages** can execute at any point
+///   - Examples: Tee stages, observability, pass-through
+///   - Reason: These don't depend on data format
+///
+/// # Pipeline Validation
+///
+/// The pipeline validates stage ordering during creation:
+///
+/// ```text
+/// Valid:   [PII Mask] -> [Compress] -> [Encrypt] -> [Output Checksum]
+///          PreBinary     (boundary)   (boundary)    PostBinary
+///
+/// Invalid: [Compress] -> [PII Mask] -> [Encrypt]
+///                        ^^^^^^^^^^
+///                        ERROR: PreBinary stage after compression!
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// use pipeline_domain::entities::pipeline_stage::StagePosition;
+///
+/// // PII masking must see plaintext
+/// let pii_position = StagePosition::PreBinary;
+///
+/// // Output checksum operates on final binary
+/// let checksum_position = StagePosition::PostBinary;
+///
+/// // Tee stage can tap anywhere
+/// let tee_position = StagePosition::Any;
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StagePosition {
+    /// Stage must execute before compression/encryption.
+    /// Used for stages that need to see or modify the original data format.
+    PreBinary,
+
+    /// Stage executes after compression/encryption.
+    /// Used for stages that operate on the final binary output.
+    PostBinary,
+
+    /// Stage can execute at any position in the pipeline.
+    /// Used for observability, metrics, or pass-through stages.
+    Any,
+}
+
+impl std::fmt::Display for StagePosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StagePosition::PreBinary => write!(f, "pre-binary"),
+            StagePosition::PostBinary => write!(f, "post-binary"),
+            StagePosition::Any => write!(f, "any"),
+        }
+    }
+}
+
 ///
 /// ### Encryption Configuration
 ///
@@ -107,6 +228,8 @@ impl std::str::FromStr for StageType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StageConfiguration {
     pub algorithm: String,
+    #[serde(default)]
+    pub operation: Operation,
     pub parameters: HashMap<String, String>,
     pub parallel_processing: bool,
     pub chunk_size: Option<usize>,
@@ -117,6 +240,7 @@ impl StageConfiguration {
     pub fn new(algorithm: String, parameters: HashMap<String, String>, parallel_processing: bool) -> Self {
         Self {
             algorithm,
+            operation: Operation::default(),
             parameters,
             parallel_processing,
             chunk_size: None,
@@ -128,6 +252,7 @@ impl Default for StageConfiguration {
     fn default() -> Self {
         Self {
             algorithm: "default".to_string(),
+            operation: Operation::default(),
             parameters: HashMap::new(),
             parallel_processing: true,
             chunk_size: None,
@@ -737,6 +862,7 @@ mod tests {
     fn create_test_stage(name: &str, stage_type: StageType, algorithm: &str) -> PipelineStage {
         let config = StageConfiguration {
             algorithm: algorithm.to_string(),
+            operation: Operation::default(),
             parameters: HashMap::new(),
             parallel_processing: false,
             chunk_size: None,

@@ -859,6 +859,7 @@ impl SqlitePipelineRepository {
             // Build stage configuration
             let stage_config = StageConfiguration {
                 algorithm,
+                operation: pipeline_domain::entities::Operation::Forward, // Default to Forward
                 parameters: std::collections::HashMap::new(), // TODO: Load parameters if needed
                 parallel_processing,
                 chunk_size: chunk_size.map(|s| s as usize),

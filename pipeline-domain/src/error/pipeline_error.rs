@@ -144,6 +144,12 @@ pub enum PipelineError {
     #[error("Invalid configuration: {0}")]
     InvalidConfiguration(String),
 
+    #[error("Missing required parameter: {0}")]
+    MissingParameter(String),
+
+    #[error("Invalid parameter value: {0}")]
+    InvalidParameter(String),
+
     #[error("Incompatible stage: {0}")]
     IncompatibleStage(String),
 
@@ -275,6 +281,8 @@ impl PipelineError {
     pub fn category(&self) -> &'static str {
         match self {
             PipelineError::InvalidConfiguration(_) => "configuration",
+            PipelineError::MissingParameter(_) => "configuration",
+            PipelineError::InvalidParameter(_) => "configuration",
             PipelineError::IncompatibleStage(_) => "configuration",
             PipelineError::InvalidChunk(_) => "data",
             PipelineError::ProcessingFailed(_) => "processing",

@@ -322,13 +322,16 @@ pub enum ProcessingStepType {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkFormat {
     /// Encryption nonce (12 bytes for AES-GCM)
+    /// Contains actual nonce when encrypted, zeros ([0u8; 12]) when not encrypted
     pub nonce: [u8; 12],
 
-    /// Length of encrypted data
+    /// Length of payload data
     pub data_length: u32,
 
-    /// Encrypted (and possibly compressed) chunk data
-    pub encrypted_data: Vec<u8>,
+    /// Chunk payload data (may be raw, compressed, encrypted, or any combination)
+    /// Note: Previously named `encrypted_data` but renamed for clarity since
+    /// this field contains data in various states of transformation
+    pub payload: Vec<u8>,
 }
 
 impl FileHeader {
@@ -847,16 +850,16 @@ impl FileHeader {
 
 impl ChunkFormat {
     /// Creates a new chunk format
-    pub fn new(nonce: [u8; 12], encrypted_data: Vec<u8>) -> Self {
+    pub fn new(nonce: [u8; 12], payload: Vec<u8>) -> Self {
         Self {
             nonce,
-            data_length: encrypted_data.len() as u32,
-            encrypted_data,
+            data_length: payload.len() as u32,
+            payload,
         }
     }
 
     /// Serializes chunk to binary format
-    /// Format: `[NONCE][DATA_LENGTH][ENCRYPTED_DATA]`
+    /// Format: `[NONCE][DATA_LENGTH][PAYLOAD]`
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
 
@@ -866,8 +869,8 @@ impl ChunkFormat {
         // Data length (4 bytes, little-endian)
         result.extend_from_slice(&self.data_length.to_le_bytes());
 
-        // Encrypted data
-        result.extend_from_slice(&self.encrypted_data);
+        // Payload data
+        result.extend_from_slice(&self.payload);
 
         result
     }
@@ -909,14 +912,14 @@ impl ChunkFormat {
             return Err(PipelineError::ValidationError("Incomplete chunk data".to_string()));
         }
 
-        // Read encrypted data
-        let encrypted_data = data[16..16 + data_length].to_vec();
+        // Read payload data
+        let payload = data[16..16 + data_length].to_vec();
 
         Ok((
             Self {
                 nonce,
                 data_length: data_length as u32,
-                encrypted_data,
+                payload,
             },
             total_size,
         ))
@@ -924,11 +927,11 @@ impl ChunkFormat {
 
     /// Validates the chunk format
     pub fn validate(&self) -> Result<(), PipelineError> {
-        if self.data_length as usize != self.encrypted_data.len() {
+        if self.data_length as usize != self.payload.len() {
             return Err(PipelineError::ValidationError("Chunk data length mismatch".to_string()));
         }
 
-        if self.encrypted_data.is_empty() {
+        if self.payload.is_empty() {
             return Err(PipelineError::ValidationError("Chunk cannot be empty".to_string()));
         }
 

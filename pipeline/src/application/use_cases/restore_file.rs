@@ -271,6 +271,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
             stage_type,
             StageConfiguration {
                 algorithm: step.algorithm.clone(),
+                operation: pipeline_domain::entities::Operation::Reverse, // REVERSE for restoration!
                 chunk_size: Some(metadata.chunk_size as usize),
                 parallel_processing: false, // Sequential for restoration
                 parameters: Default::default(),
@@ -287,6 +288,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
         StageType::Checksum,
         StageConfiguration {
             algorithm: "sha256".to_string(),
+            operation: pipeline_domain::entities::Operation::Reverse, // REVERSE for restoration!
             chunk_size: Some(metadata.chunk_size as usize),
             parallel_processing: false,
             parameters: Default::default(),

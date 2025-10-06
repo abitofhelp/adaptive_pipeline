@@ -1248,6 +1248,7 @@ impl PipelineService for PipelineServiceImpl {
 
             let compression_config = pipeline_domain::entities::StageConfiguration {
                 algorithm: algorithm.to_string(),
+                operation: pipeline_domain::entities::Operation::Forward,
                 parameters: std::collections::HashMap::new(),
                 parallel_processing: requirements.parallel_processing,
                 chunk_size: Some(1024 * 1024), // Default 1MB chunks
@@ -1267,6 +1268,7 @@ impl PipelineService for PipelineServiceImpl {
         if requirements.encryption_required {
             let encryption_config = pipeline_domain::entities::StageConfiguration {
                 algorithm: "aes256-gcm".to_string(),
+                operation: pipeline_domain::entities::Operation::Forward,
                 parameters: std::collections::HashMap::new(),
                 parallel_processing: requirements.parallel_processing,
                 chunk_size: Some(1024 * 1024), // Default 1MB chunks
@@ -1432,6 +1434,7 @@ mod tests {
             StageType::Compression,
             pipeline_domain::entities::pipeline_stage::StageConfiguration {
                 algorithm: "brotli".to_string(),
+                operation: pipeline_domain::entities::Operation::Forward,
                 parameters: std::collections::HashMap::new(),
                 parallel_processing: false,
                 chunk_size: Some(1024),
@@ -1518,6 +1521,7 @@ mod tests {
             StageType::Compression,
             pipeline_domain::entities::pipeline_stage::StageConfiguration {
                 algorithm: "brotli".to_string(),
+                operation: pipeline_domain::entities::Operation::Forward,
                 parameters: std::collections::HashMap::new(),
                 parallel_processing: false,
                 chunk_size: Some(1024),
