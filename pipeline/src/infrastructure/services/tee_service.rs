@@ -29,7 +29,7 @@
 //!
 //! ```rust
 //! use pipeline_domain::services::StageService;
-//! use tee_service::TeeService;
+//! use pipeline::infrastructure::services::TeeService;
 //!
 //! let service = TeeService::new();
 //! // Used automatically by pipeline when configured with StageType::Transform

@@ -33,8 +33,7 @@ This documentation is organized for progressive learning:
 
 1. **Getting Started** - Quick start, installation, first pipeline
 2. **Architecture** - High-level system design
-3. **Contributing** - How to contribute
-4. **Reference** - Glossary and API links
+3. **Reference** - Glossary and API links
 
 For detailed technical documentation, see the **Pipeline Developer Guide**.
 

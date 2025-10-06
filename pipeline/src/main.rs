@@ -169,6 +169,7 @@ use anyhow::Result;
 use byte_unit::Byte;
 // CLI parsing now handled by bootstrap layer
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -243,7 +244,10 @@ use crate::infrastructure::adapters::{CompressionServiceImpl, EncryptionServiceI
 use crate::infrastructure::logging::ObservabilityService;
 use crate::infrastructure::metrics::{MetricsEndpoint, MetricsService};
 use crate::infrastructure::repositories::stage_executor::BasicStageExecutor;
-use crate::infrastructure::services::{BinaryFormatService, BinaryFormatServiceImpl};
+use crate::infrastructure::services::{
+    Base64EncodingService, BinaryFormatService, BinaryFormatServiceImpl, DebugService,
+    PassThroughService, PiiMaskingService, TeeService,
+};
 use pipeline_domain::repositories::stage_executor::StageExecutor;
 
 // CLI parsing now handled by bootstrap layer
@@ -600,10 +604,11 @@ async fn process_file(
     stage_services.insert("chacha20poly1305".to_string(), encryption_service.clone() as Arc<dyn pipeline_domain::services::StageService>);
 
     // Register production transform stages
-    use pipeline::infrastructure::services::{Base64EncodingService, PiiMaskingService, TeeService};
     stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
     stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
     stage_services.insert("tee".to_string(), Arc::new(TeeService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("passthrough".to_string(), Arc::new(PassThroughService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("debug".to_string(), Arc::new(DebugService::new(metrics_service.clone())) as Arc<dyn pipeline_domain::services::StageService>);
 
     // Create pipeline service with proper dependency injection
     let pipeline_service = PipelineServiceImpl::new(
@@ -987,11 +992,22 @@ async fn create_pipeline(
 
     for (index, stage_name) in stage_names.iter().enumerate() {
         let (stage_type, algorithm) = match stage_name.trim() {
+            // Generic stage types with default algorithms
             "compression" => (StageType::Compression, "brotli".to_string()),
             "encryption" => (StageType::Encryption, "aes256gcm".to_string()),
             "integrity" | "checksum" => (StageType::Checksum, "sha256".to_string()),
             custom_name if custom_name.contains("checksum") => (StageType::Checksum, "sha256".to_string()),
             "passthrough" => (StageType::PassThrough, "passthrough".to_string()),
+
+            // Compression algorithms
+            "brotli" | "gzip" | "zstd" | "lz4" => (StageType::Compression, stage_name.trim().to_string()),
+
+            // Encryption algorithms
+            "aes256gcm" | "aes128gcm" | "chacha20poly1305" => (StageType::Encryption, stage_name.trim().to_string()),
+
+            // Transform stages (production stages)
+            "base64" | "pii_masking" | "tee" | "debug" => (StageType::Transform, stage_name.trim().to_string()),
+
             // Handle compression:algorithm syntax
             custom_name if custom_name.starts_with("compression:") => {
                 let algorithm = custom_name.strip_prefix("compression:").unwrap_or("brotli").to_string();
@@ -1005,11 +1021,25 @@ async fn create_pipeline(
                     .to_string();
                 (StageType::Encryption, algorithm)
             }
-            _custom => (StageType::PassThrough, "passthrough".to_string()),
+            _custom => {
+                // For unknown stages, treat them as Transform with the name as the algorithm
+                // This allows for custom stages to be used without code changes
+                (StageType::Transform, stage_name.trim().to_string())
+            }
         };
+
+        // Create parameters HashMap with algorithm
+        let mut parameters = std::collections::HashMap::new();
+        parameters.insert("algorithm".to_string(), algorithm.clone());
+
+        // For debug stages, add a unique ULID label
+        if algorithm == "debug" {
+            parameters.insert("label".to_string(), ulid::Ulid::new().to_string());
+        }
 
         let config = StageConfiguration {
             algorithm,
+            parameters,
             ..Default::default()
         };
 
@@ -2098,6 +2128,8 @@ async fn restore_file_from_adapipe_v2(
     stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
     stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
     stage_services.insert("tee".to_string(), Arc::new(TeeService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("passthrough".to_string(), Arc::new(PassThroughService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("debug".to_string(), Arc::new(DebugService::new(Arc::new(MetricsService::new().unwrap()))) as Arc<dyn pipeline_domain::services::StageService>);
 
     let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
 
@@ -2807,6 +2839,8 @@ async fn stream_restore_with_validation(
     stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
     stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()) as Arc<dyn pipeline_domain::services::StageService>);
     stage_services.insert("tee".to_string(), Arc::new(TeeService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("passthrough".to_string(), Arc::new(PassThroughService::new()) as Arc<dyn pipeline_domain::services::StageService>);
+    stage_services.insert("debug".to_string(), Arc::new(DebugService::new(Arc::new(MetricsService::new().unwrap()))) as Arc<dyn pipeline_domain::services::StageService>);
 
     let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
 

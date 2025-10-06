@@ -138,38 +138,6 @@ python3 examples/user_walkthroughs/legal_document_pipeline.py
 - **[Architecture Docs](../../docs/architecture/)** - Technical architecture
 - **[API Reference](../docs/API_REFERENCE.md)** - Developer API documentation
 
-## 🤝 Contributing Examples
-
-### Adding New Examples
-
-1. **Choose Category**: User walkthrough vs developer guide
-2. **Follow Naming**: Use descriptive `*_demo.*` pattern
-3. **Add Documentation**: Include clear comments and README updates
-4. **Test Thoroughly**: Ensure examples work on clean systems
-
-### Example Template
-
-```bash
-#!/bin/bash
-# [Example Name] Demo
-# Based on [User Guide Task/Feature]
-# This script demonstrates [specific capability]
-
-set -e  # Exit on any error
-
-echo "🎯 [Example Name] Demo"
-echo "===================="
-
-# Step 1: Setup
-echo "📁 Step 1: Setting up..."
-# ... setup code ...
-
-# Step N: Completion
-echo "🎉 Demo Complete!"
-echo "📁 Files location: [location]"
-echo "🔗 For more details, see: [documentation links]"
-```
-
 ## 📊 Example Status
 
 | Example | Status | Audience | Complexity |

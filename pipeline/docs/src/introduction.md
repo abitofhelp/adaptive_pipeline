@@ -98,12 +98,6 @@ We intentionally **do not** include:
 → Read [Fundamentals](fundamentals/what-is-a-pipeline.md)
 → Skip to [Implementation](implementation/stages.md) for specific features
 
-### I want to contribute
-
-→ Read Fundamentals + Architecture (full sections)
-→ Review relevant Implementation chapters
-→ Check [Contributing Guide](../../docs/book/contributing/guidelines.html)
-
 ### I want to learn advanced Rust patterns
 
 → Focus on Architecture section (patterns)
@@ -136,7 +130,7 @@ Throughout this guide:
 Choose your path:
 
 - **New users:** [What is a Pipeline?](fundamentals/what-is-a-pipeline.md)
-- **Contributors:** [Architecture Overview](architecture/overview.md)
+- **Developers:** [Architecture Overview](architecture/overview.md)
 - **Specific feature:** Use search (press 's') or browse [table of contents](#)
 
 Let's dive in!

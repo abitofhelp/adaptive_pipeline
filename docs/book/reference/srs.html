@@ -199,14 +199,13 @@
 <p><strong>System Purpose:</strong> Provide a configurable, extensible pipeline for processing files through multiple stages including compression, encryption, integrity verification, and custom transformations.</p>
 <p><strong>Key Capabilities:</strong></p>
 <ul>
-<li>Multi-stage file processing with configurable pipelines</li>
-<li>Compression support (Brotli, Gzip, Zstd, LZ4)</li>
-<li>Encryption support (AES-256-GCM, ChaCha20-Poly1305, XChaCha20-Poly1305)</li>
-<li>Integrity verification with checksums (SHA-256, SHA-512, BLAKE3)</li>
-<li>Binary format (.adapipe) for processed files with metadata</li>
-<li>Asynchronous, concurrent processing with resource management</li>
-<li>Extensible architecture for custom stages and algorithms</li>
-<li>Comprehensive metrics and observability</li>
+<li><strong>Multi-stage file processing</strong> with configurable pipelines</li>
+<li><strong>Built-in stage types</strong>: Compression (Brotli, Gzip, Zstd, LZ4), Encryption (AES-256-GCM, ChaCha20-Poly1305), Integrity verification (SHA-256, SHA-512, BLAKE3)</li>
+<li><strong>Custom stage extensibility</strong>: Create domain-specific stages (sanitization, transformation, validation, enrichment, watermarking) through trait-based extension system</li>
+<li><strong>Binary format (.adapipe)</strong> for processed files with embedded metadata</li>
+<li><strong>Asynchronous, concurrent processing</strong> with resource management</li>
+<li><strong>Plugin-ready architecture</strong> for loading external stage implementations</li>
+<li><strong>Comprehensive metrics and observability</strong> with Prometheus integration</li>
 </ul>
 <p><strong>Out of Scope:</strong></p>
 <ul>
@@ -1017,6 +1016,192 @@ compression_ratio
 <li>Log output failure (disk full, etc.)</li>
 <li>Invalid log configuration</li>
 </ul>
+<h3 id="38-custom-stage-extensibility-fr-custom"><a class="header" href="#38-custom-stage-extensibility-fr-custom">3.8 Custom Stage Extensibility (FR-CUSTOM)</a></h3>
+<h4 id="fr-custom-001-define-custom-stage-types"><a class="header" href="#fr-custom-001-define-custom-stage-types">FR-CUSTOM-001: Define Custom Stage Types</a></h4>
+<p><strong>Priority:</strong> High
+<strong>Description:</strong> System shall allow developers to define custom stage types by extending the StageType enum and implementing stage-specific logic.</p>
+<p><strong>Inputs:</strong></p>
+<ul>
+<li>New StageType enum variant</li>
+<li>Stage-specific configuration parameters</li>
+<li>Stage metadata (name, description)</li>
+</ul>
+<p><strong>Processing:</strong></p>
+<ul>
+<li>Register custom stage type in system</li>
+<li>Validate stage type uniqueness</li>
+<li>Associate configuration schema with stage type</li>
+</ul>
+<p><strong>Outputs:</strong></p>
+<ul>
+<li>Registered custom stage type</li>
+<li>Stage type available for pipeline configuration</li>
+</ul>
+<p><strong>Error Conditions:</strong></p>
+<ul>
+<li>Duplicate stage type name</li>
+<li>Invalid stage type identifier</li>
+<li>Configuration schema validation failure</li>
+</ul>
+<p><strong>Extension Points:</strong></p>
+<ul>
+<li>StageType enum in domain layer</li>
+<li>Display and FromStr trait implementations</li>
+<li>Stage configuration validation</li>
+</ul>
+<h4 id="fr-custom-002-implement-custom-stage-logic"><a class="header" href="#fr-custom-002-implement-custom-stage-logic">FR-CUSTOM-002: Implement Custom Stage Logic</a></h4>
+<p><strong>Priority:</strong> High
+<strong>Description:</strong> System shall provide extension points for implementing custom stage processing logic through domain service traits.</p>
+<p><strong>Inputs:</strong></p>
+<ul>
+<li>Domain service trait definition</li>
+<li>Infrastructure adapter implementation</li>
+<li>Processing algorithm for file chunks</li>
+</ul>
+<p><strong>Processing:</strong></p>
+<ul>
+<li>Define domain service trait (e.g., SanitizationService, TransformationService)</li>
+<li>Implement infrastructure adapter with concrete algorithm</li>
+<li>Register adapter with dependency injection container</li>
+<li>Integrate with StageExecutor for execution</li>
+</ul>
+<p><strong>Outputs:</strong></p>
+<ul>
+<li>Functional custom stage implementation</li>
+<li>Stage available for use in pipelines</li>
+</ul>
+<p><strong>Error Conditions:</strong></p>
+<ul>
+<li>Trait method signature mismatch</li>
+<li>Missing required trait bounds (Send + Sync)</li>
+<li>Registration failure</li>
+<li>Incompatible chunk processing logic</li>
+</ul>
+<p><strong>Implementation Requirements:</strong></p>
+<ul>
+<li>Must be async-compatible (async_trait)</li>
+<li>Must support parallel chunk processing</li>
+<li>Must update ProcessingContext metrics</li>
+<li>Must handle errors through Result types</li>
+</ul>
+<h4 id="fr-custom-003-register-custom-stages"><a class="header" href="#fr-custom-003-register-custom-stages">FR-CUSTOM-003: Register Custom Stages</a></h4>
+<p><strong>Priority:</strong> High
+<strong>Description:</strong> System shall provide registration mechanism for custom stages with the StageExecutor.</p>
+<p><strong>Inputs:</strong></p>
+<ul>
+<li>Custom stage type identifier</li>
+<li>StageExecutor implementation</li>
+<li>Supported algorithm identifiers</li>
+</ul>
+<p><strong>Processing:</strong></p>
+<ul>
+<li>Validate stage executor implementation</li>
+<li>Register executor with system registry</li>
+<li>Associate stage type with executor</li>
+<li>Enable stage in pipeline configuration</li>
+</ul>
+<p><strong>Outputs:</strong></p>
+<ul>
+<li>Registered stage executor</li>
+<li>Stage type available in CLI and API</li>
+</ul>
+<p><strong>Error Conditions:</strong></p>
+<ul>
+<li>Executor registration conflict</li>
+<li>Invalid stage type reference</li>
+<li>Missing required executor methods</li>
+</ul>
+<p><strong>Registration Methods:</strong></p>
+<ul>
+<li>Compile-time registration (preferred)</li>
+<li>Runtime registration via plugin interface</li>
+<li>Configuration-based registration</li>
+</ul>
+<h4 id="fr-custom-004-validate-custom-stage-configuration"><a class="header" href="#fr-custom-004-validate-custom-stage-configuration">FR-CUSTOM-004: Validate Custom Stage Configuration</a></h4>
+<p><strong>Priority:</strong> Medium
+<strong>Description:</strong> System shall validate custom stage configurations against stage-specific schemas.</p>
+<p><strong>Inputs:</strong></p>
+<ul>
+<li>Custom stage configuration</li>
+<li>Configuration schema definition</li>
+<li>Stage-specific validation rules</li>
+</ul>
+<p><strong>Processing:</strong></p>
+<ul>
+<li>Parse configuration parameters</li>
+<li>Validate against schema (types, ranges, formats)</li>
+<li>Check required vs optional parameters</li>
+<li>Validate parameter compatibility</li>
+</ul>
+<p><strong>Outputs:</strong></p>
+<ul>
+<li>Validated configuration</li>
+<li>Configuration errors if invalid</li>
+</ul>
+<p><strong>Error Conditions:</strong></p>
+<ul>
+<li>Missing required parameters</li>
+<li>Invalid parameter types</li>
+<li>Parameter value out of range</li>
+<li>Incompatible parameter combinations</li>
+</ul>
+<h4 id="fr-custom-005-custom-stage-lifecycle-management"><a class="header" href="#fr-custom-005-custom-stage-lifecycle-management">FR-CUSTOM-005: Custom Stage Lifecycle Management</a></h4>
+<p><strong>Priority:</strong> Medium
+<strong>Description:</strong> System shall support initialization and cleanup for custom stages through lifecycle hooks.</p>
+<p><strong>Inputs:</strong></p>
+<ul>
+<li>Stage initialization parameters</li>
+<li>Processing context</li>
+<li>Cleanup triggers (success, failure, always)</li>
+</ul>
+<p><strong>Processing:</strong></p>
+<ul>
+<li>Call prepare_stage() before first execution</li>
+<li>Allocate stage-specific resources</li>
+<li>Execute stage processing</li>
+<li>Call cleanup_stage() after completion or failure</li>
+<li>Release resources and finalize state</li>
+</ul>
+<p><strong>Outputs:</strong></p>
+<ul>
+<li>Initialized stage ready for processing</li>
+<li>Clean resource cleanup after execution</li>
+</ul>
+<p><strong>Error Conditions:</strong></p>
+<ul>
+<li>Initialization failure</li>
+<li>Resource allocation failure</li>
+<li>Cleanup failure (logged but not propagated)</li>
+</ul>
+<p><strong>Lifecycle Methods:</strong></p>
+<ul>
+<li><code>prepare_stage()</code>: Initialize stage resources</li>
+<li><code>cleanup_stage()</code>: Release resources and cleanup</li>
+<li>Resource management through RAII patterns</li>
+</ul>
+<h4 id="fr-custom-006-custom-stage-examples"><a class="header" href="#fr-custom-006-custom-stage-examples">FR-CUSTOM-006: Custom Stage Examples</a></h4>
+<p><strong>Priority:</strong> Low
+<strong>Description:</strong> System shall provide comprehensive examples of custom stage implementations for common use cases.</p>
+<p><strong>Example Use Cases:</strong></p>
+<ul>
+<li><strong>Data Sanitization</strong>: Remove PII, redact sensitive fields</li>
+<li><strong>Data Transformation</strong>: Convert XML to JSON, restructure data</li>
+<li><strong>Data Validation</strong>: Schema validation, format checking</li>
+<li><strong>Data Enrichment</strong>: Add timestamps, inject metadata</li>
+<li><strong>Watermarking</strong>: Add digital watermarks to content</li>
+<li><strong>Deduplication</strong>: Remove duplicate data blocks</li>
+</ul>
+<p><strong>Deliverables:</strong></p>
+<ul>
+<li>Example implementations in <code>examples/custom-stages/</code></li>
+<li>Documentation in <code>pipeline/docs/src/advanced/custom-stages.md</code></li>
+<li>Integration tests demonstrating usage</li>
+<li>Performance benchmarks for common patterns</li>
+</ul>
+<p><strong>Error Conditions:</strong></p>
+<ul>
+<li>None (documentation and examples)</li>
+</ul>
 <hr />
 <h2 id="4-non-functional-requirements"><a class="header" href="#4-non-functional-requirements">4. Non-Functional Requirements</a></h2>
 <h3 id="41-performance-requirements-nfr-perf"><a class="header" href="#41-performance-requirements-nfr-perf">4.1 Performance Requirements (NFR-PERF)</a></h3>
@@ -1285,6 +1470,88 @@ compression_ratio
 <li>API documentation clear</li>
 <li>Example code idiomatic</li>
 </ul>
+<h3 id="47-extensibility-requirements-nfr-ext"><a class="header" href="#47-extensibility-requirements-nfr-ext">4.7 Extensibility Requirements (NFR-EXT)</a></h3>
+<h4 id="nfr-ext-001-custom-stage-support"><a class="header" href="#nfr-ext-001-custom-stage-support">NFR-EXT-001: Custom Stage Support</a></h4>
+<p><strong>Requirement:</strong> System architecture shall support custom stage implementations without modifying core library code.</p>
+<p><strong>Extension Mechanisms:</strong></p>
+<ul>
+<li><strong>Trait-Based Extension</strong>: Define custom stages via trait implementation</li>
+<li><strong>Type System Extension</strong>: Add StageType enum variants</li>
+<li><strong>Registration System</strong>: Register custom stages at compile-time or runtime</li>
+<li><strong>Configuration Extension</strong>: Support stage-specific configuration schemas</li>
+</ul>
+<p><strong>Acceptance Criteria:</strong></p>
+<ul>
+<li>Custom stages implementable without forking core library</li>
+<li>No breaking changes required in domain layer</li>
+<li>Registration mechanism well-documented</li>
+<li>Examples provided for common patterns</li>
+</ul>
+<h4 id="nfr-ext-002-plugin-architecture"><a class="header" href="#nfr-ext-002-plugin-architecture">NFR-EXT-002: Plugin Architecture</a></h4>
+<p><strong>Requirement:</strong> System shall support plugin-style custom stages with dynamic loading capabilities (future).</p>
+<p><strong>Design Goals:</strong></p>
+<ul>
+<li>Isolated custom stage code from core library</li>
+<li>Safe loading of external stage implementations</li>
+<li>Version compatibility checking</li>
+<li>Dependency management for plugins</li>
+</ul>
+<p><strong>Acceptance Criteria:</strong></p>
+<ul>
+<li>Plugin interface defined and documented</li>
+<li>Safe sandboxing of plugin code</li>
+<li>Graceful handling of plugin failures</li>
+<li>Plugin compatibility matrix maintained</li>
+</ul>
+<h4 id="nfr-ext-003-extension-documentation"><a class="header" href="#nfr-ext-003-extension-documentation">NFR-EXT-003: Extension Documentation</a></h4>
+<p><strong>Requirement:</strong> System shall provide comprehensive documentation for creating custom stages.</p>
+<p><strong>Documentation Requirements:</strong></p>
+<ul>
+<li>Step-by-step implementation guide</li>
+<li>Complete working examples</li>
+<li>API reference for extension points</li>
+<li>Best practices and patterns</li>
+<li>Performance tuning guidelines</li>
+<li>Testing strategies for custom stages</li>
+</ul>
+<p><strong>Acceptance Criteria:</strong></p>
+<ul>
+<li>Developer can implement custom stage in &lt; 2 hours</li>
+<li>All extension points documented with examples</li>
+<li>Common pitfalls documented with solutions</li>
+<li>Documentation tested by external developers</li>
+</ul>
+<h4 id="nfr-ext-004-backward-compatibility"><a class="header" href="#nfr-ext-004-backward-compatibility">NFR-EXT-004: Backward Compatibility</a></h4>
+<p><strong>Requirement:</strong> System shall maintain backward compatibility for custom stage implementations across minor version updates.</p>
+<p><strong>Compatibility Guarantees:</strong></p>
+<ul>
+<li>Trait signatures stable across minor versions</li>
+<li>Deprecation warnings for breaking changes</li>
+<li>Migration guides for major version updates</li>
+<li>Semantic versioning strictly followed</li>
+</ul>
+<p><strong>Acceptance Criteria:</strong></p>
+<ul>
+<li>Custom stages compile across patch versions</li>
+<li>Breaking changes only in major versions</li>
+<li>Deprecation period: minimum 2 minor versions</li>
+<li>Migration guides published before major releases</li>
+</ul>
+<h4 id="nfr-ext-005-extension-performance"><a class="header" href="#nfr-ext-005-extension-performance">NFR-EXT-005: Extension Performance</a></h4>
+<p><strong>Requirement:</strong> Custom stage infrastructure shall impose minimal performance overhead (&lt;5%) compared to built-in stages.</p>
+<p><strong>Performance Goals:</strong></p>
+<ul>
+<li>Trait dispatch overhead: &lt;1% of processing time</li>
+<li>No unnecessary allocations in hot paths</li>
+<li>Zero-cost abstractions where possible</li>
+<li>Efficient resource sharing</li>
+</ul>
+<p><strong>Acceptance Criteria:</strong></p>
+<ul>
+<li>Benchmarks show &lt;5% overhead</li>
+<li>Custom stage throughput ≥ 95% of built-in stages</li>
+<li>Memory overhead minimal (documented per-stage)</li>
+</ul>
 <hr />
 <h2 id="5-system-interfaces"><a class="header" href="#5-system-interfaces">5. System Interfaces</a></h2>
 <h3 id="51-file-system-interface"><a class="header" href="#51-file-system-interface">5.1 File System Interface</a></h3>
@@ -1402,6 +1669,12 @@ path = "./pipeline.db"
 <tr><td>FR-METRICS-001</td><td>Collect Metrics</td><td><code>test_metrics_collection</code></td><td>metrics.md</td></tr>
 <tr><td>FR-METRICS-002</td><td>Prometheus Export</td><td><code>test_prometheus_export</code></td><td>observability.md</td></tr>
 <tr><td>FR-METRICS-003</td><td>Structured Logging</td><td><code>test_logging</code></td><td>logging.md</td></tr>
+<tr><td>FR-CUSTOM-001</td><td>Define Custom Stage Types</td><td><code>test_custom_stage_type</code></td><td>custom-stages.md</td></tr>
+<tr><td>FR-CUSTOM-002</td><td>Implement Custom Logic</td><td><code>test_custom_stage_implementation</code></td><td>custom-stages.md</td></tr>
+<tr><td>FR-CUSTOM-003</td><td>Register Custom Stages</td><td><code>test_custom_stage_registration</code></td><td>custom-stages.md</td></tr>
+<tr><td>FR-CUSTOM-004</td><td>Validate Custom Config</td><td><code>test_custom_configuration_validation</code></td><td>custom-stages.md</td></tr>
+<tr><td>FR-CUSTOM-005</td><td>Lifecycle Management</td><td><code>test_custom_stage_lifecycle</code></td><td>custom-stages.md</td></tr>
+<tr><td>FR-CUSTOM-006</td><td>Custom Stage Examples</td><td>Integration tests</td><td>custom-stages.md</td></tr>
 <tr><td>NFR-PERF-001</td><td>Throughput</td><td><code>bench_file_io</code></td><td>performance.md</td></tr>
 <tr><td>NFR-PERF-002</td><td>Latency</td><td><code>bench_file_io</code></td><td>performance.md</td></tr>
 <tr><td>NFR-PERF-003</td><td>Memory Efficiency</td><td><code>test_memory_usage</code></td><td>resources.md</td></tr>
@@ -1416,6 +1689,11 @@ path = "./pipeline.db"
 <tr><td>NFR-MAINT-001</td><td>Documentation</td><td><code>cargo doc</code></td><td>-</td></tr>
 <tr><td>NFR-MAINT-002</td><td>Architecture</td><td><code>architecture_compliance_test</code></td><td>architecture/*</td></tr>
 <tr><td>NFR-MAINT-003</td><td>Test Coverage</td><td>CI coverage report</td><td>-</td></tr>
+<tr><td>NFR-EXT-001</td><td>Custom Stage Support</td><td><code>test_custom_stages</code></td><td>custom-stages.md, extending.md</td></tr>
+<tr><td>NFR-EXT-002</td><td>Plugin Architecture</td><td>Design review</td><td>extending.md</td></tr>
+<tr><td>NFR-EXT-003</td><td>Extension Documentation</td><td>Documentation review</td><td>custom-stages.md</td></tr>
+<tr><td>NFR-EXT-004</td><td>Backward Compatibility</td><td>API stability tests</td><td>-</td></tr>
+<tr><td>NFR-EXT-005</td><td>Extension Performance</td><td><code>bench_custom_vs_builtin</code></td><td>performance.md</td></tr>
 </tbody></table>
 </div>
 <hr />
@@ -1445,9 +1723,156 @@ path = "./pipeline.db"
 <tr><td><code>PipelineError::ResourceExhausted</code></td><td>Resource limit exceeded</td><td>Reduce concurrency, free resources</td></tr>
 </tbody></table>
 </div>
+<h3 id="appendix-c-custom-stage-use-cases"><a class="header" href="#appendix-c-custom-stage-use-cases">Appendix C: Custom Stage Use Cases</a></h3>
+<p>This appendix provides real-world examples of custom stage implementations to demonstrate the extensibility of the pipeline system.</p>
+<h4 id="c1-data-sanitization-stage"><a class="header" href="#c1-data-sanitization-stage">C.1 Data Sanitization Stage</a></h4>
+<p><strong>Purpose:</strong> Remove or redact Personally Identifiable Information (PII) from documents before archival or sharing.</p>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Healthcare: Redact patient names, SSN, medical record numbers from documents</li>
+<li>Financial: Remove account numbers, credit card data from statements</li>
+<li>Legal: Redact confidential information in discovery documents</li>
+<li>HR: Anonymize employee data in reports</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<ul>
+<li>StageType: <code>Sanitization</code></li>
+<li>Algorithm examples: <code>regex_redaction</code>, <code>named_entity_recognition</code>, <code>pattern_matching</code></li>
+<li>Configuration: Rules for what to redact, replacement patterns, allowed/blocked terms</li>
+</ul>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>GDPR/HIPAA compliance</li>
+<li>Safe data sharing</li>
+<li>Privacy protection</li>
+<li>Audit trail of sanitization</li>
+</ul>
+<h4 id="c2-data-transformation-stage"><a class="header" href="#c2-data-transformation-stage">C.2 Data Transformation Stage</a></h4>
+<p><strong>Purpose:</strong> Convert data between formats or restructure content.</p>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>XML to JSON conversion for API modernization</li>
+<li>CSV to Parquet for data lake ingestion</li>
+<li>Document format conversion (DOCX → PDF)</li>
+<li>Image format optimization (PNG → WebP)</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<ul>
+<li>StageType: <code>Transform</code></li>
+<li>Algorithm examples: <code>xml_to_json</code>, <code>csv_to_parquet</code>, <code>image_optimize</code></li>
+<li>Configuration: Source/target formats, transformation rules, quality settings</li>
+</ul>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Automated format conversion</li>
+<li>Data lake preparation</li>
+<li>Storage optimization</li>
+<li>API compatibility</li>
+</ul>
+<h4 id="c3-schema-validation-stage"><a class="header" href="#c3-schema-validation-stage">C.3 Schema Validation Stage</a></h4>
+<p><strong>Purpose:</strong> Validate data against schemas before processing or storage.</p>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>JSON Schema validation for API payloads</li>
+<li>XML Schema (XSD) validation for B2B integrations</li>
+<li>Protobuf validation for microservices</li>
+<li>Database schema compliance checking</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<ul>
+<li>StageType: <code>Validation</code></li>
+<li>Algorithm examples: <code>json_schema</code>, <code>xml_schema</code>, <code>protobuf_validate</code></li>
+<li>Configuration: Schema file path, validation strictness, error handling</li>
+</ul>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Data quality assurance</li>
+<li>Early error detection</li>
+<li>Contract enforcement</li>
+<li>Compliance verification</li>
+</ul>
+<h4 id="c4-data-enrichment-stage"><a class="header" href="#c4-data-enrichment-stage">C.4 Data Enrichment Stage</a></h4>
+<p><strong>Purpose:</strong> Add metadata, annotations, or derived fields to data.</p>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Add geolocation data based on IP addresses</li>
+<li>Inject timestamps and processing metadata</li>
+<li>Add classification tags based on content</li>
+<li>Append audit trail information</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<ul>
+<li>StageType: <code>Enrichment</code></li>
+<li>Algorithm examples: <code>geo_lookup</code>, <code>metadata_injection</code>, <code>content_classification</code></li>
+<li>Configuration: Enrichment sources, field mappings, lookup tables</li>
+</ul>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Enhanced analytics</li>
+<li>Better searchability</li>
+<li>Compliance tracking</li>
+<li>Data lineage</li>
+</ul>
+<h4 id="c5-digital-watermarking-stage"><a class="header" href="#c5-digital-watermarking-stage">C.5 Digital Watermarking Stage</a></h4>
+<p><strong>Purpose:</strong> Embed imperceptible watermarks in content for provenance tracking.</p>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Document watermarking with user ID and timestamp</li>
+<li>Image watermarking for copyright protection</li>
+<li>PDF watermarking for leak detection</li>
+<li>Video watermarking for piracy prevention</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<ul>
+<li>StageType: <code>Watermark</code></li>
+<li>Algorithm examples: <code>steganography</code>, <code>visible_watermark</code>, <code>digital_signature</code></li>
+<li>Configuration: Watermark content, embedding strength, detection keys</li>
+</ul>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Copyright protection</li>
+<li>Leak detection</li>
+<li>Provenance tracking</li>
+<li>Authenticity verification</li>
+</ul>
+<h4 id="c6-deduplication-stage"><a class="header" href="#c6-deduplication-stage">C.6 Deduplication Stage</a></h4>
+<p><strong>Purpose:</strong> Identify and remove duplicate data blocks for storage efficiency.</p>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Deduplicate file chunks in backups</li>
+<li>Remove duplicate records in data sets</li>
+<li>Content-addressed storage optimization</li>
+<li>Incremental backup efficiency</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<ul>
+<li>StageType: <code>Deduplication</code></li>
+<li>Algorithm examples: <code>fixed_block</code>, <code>variable_block</code>, <code>content_hash</code></li>
+<li>Configuration: Block size, hash algorithm, dedup database</li>
+</ul>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Storage savings (50-90% typical)</li>
+<li>Network bandwidth reduction</li>
+<li>Faster backup/restore</li>
+<li>Cost optimization</li>
+</ul>
+<h4 id="c7-custom-stage-development-effort"><a class="header" href="#c7-custom-stage-development-effort">C.7 Custom Stage Development Effort</a></h4>
+<div class="table-wrapper"><table><thead><tr><th>Stage Complexity</th><th>Development Time</th><th>Testing Time</th><th>Total Effort</th></tr></thead><tbody>
+<tr><td>Simple (Validation)</td><td>2-4 hours</td><td>2-3 hours</td><td>~1 day</td></tr>
+<tr><td>Medium (Transformation)</td><td>1-2 days</td><td>1 day</td><td>~3 days</td></tr>
+<tr><td>Complex (ML-based Sanitization)</td><td>3-5 days</td><td>2-3 days</td><td>~1 week</td></tr>
+</tbody></table>
+</div>
+<p><strong>Prerequisites:</strong></p>
+<ul>
+<li>Rust programming experience</li>
+<li>Understanding of pipeline architecture</li>
+<li>Domain knowledge for stage-specific logic</li>
+</ul>
 <hr />
 <p><strong>Document Status:</strong> Draft
-<strong>Last Updated:</strong> October 2025
+<strong>Last Updated:</strong> 2025-01-04
 <strong>Next Review:</strong> TBD
 <strong>Approver:</strong> TBD</p>
 
@@ -1455,7 +1880,7 @@ path = "./pipeline.db"
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../contributing/documentation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../architecture/project-structure.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -1469,7 +1894,7 @@ path = "./pipeline.db"
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../contributing/documentation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../architecture/project-structure.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 

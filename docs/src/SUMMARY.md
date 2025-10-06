@@ -14,12 +14,6 @@
 - [Design Principles](architecture/design-principles.md)
 - [Project Structure](architecture/project-structure.md)
 
-# Contributing
-
-- [Development Setup](contributing/setup.md)
-- [Guidelines](contributing/guidelines.md)
-- [Documentation Standards](contributing/documentation.md)
-
 # Reference
 
 - [Software Requirements Specification (SRS)](reference/srs.md)

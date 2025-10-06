@@ -29,7 +29,7 @@
 //!
 //! ```rust
 //! use pipeline_domain::services::StageService;
-//! use pii_masking_service::PiiMaskingService;
+//! use pipeline::infrastructure::services::PiiMaskingService;
 //!
 //! let service = PiiMaskingService::new();
 //! // Used automatically by pipeline when configured with StageType::Transform

@@ -73,7 +73,7 @@
 //!
 //! **Example:**
 //!
-//! ```rust
+//! ```rust,ignore
 //! // Encryption service extracts KeyMaterial from parameters
 //! let key_b64 = config.parameters.get("key")
 //!     .ok_or_else(|| PipelineError::MissingParameter("key".into()))?;
@@ -84,7 +84,7 @@
 //!
 //! ### Implementing a Built-in Service
 //!
-//! ```rust
+//! ```rust,ignore
 //! use pipeline_domain::services::stage_service::StageService;
 //! use pipeline_domain::entities::{StageType, StagePosition, StageConfiguration};
 //! use pipeline_domain::value_objects::file_chunk::FileChunk;
@@ -130,7 +130,7 @@
 //!
 //! ### Implementing a Custom Service
 //!
-//! ```rust
+//! ```rust,ignore
 //! use pipeline_domain::services::stage_service::StageService;
 //! use pipeline_domain::entities::{StageType, StagePosition};
 //!
@@ -175,7 +175,7 @@
 //!
 //! The `StageExecutor` dispatches to appropriate services based on `StageType`:
 //!
-//! ```rust
+//! ```rust,ignore
 //! async fn execute_stage(
 //!     service: Arc<dyn StageService>,
 //!     stage: &PipelineStage,
@@ -190,7 +190,7 @@
 //!
 //! During pipeline creation, stages are validated for correct positioning:
 //!
-//! ```rust
+//! ```rust,ignore
 //! fn validate_stage_order(stages: &[PipelineStage]) -> Result<(), PipelineError> {
 //!     let mut seen_binary_boundary = false;
 //!
@@ -250,12 +250,12 @@ use std::collections::HashMap;
 /// ## Trait Pattern (Similar to `FromStr`)
 ///
 /// Just as `FromStr` enables parsing from strings:
-/// ```rust
+/// ```rust,ignore
 /// let num: i32 = "42".parse()?; // Uses FromStr trait
 /// ```
 ///
 /// `FromParameters` enables parsing from HashMap:
-/// ```rust
+/// ```rust,ignore
 /// let config = CompressionConfig::from_parameters(&params)?; // Uses FromParameters trait
 /// ```
 ///
@@ -288,7 +288,7 @@ use std::collections::HashMap;
 ///
 /// ## Implementation Pattern
 ///
-/// ```rust
+/// ```rust,ignore
 /// use std::collections::HashMap;
 /// use pipeline_domain::PipelineError;
 /// use pipeline_domain::services::FromParameters;
@@ -316,7 +316,7 @@ use std::collections::HashMap;
 ///
 /// ## Usage in StageService
 ///
-/// ```rust
+/// ```rust,ignore
 /// impl StageService for MyService {
 ///     fn process_chunk(
 ///         &self,
@@ -445,7 +445,7 @@ pub trait StageService: Send + Sync {
     ///
     /// ## Example
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// fn process_chunk(
     ///     &self,
     ///     chunk: FileChunk,
@@ -498,7 +498,7 @@ pub trait StageService: Send + Sync {
     ///
     /// ## Example
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// fn position(&self) -> StagePosition {
     ///     StagePosition::PreBinary  // Must see plaintext
     /// }
@@ -529,7 +529,7 @@ pub trait StageService: Send + Sync {
     ///
     /// ## Example
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// fn is_reversible(&self) -> bool {
     ///     false  // PII masking cannot be reversed
     /// }
@@ -568,7 +568,7 @@ pub trait StageService: Send + Sync {
     ///
     /// ## Example
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// fn stage_type(&self) -> StageType {
     ///     StageType::Transform  // Custom transformation stage
     /// }

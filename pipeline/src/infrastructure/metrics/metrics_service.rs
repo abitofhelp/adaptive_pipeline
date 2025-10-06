@@ -14,7 +14,7 @@
 //! low overhead. See mdBook for detailed metric catalog and integration guide.
 
 use byte_unit::Byte;
-use prometheus::{Gauge, Histogram, HistogramOpts, IntCounter, IntGauge, Opts, Registry};
+use prometheus::{Gauge, GaugeVec, Histogram, HistogramOpts, IntCounter, IntCounterVec, IntGauge, Opts, Registry};
 use std::sync::Arc;
 use tracing::debug;
 
@@ -63,6 +63,10 @@ pub struct MetricsService {
 
     // System metrics
     active_pipelines: IntGauge,
+
+    // Debug stage metrics (for diagnostic stages)
+    debug_stage_bytes: GaugeVec,
+    debug_stage_chunks_total: IntCounterVec,
 }
 
 impl MetricsService {
@@ -137,6 +141,23 @@ impl MetricsService {
         )
         .map_err(|e| PipelineError::metrics_error(format!("Failed to create active_pipelines metric: {}", e)))?;
 
+        // Create debug stage metrics (with labels for stage identification)
+        let debug_stage_bytes = GaugeVec::new(
+            Opts::new("debug_stage_bytes", "Bytes processed by debug stage per chunk")
+                .namespace("adaptive_pipeline"),
+            &["label", "chunk_id"],
+        )
+        .map_err(|e| PipelineError::metrics_error(format!("Failed to create debug_stage_bytes metric: {}", e)))?;
+
+        let debug_stage_chunks_total = IntCounterVec::new(
+            Opts::new("debug_stage_chunks_total", "Total chunks processed by debug stage")
+                .namespace("adaptive_pipeline"),
+            &["label"],
+        )
+        .map_err(|e| {
+            PipelineError::metrics_error(format!("Failed to create debug_stage_chunks_total metric: {}", e))
+        })?;
+
         // Register all metrics
         registry
             .register(Box::new(pipelines_processed_total.clone()))
@@ -173,6 +194,12 @@ impl MetricsService {
         registry
             .register(Box::new(active_pipelines.clone()))
             .map_err(|e| PipelineError::metrics_error(format!("Failed to register active_pipelines: {}", e)))?;
+        registry
+            .register(Box::new(debug_stage_bytes.clone()))
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register debug_stage_bytes: {}", e)))?;
+        registry
+            .register(Box::new(debug_stage_chunks_total.clone()))
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register debug_stage_chunks_total: {}", e)))?;
 
         debug!("MetricsService initialized with Prometheus registry");
 
@@ -187,6 +214,8 @@ impl MetricsService {
             throughput_mbps,
             compression_ratio,
             active_pipelines,
+            debug_stage_bytes,
+            debug_stage_chunks_total,
         })
     }
 
@@ -274,6 +303,20 @@ impl MetricsService {
     /// Increment chunks processed counter
     pub fn increment_chunks_processed(&self) {
         self.pipeline_chunks_processed_total.inc();
+    }
+
+    /// Record bytes processed by a debug stage for a specific chunk
+    pub fn record_debug_stage_bytes(&self, label: &str, chunk_id: u64, bytes: u64) {
+        self.debug_stage_bytes
+            .with_label_values(&[label, &chunk_id.to_string()])
+            .set(bytes as f64);
+        debug!("Recorded debug stage bytes: label={}, chunk={}, bytes={}", label, chunk_id, bytes);
+    }
+
+    /// Increment chunks processed counter for a specific debug stage
+    pub fn increment_debug_stage_chunks(&self, label: &str) {
+        self.debug_stage_chunks_total.with_label_values(&[label]).inc();
+        debug!("Incremented debug stage chunks: label={}", label);
     }
 
     /// Get Prometheus metrics in text format for scraping
@@ -431,5 +474,59 @@ mod tests {
 
         let prometheus_output = service.get_metrics().unwrap();
         assert!(prometheus_output.contains("adaptive_pipeline_pipeline_active_count"));
+    }
+
+    /// Tests debug stage metrics recording.
+    ///
+    /// This test validates that debug stage metrics are properly recorded
+    /// and exposed via Prometheus metrics endpoint.
+    ///
+    /// # Test Coverage
+    ///
+    /// - Debug stage bytes metric recording
+    /// - Debug stage chunks counter increment
+    /// - Prometheus metric label handling
+    /// - Metric output formatting
+    ///
+    /// # Test Scenario
+    ///
+    /// Creates a metrics service, records debug stage metrics for
+    /// multiple chunks with a specific label, and verifies the metrics
+    /// appear in Prometheus output.
+    ///
+    /// # Assertions
+    ///
+    /// - Metrics service creation succeeds
+    /// - Debug stage bytes are recorded per chunk
+    /// - Debug stage chunks counter increments
+    /// - Prometheus output contains debug_stage metrics
+    /// - Metrics include correct labels (stage label, chunk_id)
+    #[test]
+    fn test_debug_stage_metrics() {
+        let service = MetricsService::new().unwrap();
+
+        // Record metrics for debug stage with label "test_stage"
+        service.record_debug_stage_bytes("test_stage", 0, 1024);
+        service.increment_debug_stage_chunks("test_stage");
+
+        service.record_debug_stage_bytes("test_stage", 1, 2048);
+        service.increment_debug_stage_chunks("test_stage");
+
+        // Get Prometheus output
+        let prometheus_output = service.get_metrics().unwrap();
+
+        // Verify metrics are present
+        assert!(
+            prometheus_output.contains("adaptive_pipeline_debug_stage_bytes"),
+            "Should contain debug_stage_bytes metric"
+        );
+        assert!(
+            prometheus_output.contains("adaptive_pipeline_debug_stage_chunks_total"),
+            "Should contain debug_stage_chunks_total metric"
+        );
+        assert!(
+            prometheus_output.contains("test_stage"),
+            "Should contain stage label 'test_stage'"
+        );
     }
 }

@@ -27,7 +27,6 @@ This isn't just another file processor - it's a **showcase of advanced Rust patt
 - [Features](#features)
 - [Development](#development)
 - [Advanced Usage](#advanced-usage)
-- [Contributing](#contributing)
 
 ## 🏗️ Architecture
 
@@ -824,51 +823,6 @@ export RUST_LOG="pipeline=debug,tower_http=warn"
 export RAYON_NUM_THREADS=8
 export TOKIO_WORKER_THREADS=4
 ```
-
-## 🤝 Contributing
-
-We welcome contributions! This project showcases production-grade Rust patterns.
-
-### Getting Started
-
-```bash
-# Fork the repository
-git clone https://github.com/YOUR_USERNAME/optimized_adaptive_pipeline_rs.git
-
-# Create feature branch
-git checkout -b feature/amazing-feature
-
-# Make changes, add tests
-make test
-
-# Ensure quality
-make lint-strict
-make format
-
-# Commit with conventional commits
-git commit -m "feat: add amazing feature"
-
-# Push and create PR
-git push origin feature/amazing-feature
-```
-
-### Development Guidelines
-
-1. **All production code must be panic-free** (`make lint-strict` must pass)
-2. **Domain layer stays pure** (no async, no I/O dependencies)
-3. **Test coverage** for new features (unit + integration)
-4. **Documentation** for public APIs (rustdoc comments)
-5. **Performance** - benchmark before/after for critical paths
-
-### Code Review Checklist
-
-- [ ] No `unwrap/expect/panic` in production code
-- [ ] Domain layer remains pure (no async)
-- [ ] Tests added and passing
-- [ ] Benchmarks show no regression
-- [ ] Documentation updated
-- [ ] `make lint-strict` passes
-- [ ] Conventional commit messages
 
 ## 📚 Resources
 

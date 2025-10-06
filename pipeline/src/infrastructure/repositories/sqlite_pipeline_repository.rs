@@ -777,6 +777,7 @@ impl SqlitePipelineRepository {
         id: PipelineId,
         include_archived: bool,
     ) -> Result<Option<Pipeline>, PipelineError> {
+        eprintln!("DEBUG: Loading pipeline from structured DB: {}", id);
         debug!("Loading pipeline from structured DB: {}", id);
 
         // Load main pipeline record
@@ -840,7 +841,7 @@ impl SqlitePipelineRepository {
 
         let mut stages = Vec::new();
         for row in stage_rows {
-            let _stage_id_str: String = row.get("id");
+            let stage_id_str: String = row.get("id");
             let stage_name: String = row.get("name");
             let stage_type_str: String = row.get("stage_type");
             let _enabled: bool = row.get("enabled");
@@ -856,11 +857,28 @@ impl SqlitePipelineRepository {
                 .parse::<StageType>()
                 .map_err(|e| PipelineError::SerializationError(format!("Invalid stage type: {}", e)))?;
 
+            // Load stage parameters from stage_parameters table
+            let params_query = "SELECT key, value FROM stage_parameters WHERE stage_id = ?";
+            let params_rows = sqlx::query(params_query)
+                .bind(&stage_id_str)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| PipelineError::database_error(format!("Failed to load stage parameters: {}", e)))?;
+
+            let mut parameters = std::collections::HashMap::new();
+            for param_row in params_rows {
+                let key: String = param_row.get("key");
+                let value: String = param_row.get("value");
+                eprintln!("DEBUG: Loading stage '{}' parameter: {} = {}", stage_name, key, value);
+                parameters.insert(key, value);
+            }
+            eprintln!("DEBUG: Stage '{}' loaded {} parameters", stage_name, parameters.len());
+
             // Build stage configuration
             let stage_config = StageConfiguration {
                 algorithm,
                 operation: pipeline_domain::entities::Operation::Forward, // Default to Forward
-                parameters: std::collections::HashMap::new(), // TODO: Load parameters if needed
+                parameters,
                 parallel_processing,
                 chunk_size: chunk_size.map(|s| s as usize),
             };
