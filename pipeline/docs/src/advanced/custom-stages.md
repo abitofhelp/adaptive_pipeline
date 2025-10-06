@@ -1,586 +1,632 @@
 # Custom Stages
 
 **Version:** 0.1.0
-**Date:** 2025-01-04
+**Date:** 2025-01-05
 **SPDX-License-Identifier:** BSD-3-Clause
 **License File:** See the LICENSE file in the project root.
 **Copyright:** © 2025 Michael Gardner, A Bit of Help, Inc.
 **Authors:** Michael Gardner
-**Status:** Draft
+**Status:** Stable
 
-This chapter provides a step-by-step guide to creating custom pipeline stages, from defining the stage type through implementation, testing, and integration.
+This chapter provides a practical guide to creating custom pipeline stages using the unified `StageService` architecture. All stages—built-in and custom—implement the same traits and follow identical patterns.
 
-## Overview
+## Quick Start
 
-Custom stages allow you to extend the pipeline with specialized data processing operations:
+Creating a custom stage involves three simple steps:
 
-- **Data Sanitization**: Remove PII, redact sensitive information
-- **Data Validation**: Enforce schemas, validate formats
-- **Data Transformation**: Convert formats, restructure data
-- **Data Enrichment**: Add metadata, annotations, tags
-- **Custom Business Logic**: Domain-specific operations
+1. **Implement `StageService` trait** - Define your stage's behavior
+2. **Implement `FromParameters` trait** - Extract typed config from HashMap
+3. **Register in service registry** - Add to `main.rs` stage_services HashMap
 
-**Key Concepts:**
-- **StageType**: Enum variant identifying the stage category
-- **StageConfiguration**: Parameters for stage behavior
-- **Service Trait**: Domain interface defining stage operations
-- **Service Implementation**: Infrastructure adapter performing the work
-- **Processing Context**: Shared state for metrics and metadata
+**That's it!** No enum modifications, no executor updates, no separate trait definitions.
 
-## Stage Implementation Steps
+## Learning by Example
 
-### Step 1: Define Stage Type
+The codebase includes three production-ready stages that demonstrate the complete pattern:
 
-Add a new variant to the `StageType` enum:
+| Stage | File | Description | Complexity |
+|-------|------|-------------|------------|
+| **Base64** | `pipeline/src/infrastructure/services/base64_encoding_service.rs` | Binary-to-text encoding | ⭐ Simple |
+| **PII Masking** | `pipeline/src/infrastructure/services/pii_masking_service.rs` | Privacy protection | ⭐⭐ Medium |
+| **Tee** | `pipeline/src/infrastructure/services/tee_service.rs` | Data inspection/debugging | ⭐⭐ Medium |
 
-```rust
-// pipeline-domain/src/entities/pipeline_stage.rs
+**Recommendation:** Start by reading `base64_encoding_service.rs` (220 lines) for a complete, minimal example.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum StageType {
-    Compression,
-    Encryption,
-    Transform,
-    Checksum,
-    PassThrough,
+## The StageService Pattern
 
-    // Custom stage type
-    Sanitization,  // Data sanitization
-}
+Every stage implements two traits:
 
-impl std::fmt::Display for StageType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            // ... existing types ...
-            StageType::Sanitization => write!(f, "sanitization"),
-        }
-    }
-}
+### 1. FromParameters - Type-Safe Configuration
 
-impl std::str::FromStr for StageType {
-    type Err = PipelineError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            // ... existing types ...
-            "sanitization" => Ok(StageType::Sanitization),
-            _ => Err(PipelineError::InvalidConfiguration(format!(
-                "Unknown stage type: {}",
-                s
-            ))),
-        }
-    }
-}
-```
-
-### Step 2: Define Domain Service Trait
-
-Create a trait in the domain layer:
+Extracts typed configuration from `HashMap<String, String>`:
 
 ```rust
-// pipeline-domain/src/services/sanitization_service.rs
-
-use crate::{FileChunk, PipelineError, ProcessingContext};
-
-/// Trait for data sanitization services
-///
-/// This service removes or redacts sensitive information from file chunks,
-/// such as PII (personally identifiable information).
-pub trait SanitizationService: Send + Sync {
-    /// Sanitize a file chunk by removing sensitive data
-    ///
-    /// # Arguments
-    ///
-    /// * `chunk` - File chunk to sanitize
-    /// * `context` - Processing context for metrics
-    ///
-    /// # Returns
-    ///
-    /// Sanitized chunk with sensitive data removed or redacted
-    fn sanitize(
-        &self,
-        chunk: FileChunk,
-        context: &mut ProcessingContext,
-    ) -> Result<FileChunk, PipelineError>;
-
-    /// Detect sensitive patterns in chunk
-    ///
-    /// # Returns
-    ///
-    /// Count of sensitive patterns found
-    fn detect_sensitive_data(
-        &self,
-        chunk: &FileChunk,
-    ) -> Result<usize, PipelineError>;
-}
-```
-
-### Step 3: Implement Infrastructure Service
-
-Create the concrete implementation:
-
-```rust
-// pipeline/src/infrastructure/services/sanitization_service_impl.rs
-
-use pipeline_domain::services::SanitizationService;
-use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
-use regex::Regex;
-use std::sync::LazyLock;
-
-/// Regular expressions for detecting sensitive data
-static EMAIL_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b").unwrap());
-
-static SSN_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").unwrap());
-
-static PHONE_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b").unwrap());
-
-static CREDIT_CARD_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b").unwrap());
-
-/// Sanitization service implementation using regex patterns
-pub struct RegexSanitizationService {
-    redaction_placeholder: String,
-}
-
-impl RegexSanitizationService {
-    pub fn new() -> Self {
-        Self {
-            redaction_placeholder: "[REDACTED]".to_string(),
-        }
-    }
-
-    pub fn with_placeholder(placeholder: impl Into<String>) -> Self {
-        Self {
-            redaction_placeholder: placeholder.into(),
-        }
-    }
-
-    fn redact_emails(&self, text: &str) -> String {
-        EMAIL_REGEX.replace_all(text, &self.redaction_placeholder).to_string()
-    }
-
-    fn redact_ssns(&self, text: &str) -> String {
-        SSN_REGEX.replace_all(text, &self.redaction_placeholder).to_string()
-    }
-
-    fn redact_phones(&self, text: &str) -> String {
-        PHONE_REGEX.replace_all(text, &self.redaction_placeholder).to_string()
-    }
-
-    fn redact_credit_cards(&self, text: &str) -> String {
-        CREDIT_CARD_REGEX.replace_all(text, &self.redaction_placeholder).to_string()
-    }
-}
-
-impl SanitizationService for RegexSanitizationService {
-    fn sanitize(
-        &self,
-        chunk: FileChunk,
-        context: &mut ProcessingContext,
-    ) -> Result<FileChunk, PipelineError> {
-        let start = std::time::Instant::now();
-
-        // Convert chunk data to string
-        let text = String::from_utf8_lossy(chunk.data());
-
-        // Apply sanitization
-        let sanitized = self.redact_emails(&text);
-        let sanitized = self.redact_ssns(&sanitized);
-        let sanitized = self.redact_phones(&sanitized);
-        let sanitized = self.redact_credit_cards(&sanitized);
-
-        // Update context
-        let duration = start.elapsed();
-        context.add_bytes_processed(chunk.data().len() as u64);
-        context.record_stage_duration(duration);
-
-        // Create sanitized chunk
-        let mut result = FileChunk::new(
-            chunk.sequence_number(),
-            chunk.file_offset(),
-            sanitized.into_bytes(),
-        );
-
-        result.set_metadata(chunk.metadata().clone());
-
-        Ok(result)
-    }
-
-    fn detect_sensitive_data(
-        &self,
-        chunk: &FileChunk,
-    ) -> Result<usize, PipelineError> {
-        let text = String::from_utf8_lossy(chunk.data());
-
-        let email_count = EMAIL_REGEX.find_iter(&text).count();
-        let ssn_count = SSN_REGEX.find_iter(&text).count();
-        let phone_count = PHONE_REGEX.find_iter(&text).count();
-        let cc_count = CREDIT_CARD_REGEX.find_iter(&text).count();
-
-        Ok(email_count + ssn_count + phone_count + cc_count)
-    }
-}
-
-impl Default for RegexSanitizationService {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-```
-
-### Step 4: Register Stage in Pipeline
-
-Add the stage to pipeline configuration:
-
-```rust
-use pipeline_domain::entities::{PipelineStage, StageType, StageConfiguration};
+use pipeline_domain::services::FromParameters;
+use pipeline_domain::PipelineError;
 use std::collections::HashMap;
 
-// Create sanitization stage
-let stage = PipelineStage::new(
-    StageType::Sanitization,
-    "pii-removal",
-    StageConfiguration::new(
-        "regex".to_string(),
-        HashMap::from([
-            ("placeholder".to_string(), "[REDACTED]".to_string()),
-        ]),
-        true,  // Parallel processing enabled
-    ),
-);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Base64Config {
+    pub variant: Base64Variant,
+}
 
-// Add to pipeline
-pipeline.add_stage(stage)?;
+impl FromParameters for Base64Config {
+    fn from_parameters(params: &HashMap<String, String>) -> Result<Self, PipelineError> {
+        let variant = params
+            .get("variant")
+            .map(|s| match s.to_lowercase().as_str() {
+                "standard" => Ok(Base64Variant::Standard),
+                "url_safe" => Ok(Base64Variant::UrlSafe),
+                other => Err(PipelineError::InvalidParameter(format!(
+                    "Unknown Base64 variant: {}",
+                    other
+                ))),
+            })
+            .transpose()?
+            .unwrap_or(Base64Variant::Standard);
+
+        Ok(Self { variant })
+    }
+}
 ```
 
-### Step 5: Integrate with Stage Executor
+**Key Points:**
+- Similar to Rust's `FromStr` trait
+- Validates parameters early (before execution)
+- Provides clear error messages
+- Allows default values with `.unwrap_or()`
 
-Update the stage executor to handle the new stage type:
+### 2. StageService - Core Processing Logic
+
+Defines how your stage processes data:
 
 ```rust
-// pipeline/src/infrastructure/execution/stage_executor_impl.rs
+use pipeline_domain::services::StageService;
+use pipeline_domain::entities::{
+    Operation, ProcessingContext, StageConfiguration, StagePosition, StageType,
+};
+use pipeline_domain::value_objects::file_chunk::FileChunk;
+use pipeline_domain::PipelineError;
 
-impl StageExecutor for StageExecutorImpl {
-    async fn execute(
+pub struct Base64EncodingService;
+
+impl StageService for Base64EncodingService {
+    fn process_chunk(
         &self,
-        stage: &PipelineStage,
         chunk: FileChunk,
+        config: &StageConfiguration,
         context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError> {
-        match stage.stage_type() {
-            // ... existing types ...
+        // 1. Extract typed config
+        let base64_config = Base64Config::from_parameters(&config.parameters)?;
 
-            StageType::Sanitization => {
-                let service = self.sanitization_service
-                    .as_ref()
-                    .ok_or_else(|| PipelineError::ServiceNotConfigured(
-                        "SanitizationService not configured".to_string()
-                    ))?;
+        // 2. Process based on operation
+        let processed_data = match config.operation {
+            Operation::Forward => self.encode(chunk.data(), base64_config.variant),
+            Operation::Reverse => self.decode(chunk.data(), base64_config.variant)?,
+        };
 
-                service.sanitize(chunk, context)
-            }
+        // 3. Return processed chunk
+        chunk.with_data(processed_data)
+    }
+
+    fn position(&self) -> StagePosition {
+        StagePosition::PreBinary  // Before compression/encryption
+    }
+
+    fn is_reversible(&self) -> bool {
+        true  // Can encode AND decode
+    }
+
+    fn stage_type(&self) -> StageType {
+        StageType::Transform
+    }
+}
+```
+
+**Key Points:**
+- `process_chunk()` - The core processing logic
+- `position()` - Where in pipeline (PreBinary/PostBinary/Any)
+- `is_reversible()` - Whether stage supports reverse operation
+- `stage_type()` - Category (Transform/Compression/Encryption/etc.)
+
+## Stage Position (Binary Boundary)
+
+The `position()` method enforces ordering constraints:
+
+```
+┌──────────────┬─────────────┬──────────────┐
+│  PreBinary   │   Binary    │  PostBinary  │
+│   Stages     │  Boundary   │    Stages    │
+├──────────────┼─────────────┼──────────────┤
+│              │             │              │
+│ Base64       │ Compression │              │
+│ PII Masking  │ Encryption  │              │
+│              │             │              │
+└──────────────┴─────────────┴──────────────┘
+     ↑                             ↑
+     └─ Sees readable data         └─ Sees binary data
+```
+
+**PreBinary:**
+- Executes BEFORE compression/encryption
+- Sees readable, original data format
+- Examples: Base64, PII Masking, format conversion
+
+**PostBinary:**
+- Executes AFTER compression/encryption
+- Sees final binary output
+- Examples: checksumming, digital signatures
+
+**Any:**
+- Can execute anywhere in pipeline
+- Typically diagnostic/observability stages
+- Examples: Tee (data inspection), metrics
+
+## Complete Example: Custom ROT13 Stage
+
+Here's a minimal custom stage (rot13 cipher):
+
+```rust
+// pipeline/src/infrastructure/services/rot13_service.rs
+
+use pipeline_domain::entities::{
+    Operation, ProcessingContext, StageConfiguration, StagePosition, StageType,
+};
+use pipeline_domain::services::{FromParameters, StageService};
+use pipeline_domain::value_objects::file_chunk::FileChunk;
+use pipeline_domain::PipelineError;
+use std::collections::HashMap;
+
+/// Configuration for ROT13 cipher (no parameters needed)
+#[derive(Debug, Clone, Default)]
+pub struct Rot13Config;
+
+impl FromParameters for Rot13Config {
+    fn from_parameters(_params: &HashMap<String, String>) -> Result<Self, PipelineError> {
+        Ok(Self)  // No parameters to parse
+    }
+}
+
+/// ROT13 cipher service (simple character rotation)
+pub struct Rot13Service;
+
+impl Rot13Service {
+    pub fn new() -> Self {
+        Self
+    }
+
+    fn rot13_byte(b: u8) -> u8 {
+        match b {
+            b'A'..=b'Z' => ((b - b'A' + 13) % 26) + b'A',
+            b'a'..=b'z' => ((b - b'a' + 13) % 26) + b'a',
+            _ => b,
         }
     }
 }
-```
 
-## Complete Example: Data Validation Stage
-
-Here's a complete example implementing a data validation stage:
-
-```rust
-// 1. Add StageType variant
-pub enum StageType {
-    // ... existing ...
-    Validation,
-}
-
-// 2. Define domain trait
-pub trait ValidationService: Send + Sync {
-    fn validate(
+impl StageService for Rot13Service {
+    fn process_chunk(
         &self,
         chunk: FileChunk,
-        context: &mut ProcessingContext,
-    ) -> Result<FileChunk, PipelineError>;
-}
-
-// 3. Implement infrastructure service
-pub struct JsonSchemaValidationService {
-    schema: serde_json::Value,
-}
-
-impl JsonSchemaValidationService {
-    pub fn new(schema: serde_json::Value) -> Self {
-        Self { schema }
-    }
-}
-
-impl ValidationService for JsonSchemaValidationService {
-    fn validate(
-        &self,
-        chunk: FileChunk,
-        context: &mut ProcessingContext,
+        config: &StageConfiguration,
+        _context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError> {
-        use jsonschema::JSONSchema;
+        let _ = Rot13Config::from_parameters(&config.parameters)?;
 
-        let start = std::time::Instant::now();
+        // ROT13 is self-inverse: same operation for Forward and Reverse
+        let processed: Vec<u8> = chunk.data()
+            .iter()
+            .map(|&b| Self::rot13_byte(b))
+            .collect();
 
-        // Parse chunk data as JSON
-        let data: serde_json::Value = serde_json::from_slice(chunk.data())
-            .map_err(|e| PipelineError::ValidationError(format!("Invalid JSON: {}", e)))?;
+        chunk.with_data(processed)
+    }
 
-        // Validate against schema
-        let compiled_schema = JSONSchema::compile(&self.schema)
-            .map_err(|e| PipelineError::ValidationError(format!("Invalid schema: {}", e)))?;
+    fn position(&self) -> StagePosition {
+        StagePosition::PreBinary  // Must execute before encryption
+    }
 
-        if let Err(errors) = compiled_schema.validate(&data) {
-            let error_messages: Vec<String> = errors
-                .map(|e| e.to_string())
-                .collect();
+    fn is_reversible(&self) -> bool {
+        true  // ROT13 is self-inverse
+    }
 
-            return Err(PipelineError::ValidationError(format!(
-                "Validation failed: {}",
-                error_messages.join(", ")
-            )));
-        }
-
-        // Update context
-        let duration = start.elapsed();
-        context.add_bytes_processed(chunk.data().len() as u64);
-        context.record_stage_duration(duration);
-
-        Ok(chunk)  // Return unchanged if valid
+    fn stage_type(&self) -> StageType {
+        StageType::Transform
     }
 }
 
-// 4. Usage in pipeline
-let schema = serde_json::json!({
-    "type": "object",
-    "properties": {
-        "name": { "type": "string" },
-        "age": { "type": "number", "minimum": 0 }
-    },
-    "required": ["name", "age"]
-});
-
-let validation_service = Arc::new(JsonSchemaValidationService::new(schema));
-
-let stage = PipelineStage::new(
-    StageType::Validation,
-    "json-schema",
-    StageConfiguration::new(
-        "jsonschema".to_string(),
-        HashMap::new(),
-        false,  // Sequential validation
-    ),
-);
-
-pipeline.add_stage(stage)?;
-```
-
-## Testing Custom Stages
-
-### Unit Tests
-
-```rust
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_sanitization_redacts_emails() {
-        let service = RegexSanitizationService::new();
-        let test_data = b"Contact: user@example.com for details";
+    fn test_rot13_roundtrip() {
+        let service = Rot13Service::new();
+        let chunk = FileChunk::new(0, 0, b"Hello, World!".to_vec(), false).unwrap();
+        let config = StageConfiguration::default();
+        let mut context = ProcessingContext::default();
 
-        let chunk = FileChunk::new(0, 0, test_data.to_vec());
-        let mut context = ProcessingContext::new();
+        // Encode
+        let encoded = service.process_chunk(chunk, &config, &mut context).unwrap();
+        assert_eq!(encoded.data(), b"Uryyb, Jbeyq!");
 
-        let result = service.sanitize(chunk, &mut context).unwrap();
+        // Decode (same operation)
+        let decoded = service.process_chunk(encoded, &config, &mut context).unwrap();
+        assert_eq!(decoded.data(), b"Hello, World!");
+    }
+}
+```
 
-        let sanitized_text = String::from_utf8(result.data().to_vec()).unwrap();
-        assert!(sanitized_text.contains("[REDACTED]"));
-        assert!(!sanitized_text.contains("user@example.com"));
+## Registration and Usage
+
+### 1. Export from Module
+
+```rust
+// pipeline/src/infrastructure/services/mod.rs
+
+pub mod base64_encoding_service;
+pub mod pii_masking_service;
+pub mod tee_service;
+pub mod rot13_service;  // Add your service
+
+pub use base64_encoding_service::Base64EncodingService;
+pub use pii_masking_service::PiiMaskingService;
+pub use tee_service::TeeService;
+pub use rot13_service::Rot13Service;  // Export
+```
+
+### 2. Register in main.rs
+
+```rust
+// pipeline/src/main.rs
+
+use pipeline::infrastructure::services::{
+    Base64EncodingService, PiiMaskingService, TeeService, Rot13Service,
+};
+
+// Build stage service registry
+let mut stage_services: HashMap<String, Arc<dyn StageService>> = HashMap::new();
+
+// Register built-in stages
+stage_services.insert("brotli".to_string(), compression_service.clone());
+stage_services.insert("aes256gcm".to_string(), encryption_service.clone());
+
+// Register production transform stages
+stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()));
+stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()));
+stage_services.insert("tee".to_string(), Arc::new(TeeService::new()));
+
+// Register your custom stage
+stage_services.insert("rot13".to_string(), Arc::new(Rot13Service::new()));
+
+// Create stage executor with registry
+let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
+```
+
+### 3. Use in Pipeline Configuration
+
+```rust
+use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+use pipeline_domain::entities::Operation;
+use std::collections::HashMap;
+
+// Create ROT13 stage
+let rot13_stage = PipelineStage::new(
+    "rot13_encode".to_string(),
+    StageType::Transform,
+    StageConfiguration {
+        algorithm: "rot13".to_string(),  // Matches registry key
+        operation: Operation::Forward,
+        parameters: HashMap::new(),       // No parameters needed
+        parallel_processing: false,
+        chunk_size: None,
+    },
+    1,  // Order
+).unwrap();
+
+// Add to pipeline
+pipeline.add_stage(rot13_stage)?;
+```
+
+## Design Patterns and Best Practices
+
+### Pattern 1: Parameterless Stages
+
+For stages without configuration:
+
+```rust
+#[derive(Debug, Clone, Default)]
+pub struct MyConfig;
+
+impl FromParameters for MyConfig {
+    fn from_parameters(_params: &HashMap<String, String>) -> Result<Self, PipelineError> {
+        Ok(Self)  // Always succeeds, no validation needed
+    }
+}
+```
+
+### Pattern 2: Optional Parameters with Defaults
+
+```rust
+impl FromParameters for TeeConfig {
+    fn from_parameters(params: &HashMap<String, String>) -> Result<Self, PipelineError> {
+        // Required parameter
+        let output_path = params
+            .get("output_path")
+            .ok_or_else(|| PipelineError::MissingParameter("output_path".into()))?;
+
+        // Optional with default
+        let format = params
+            .get("format")
+            .map(|s| TeeFormat::from_str(s))
+            .transpose()?
+            .unwrap_or(TeeFormat::Binary);
+
+        Ok(Self { output_path: output_path.into(), format })
+    }
+}
+```
+
+### Pattern 3: Non-Reversible Stages
+
+For one-way operations:
+
+```rust
+impl StageService for PiiMaskingService {
+    fn process_chunk(...) -> Result<FileChunk, PipelineError> {
+        match config.operation {
+            Operation::Forward => {
+                // Mask PII
+                self.mask_data(chunk.data(), &pii_config)?
+            }
+            Operation::Reverse => {
+                // Cannot unmask - data is destroyed
+                return Err(PipelineError::ProcessingFailed(
+                    "PII masking is not reversible".to_string()
+                ));
+            }
+        }
+    }
+
+    fn is_reversible(&self) -> bool {
+        false  // Important: declares non-reversibility
+    }
+}
+```
+
+### Pattern 4: Lazy Static Resources
+
+For expensive initialization (regex, schemas, etc.):
+
+```rust
+use once_cell::sync::Lazy;
+use regex::Regex;
+
+static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+        .expect("Invalid email regex")
+});
+
+impl StageService for PiiMaskingService {
+    fn process_chunk(...) -> Result<FileChunk, PipelineError> {
+        // Regex compiled once, reused for all chunks
+        let masked = EMAIL_REGEX.replace_all(&text, "***");
+        // ...
+    }
+}
+```
+
+## Testing Your Stage
+
+### Unit Tests
+
+Test your service in isolation:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pipeline_domain::entities::{SecurityContext, SecurityLevel};
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_config_parsing() {
+        let mut params = HashMap::new();
+        params.insert("variant".to_string(), "url_safe".to_string());
+
+        let config = Base64Config::from_parameters(&params).unwrap();
+        assert_eq!(config.variant, Base64Variant::UrlSafe);
     }
 
     #[test]
-    fn test_sanitization_detects_multiple_patterns() {
-        let service = RegexSanitizationService::new();
-        let test_data = b"Email: test@example.com, SSN: 123-45-6789, Phone: 555-123-4567";
+    fn test_forward_operation() {
+        let service = Base64EncodingService::new();
+        let chunk = FileChunk::new(0, 0, b"Hello, World!".to_vec(), false).unwrap();
+        let config = StageConfiguration::default();
+        let mut context = ProcessingContext::new(
+            PathBuf::from("/tmp/in"),
+            PathBuf::from("/tmp/out"),
+            100,
+            SecurityContext::new(None, SecurityLevel::Public),
+        );
 
-        let chunk = FileChunk::new(0, 0, test_data.to_vec());
+        let result = service.process_chunk(chunk, &config, &mut context).unwrap();
 
-        let count = service.detect_sensitive_data(&chunk).unwrap();
-        assert_eq!(count, 3);  // Email + SSN + Phone
+        // Base64 of "Hello, World!" is "SGVsbG8sIFdvcmxkIQ=="
+        assert_eq!(result.data(), b"SGVsbG8sIFdvcmxkIQ==");
     }
 
     #[test]
-    fn test_validation_rejects_invalid_json() {
-        let schema = serde_json::json!({
-            "type": "object",
-            "properties": {
-                "name": { "type": "string" }
-            },
-            "required": ["name"]
-        });
+    fn test_roundtrip() {
+        let service = Base64EncodingService::new();
+        let original = b"Test data";
+        let chunk = FileChunk::new(0, 0, original.to_vec(), false).unwrap();
 
-        let service = JsonSchemaValidationService::new(schema);
-        let invalid_data = b"{ \"age\": 25 }";  // Missing required "name"
+        let mut config = StageConfiguration::default();
+        let mut context = ProcessingContext::default();
 
-        let chunk = FileChunk::new(0, 0, invalid_data.to_vec());
-        let mut context = ProcessingContext::new();
+        // Encode
+        config.operation = Operation::Forward;
+        let encoded = service.process_chunk(chunk, &config, &mut context).unwrap();
 
-        let result = service.validate(chunk, &mut context);
-        assert!(result.is_err());
+        // Decode
+        config.operation = Operation::Reverse;
+        let decoded = service.process_chunk(encoded, &config, &mut context).unwrap();
+
+        assert_eq!(decoded.data(), original);
     }
 }
 ```
 
 ### Integration Tests
 
+Test stage within pipeline:
+
 ```rust
 #[tokio::test]
-async fn test_custom_stage_in_pipeline() {
-    // Create pipeline with custom stage
-    let mut pipeline = Pipeline::new();
+async fn test_rot13_in_pipeline() {
+    // Build stage service registry
+    let mut stage_services = HashMap::new();
+    stage_services.insert("rot13".to_string(),
+        Arc::new(Rot13Service::new()) as Arc<dyn StageService>);
 
-    let sanitization_stage = PipelineStage::new(
-        StageType::Sanitization,
-        "pii-removal",
-        StageConfiguration::default(),
-    );
+    let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
 
-    pipeline.add_stage(sanitization_stage).unwrap();
+    // Create pipeline with ROT13 stage
+    let rot13_stage = PipelineStage::new(
+        "rot13".to_string(),
+        StageType::Transform,
+        StageConfiguration {
+            algorithm: "rot13".to_string(),
+            operation: Operation::Forward,
+            parameters: HashMap::new(),
+            parallel_processing: false,
+            chunk_size: None,
+        },
+        1,
+    ).unwrap();
 
-    // Process test data
-    let test_data = b"User: john@example.com, SSN: 123-45-6789";
-    let result = pipeline.process(test_data).await.unwrap();
+    let pipeline = Pipeline::new("test".to_string(), vec![rot13_stage]).unwrap();
 
-    // Verify sanitization
-    let output = String::from_utf8(result).unwrap();
-    assert!(!output.contains("john@example.com"));
-    assert!(!output.contains("123-45-6789"));
-    assert!(output.contains("[REDACTED]"));
+    // Execute
+    let chunk = FileChunk::new(0, 0, b"Hello!".to_vec(), false).unwrap();
+    let mut context = ProcessingContext::default();
+
+    let result = stage_executor
+        .execute(pipeline.stages()[1], chunk, &mut context)  // [1] skips input_checksum
+        .await
+        .unwrap();
+
+    assert_eq!(result.data(), b"Uryyb!");
 }
 ```
 
-## Best Practices
+## Real-World Examples
 
-### 1. Stateless Services
+### Production Stages in Codebase
+
+Study these files for complete, tested implementations:
+
+1. **base64_encoding_service.rs** (220 lines)
+   - Simple reversible transformation
+   - Multiple config variants
+   - Clean error handling
+   - Complete test coverage
+
+2. **pii_masking_service.rs** (309 lines)
+   - Non-reversible transformation
+   - Multiple regex patterns
+   - Lazy static initialization
+   - Complex configuration
+
+3. **tee_service.rs** (380 lines)
+   - Pass-through with side effects
+   - File I/O operations
+   - Multiple output formats
+   - Position::Any usage
+
+## Common Pitfalls
+
+### ❌ Don't: Modify Domain Enums
 
 ```rust
-// ✅ Good: Stateless service (thread-safe)
-pub struct MyService {
-    config: MyConfig,  // Immutable configuration
+// WRONG: Don't add to StageType enum
+pub enum StageType {
+    Transform,
+    MyCustomStage,  // ❌ Not needed!
 }
+```
 
-impl MyService for MyServiceImpl {
-    fn process(&self, chunk: FileChunk, context: &mut ProcessingContext)
-        -> Result<FileChunk, PipelineError>
-    {
-        // No mutable state - safe for concurrent use
+**Correct:** Just use `StageType::Transform` and register with a unique algorithm name.
+
+### ❌ Don't: Create Separate Traits
+
+```rust
+// WRONG: Don't create custom trait
+pub trait MyCustomService: Send + Sync {
+    fn process(...);
+}
+```
+
+**Correct:** Implement `StageService` directly. All stages use the same trait.
+
+### ❌ Don't: Manual Executor Updates
+
+```rust
+// WRONG: Don't modify stage executor
+impl StageExecutor for BasicStageExecutor {
+    async fn execute(...) {
+        match algorithm {
+            "my_stage" => // manual dispatch ❌
+        }
     }
 }
-
-// ❌ Bad: Stateful service (not thread-safe)
-pub struct MyService {
-    processed_count: usize,  // Mutable state without synchronization!
-}
 ```
 
-### 2. Proper Error Handling
-
-```rust
-// ✅ Good: Specific error types
-fn validate(&self, chunk: FileChunk) -> Result<FileChunk, PipelineError> {
-    let data = serde_json::from_slice(chunk.data())
-        .map_err(|e| PipelineError::ValidationError(format!("Invalid JSON: {}", e)))?;
-
-    // ...
-}
-
-// ❌ Bad: Generic errors
-fn validate(&self, chunk: FileChunk) -> Result<FileChunk, PipelineError> {
-    let data = serde_json::from_slice(chunk.data()).unwrap();  // Panics!
-    // ...
-}
-```
-
-### 3. Update Processing Context
-
-```rust
-// ✅ Good: Track metrics
-fn process(&self, chunk: FileChunk, context: &mut ProcessingContext)
-    -> Result<FileChunk, PipelineError>
-{
-    let start = std::time::Instant::now();
-
-    // ... do work ...
-
-    context.add_bytes_processed(chunk.data().len() as u64);
-    context.record_stage_duration(start.elapsed());
-
-    Ok(result)
-}
-
-// ❌ Bad: No metrics
-fn process(&self, chunk: FileChunk, context: &mut ProcessingContext)
-    -> Result<FileChunk, PipelineError>
-{
-    // ... do work ...
-    Ok(result)  // No metrics recorded!
-}
-```
-
-### 4. Preserve Chunk Metadata
-
-```rust
-// ✅ Good: Preserve metadata
-let mut result = FileChunk::new(
-    chunk.sequence_number(),
-    chunk.file_offset(),
-    processed_data,
-);
-result.set_metadata(chunk.metadata().clone());
-
-// ❌ Bad: Lose metadata
-let result = FileChunk::new(0, 0, processed_data);  // Lost sequence info!
-```
-
-## Related Topics
-
-- See [Extending the Pipeline](extending.md) for overview of extension points
-- See [Custom Algorithms](custom-algorithms.md) for algorithm implementation
-- See [Architecture](../architecture/layers.md) for layered architecture principles
+**Correct:** Just register in `stage_services` HashMap. Executor uses the registry.
 
 ## Summary
 
-Creating custom stages involves:
+Creating custom stages with the unified architecture:
 
-1. **Define StageType**: Add enum variant for stage category
-2. **Define Service Trait**: Create domain interface in `pipeline-domain`
-3. **Implement Service**: Build infrastructure adapter in `pipeline`
-4. **Register Stage**: Add to pipeline configuration
-5. **Integrate Executor**: Update stage executor to handle new type
-6. **Test Thoroughly**: Unit and integration tests
+**Three Steps:**
+1. Implement `StageService` trait (process_chunk, position, is_reversible, stage_type)
+2. Implement `FromParameters` trait (type-safe config extraction)
+3. Register in `main.rs` stage_services HashMap
 
-**Key Takeaways:**
-- Keep services stateless for thread safety
-- Use specific error types for better diagnostics
-- Update processing context with metrics
-- Preserve chunk metadata through transformations
-- Add comprehensive tests (unit + integration)
-- Document configuration options and behavior
+**Key Benefits:**
+- No enum modifications needed
+- No executor changes required
+- Type-safe configuration
+- Automatic validation (ordering, parameters)
+- Same pattern for all stages
 
-**Stage Development Checklist:**
-- [ ] Define StageType enum variant
-- [ ] Create domain service trait
-- [ ] Implement infrastructure service
-- [ ] Add unit tests for service
-- [ ] Register in pipeline configuration
-- [ ] Update stage executor
-- [ ] Add integration tests
-- [ ] Document usage and configuration
-- [ ] Benchmark performance (if applicable)
+**Learn More:**
+- Read production stages: `base64_encoding_service.rs`, `pii_masking_service.rs`, `tee_service.rs`
+- See `pipeline-domain/src/services/stage_service.rs` for trait definitions
+- See `pipeline-domain/src/entities/pipeline_stage.rs` for StagePosition documentation
+
+**Quick Reference:**
+```rust
+// Minimal custom stage template
+pub struct MyService;
+
+impl StageService for MyService {
+    fn process_chunk(...) -> Result<FileChunk, PipelineError> {
+        let config = MyConfig::from_parameters(&config.parameters)?;
+        // ... process data ...
+        chunk.with_data(processed_data)
+    }
+    fn position(&self) -> StagePosition { StagePosition::PreBinary }
+    fn is_reversible(&self) -> bool { true }
+    fn stage_type(&self) -> StageType { StageType::Transform }
+}
+
+impl FromParameters for MyConfig {
+    fn from_parameters(params: &HashMap<String, String>) -> Result<Self, PipelineError> {
+        // ... parse parameters ...
+        Ok(Self { /* config fields */ })
+    }
+}
+```
