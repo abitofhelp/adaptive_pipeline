@@ -56,7 +56,3 @@
 
 pub mod file_processor_service;
 pub mod pipeline_service;
-pub mod transactional_chunk_writer;
-
-// Re-export for convenient access
-pub use transactional_chunk_writer::TransactionalChunkWriter;
