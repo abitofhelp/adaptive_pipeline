@@ -26,7 +26,7 @@
 //!
 //! The implementation follows the infrastructure layer patterns:
 //!
-//! - **Service Implementation**: `FileProcessorServiceImpl` implements domain
+//! - **Service Implementation**: `StreamingFileProcessor` implements domain
 //!   interface
 //! - **Dependency Injection**: File I/O service is injected as a dependency
 //! - **Configuration Management**: Runtime configuration with thread-safe
@@ -199,13 +199,13 @@ use pipeline_domain::{FileChunk, PipelineError};
 /// - **Statistics Tracking**: Comprehensive processing statistics
 ///
 /// # Examples
-pub struct FileProcessorServiceImpl<T: FileIOService> {
+pub struct StreamingFileProcessor<T: FileIOService> {
     file_io_service: Arc<T>,
     config: RwLock<FileProcessorConfig>,
     stats: RwLock<FileProcessingStats>,
 }
 
-impl<T: FileIOService> FileProcessorServiceImpl<T> {
+impl<T: FileIOService> StreamingFileProcessor<T> {
     /// Creates a new FileProcessorService instance
     pub fn new(file_io_service: Arc<T>, config: FileProcessorConfig) -> Self {
         Self {
@@ -290,7 +290,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
 }
 
 #[async_trait]
-impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
+impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
     async fn process_file(
         &self,
         input_path: &Path,
@@ -486,7 +486,7 @@ impl<T: FileIOService> FileProcessorService for FileProcessorServiceImpl<T> {
     }
 }
 
-impl<T: FileIOService> FileProcessorServiceImpl<T> {
+impl<T: FileIOService> StreamingFileProcessor<T> {
     /// Process a batch of files concurrently using the provided processor
     async fn process_batch_concurrent(
         &self,
@@ -657,7 +657,7 @@ mod tests {
         println!("Starting test_file_processing_basic");
 
         let file_io_service = Arc::new(TokioFileIO::new_default());
-        let processor_service = FileProcessorServiceImpl::new_default(file_io_service);
+        let processor_service = StreamingFileProcessor::new_default(file_io_service);
 
         // Configure with proper 1MB chunk size to meet minimum requirements
         {
@@ -705,7 +705,7 @@ mod tests {
     #[tokio::test]
     async fn test_file_processing_with_output() {
         let file_io_service = Arc::new(TokioFileIO::new_default());
-        let processor_service = FileProcessorServiceImpl::new_default(file_io_service.clone());
+        let processor_service = StreamingFileProcessor::new_default(file_io_service.clone());
 
         // Create a test file with enough data for 1MB minimum chunk size
         let mut temp_file = NamedTempFile::new().unwrap();

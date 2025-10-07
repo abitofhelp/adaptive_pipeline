@@ -324,11 +324,11 @@ impl ServiceStats for EnhancedCompressionStats {
 }
 
 /// Generic compression service implementation using the service base
-pub struct GenericCompressionServiceImpl {
+pub struct GenericCompressionService {
     service_base: GenericServiceBase<EnhancedCompressionConfig, EnhancedCompressionStats>,
 }
 
-impl GenericCompressionServiceImpl {
+impl GenericCompressionService {
     /// Creates a new compression service with default configuration
     pub fn new() -> Self {
         Self {
@@ -397,7 +397,7 @@ impl GenericCompressionServiceImpl {
 // In a real application, you would implement all the required trait methods
 
 #[async_trait]
-impl ServiceLifecycle for GenericCompressionServiceImpl {
+impl ServiceLifecycle for GenericCompressionService {
     async fn start(&self) -> Result<(), PipelineError> {
         println!("🚀 Starting Generic Compression Service...");
         self.service_base.set_health(true);
@@ -420,7 +420,7 @@ impl ServiceLifecycle for GenericCompressionServiceImpl {
     }
 }
 
-impl ServiceMetrics<EnhancedCompressionStats> for GenericCompressionServiceImpl {
+impl ServiceMetrics<EnhancedCompressionStats> for GenericCompressionService {
     fn record_metric(&self, metric_name: &str, value: f64) -> Result<(), PipelineError> {
         self.service_base.update_stats(|stats| {
             match metric_name {
@@ -465,7 +465,7 @@ mod tests {
     
     #[tokio::test]
     async fn test_generic_compression_service_creation() {
-        let service = GenericCompressionServiceImpl::new();
+        let service = GenericCompressionService::new();
         assert!(service.service_base().is_healthy());
         
         let metadata = service.service_base().get_metadata();
@@ -475,7 +475,7 @@ mod tests {
     
     #[tokio::test]
     async fn test_compression_with_metrics() {
-        let service = GenericCompressionServiceImpl::new();
+        let service = GenericCompressionService::new();
         let security_context = SecurityContext::default();
         let test_data = b"test data for compression";
         
@@ -492,7 +492,7 @@ mod tests {
     
     #[tokio::test]
     async fn test_service_lifecycle() {
-        let service = GenericCompressionServiceImpl::new();
+        let service = GenericCompressionService::new();
         
         service.start().await.unwrap();
         assert!(service.service_base().is_healthy());
@@ -550,7 +550,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("====================================");
     
     // Create a compression service with default configuration
-    let service = GenericCompressionServiceImpl::new();
+    let service = GenericCompressionService::new();
     
     // Start the service
     service.start().await?;
