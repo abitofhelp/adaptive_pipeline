@@ -1,6 +1,6 @@
 [package]
 name = "bootstrap"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Michael Gardner <michael@abitofhelp.com>"]
 description = "Bootstrap module for adaptive pipeline - handles entry point, DI, signals, and platform abstraction"

@@ -333,7 +333,7 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
 
     tracing::subscriber::set_global_default(subscriber)?;
 
-    debug!("Starting Optimized Adaptive Pipeline RS v1.0.0");
+    debug!("Starting Optimized Adaptive Pipeline RS v1.0.1");
 
     // Initialize Prometheus metrics service
     let metrics_service = Arc::new(MetricsService::new().map_err(|e| {

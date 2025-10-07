@@ -145,7 +145,7 @@ impl ValidateFileUseCase {
     ///    Original size: 1.048 MB
     ///    Original checksum: abc123...
     ///    Format version: 1
-    ///    App version: 1.0.0
+    ///    App version: 1.0.1
     ///    Chunk size: 64.0 KB
     ///    Chunk count: 16
     ///    Pipeline ID: 01H2X3Y4Z5...
