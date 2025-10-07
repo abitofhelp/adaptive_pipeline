@@ -72,7 +72,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::info;
 
-use crate::infrastructure::adapters::repositories::sqlite_pipeline_repository_adapter::SqlitePipelineRepository;
+use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
 use pipeline_domain::entities::pipeline::Pipeline;
 use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 

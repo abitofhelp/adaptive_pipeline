@@ -24,10 +24,10 @@
 //! ```rust,ignore
 //! use std::sync::Arc;
 //! use pipeline::infrastructure::adapters::AsyncCompressionAdapter;
-//! use pipeline::infrastructure::adapters::CompressionServiceImpl;
+//! use pipeline::infrastructure::adapters::MultiAlgoCompression;
 //!
 //! // Create sync implementation
-//! let sync_service = Arc::new(CompressionServiceImpl::new());
+//! let sync_service = Arc::new(MultiAlgoCompression::new());
 //!
 //! // Wrap in async adapter
 //! let async_service = AsyncCompressionAdapter::new(sync_service);

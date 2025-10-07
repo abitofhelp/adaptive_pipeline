@@ -31,7 +31,7 @@
 //!
 //! The implementation follows the infrastructure layer patterns:
 //!
-//! - **Service Implementation**: `CompressionServiceImpl` implements domain
+//! - **Service Implementation**: `MultiAlgoCompression` implements domain
 //!   interface
 //! - **Algorithm Handlers**: Specialized handlers for each compression
 //!   algorithm
@@ -131,17 +131,17 @@ use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
 /// shared state.
 ///
 /// # Examples
-pub struct CompressionServiceImpl {
+pub struct MultiAlgoCompression {
     // Configuration and state
 }
 
-impl Default for CompressionServiceImpl {
+impl Default for MultiAlgoCompression {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CompressionServiceImpl {
+impl MultiAlgoCompression {
     pub fn new() -> Self {
         Self {}
     }
@@ -246,7 +246,7 @@ impl CompressionServiceImpl {
     }
 }
 
-impl CompressionService for CompressionServiceImpl {
+impl CompressionService for MultiAlgoCompression {
     fn compress_chunk(
         &self,
         chunk: FileChunk,
@@ -458,7 +458,7 @@ impl CompressionService for CompressionServiceImpl {
 }
 
 // Implement StageService trait for unified interface
-impl pipeline_domain::services::StageService for CompressionServiceImpl {
+impl pipeline_domain::services::StageService for MultiAlgoCompression {
     fn process_chunk(
         &self,
         chunk: pipeline_domain::FileChunk,

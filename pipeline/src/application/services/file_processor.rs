@@ -645,7 +645,7 @@ impl<T: FileIOService> FileProcessorServiceImpl<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+    use crate::infrastructure::adapters::file_io::TokioFileIO;
     use pipeline_domain::services::checksum_service::ChecksumProcessor;
     use pipeline_domain::ChunkSize;
     use std::io::Write;
@@ -656,7 +656,7 @@ mod tests {
     async fn test_file_processing_basic() {
         println!("Starting test_file_processing_basic");
 
-        let file_io_service = Arc::new(FileIOServiceImpl::new_default());
+        let file_io_service = Arc::new(TokioFileIO::new_default());
         let processor_service = FileProcessorServiceImpl::new_default(file_io_service);
 
         // Configure with proper 1MB chunk size to meet minimum requirements
@@ -704,7 +704,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_file_processing_with_output() {
-        let file_io_service = Arc::new(FileIOServiceImpl::new_default());
+        let file_io_service = Arc::new(TokioFileIO::new_default());
         let processor_service = FileProcessorServiceImpl::new_default(file_io_service.clone());
 
         // Create a test file with enough data for 1MB minimum chunk size

@@ -55,15 +55,15 @@ use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, error, warn};
 
-use crate::application::services::pipeline_service::PipelineServiceImpl;
-use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
-use crate::infrastructure::adapters::repositories::sqlite_pipeline_repository_adapter::SqlitePipelineRepository;
-use crate::infrastructure::adapters::{CompressionServiceImpl, EncryptionServiceImpl};
+use crate::application::services::pipeline::ConcurrentPipeline;
+use crate::infrastructure::adapters::file_io::TokioFileIO;
+use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
+use crate::infrastructure::adapters::{MultiAlgoCompression, MultiAlgoEncryption};
 use crate::infrastructure::logging::ObservabilityService;
 use crate::infrastructure::metrics::MetricsService;
-use crate::infrastructure::repositories::stage_executor::BasicStageExecutor;
+use crate::infrastructure::runtime::stage_executor::BasicStageExecutor;
 use crate::infrastructure::services::{
-    Base64EncodingService, BinaryFormatServiceImpl, DebugService, PassThroughService,
+    Base64EncodingService, AdapipeFormat, DebugService, PassThroughService,
     PiiMaskingService, TeeService,
 };
 use pipeline_domain::entities::security_context::{Permission, SecurityContext, SecurityLevel};
@@ -351,12 +351,12 @@ impl ProcessFileUseCase {
     fn create_pipeline_service(
         metrics_service: &Arc<MetricsService>,
         pipeline_repository: &Arc<SqlitePipelineRepository>,
-    ) -> PipelineServiceImpl {
+    ) -> ConcurrentPipeline {
         // Create services
-        let compression_service = Arc::new(CompressionServiceImpl::new());
-        let encryption_service = Arc::new(EncryptionServiceImpl::new());
-        let file_io_service = Arc::new(FileIOServiceImpl::new(Default::default()));
-        let binary_format_service = Arc::new(BinaryFormatServiceImpl::new());
+        let compression_service = Arc::new(MultiAlgoCompression::new());
+        let encryption_service = Arc::new(MultiAlgoEncryption::new());
+        let file_io_service = Arc::new(TokioFileIO::new(Default::default()));
+        let binary_format_service = Arc::new(AdapipeFormat::new());
 
         // Build stage service registry
         let mut stage_services: HashMap<
@@ -419,7 +419,7 @@ impl ProcessFileUseCase {
                 as Arc<dyn pipeline_domain::services::StageService>,
         );
 
-        PipelineServiceImpl::new(
+        ConcurrentPipeline::new(
             compression_service,
             encryption_service,
             file_io_service,

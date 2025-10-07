@@ -54,5 +54,5 @@
 //! ### Pipeline Management Service
 //! Orchestrates pipeline lifecycle operations:
 
-pub mod file_processor_service;
-pub mod pipeline_service;
+pub mod file_processor;
+pub mod pipeline;

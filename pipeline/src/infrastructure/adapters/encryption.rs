@@ -33,7 +33,7 @@
 //!
 //! The implementation follows the infrastructure layer patterns:
 //!
-//! - **Service Implementation**: `EncryptionServiceImpl` implements domain
+//! - **Service Implementation**: `MultiAlgoEncryption` implements domain
 //!   interface
 //! - **Algorithm Handlers**: Specialized handlers for each encryption algorithm
 //! - **Key Management**: Secure key generation, derivation, and storage
@@ -167,18 +167,18 @@ impl SecureKey {
 }
 
 /// Concrete implementation of the encryption service
-pub struct EncryptionServiceImpl {
+pub struct MultiAlgoEncryption {
     rng: SystemRandom,
     key_cache: HashMap<String, SecureKey>,
 }
 
-impl Default for EncryptionServiceImpl {
+impl Default for MultiAlgoEncryption {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl EncryptionServiceImpl {
+impl MultiAlgoEncryption {
     pub fn new() -> Self {
         Self {
             rng: SystemRandom::new(),
@@ -376,7 +376,7 @@ impl EncryptionServiceImpl {
     }
 }
 
-impl EncryptionService for EncryptionServiceImpl {
+impl EncryptionService for MultiAlgoEncryption {
     fn encrypt_chunk(
         &self,
         chunk: FileChunk,
@@ -705,7 +705,7 @@ impl EncryptionService for EncryptionServiceImpl {
 }
 
 // Implement StageService trait for unified interface
-impl pipeline_domain::services::StageService for EncryptionServiceImpl {
+impl pipeline_domain::services::StageService for MultiAlgoEncryption {
     fn process_chunk(
         &self,
         chunk: pipeline_domain::FileChunk,

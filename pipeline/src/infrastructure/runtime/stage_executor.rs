@@ -207,7 +207,7 @@ impl BasicStageExecutor {
     /// use std::collections::HashMap;
     ///
     /// let mut services = HashMap::new();
-    /// services.insert("brotli".to_string(), Arc::new(CompressionServiceImpl::new()) as Arc<dyn StageService>);
+    /// services.insert("brotli".to_string(), Arc::new(MultiAlgoCompression::new()) as Arc<dyn StageService>);
     /// services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn StageService>);
     ///
     /// let executor = BasicStageExecutor::new(services);

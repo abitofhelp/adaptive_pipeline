@@ -21,7 +21,7 @@ use pipeline::application::commands::RestoreFileCommand;
 use std::sync::Arc;
 // TODO: FileRestorationApplicationService was removed during refactoring
 // use pipeline::application::services::FileRestorationApplicationServiceImpl;
-use pipeline::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+use pipeline::infrastructure::adapters::file_io::TokioFileIO;
 use pipeline_domain::services::file_io_service::FileIOConfig;
 use std::path::PathBuf;
 use tempfile::TempDir;
@@ -68,7 +68,7 @@ async fn test_file_restoration_service_creation() {
 
     // // Arrange
     // let config = FileIOConfig::default();
-    // let file_io_service = Arc::new(FileIOServiceImpl::new(config));
+    // let file_io_service = Arc::new(TokioFileIO::new(config));
     //
     // // Act
     // let service = FileRestorationApplicationServiceImpl::new(file_io_service);

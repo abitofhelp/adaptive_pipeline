@@ -31,7 +31,7 @@ use pipeline::application::commands::RestoreFileCommand;
 // TODO: FileRestorationApplicationService was removed during refactoring
 // use pipeline::application::services::{FileRestorationApplicationService,
 // FileRestorationApplicationServiceImpl};
-use pipeline::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+use pipeline::infrastructure::adapters::file_io::TokioFileIO;
 use pipeline_domain::entities::pipeline::Pipeline;
 use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 use pipeline_domain::services::file_io_service::FileIOConfig;
@@ -123,7 +123,7 @@ impl ApplicationServicesIntegrationTestFramework {
     // TODO: FileRestorationApplicationServiceImpl was removed during refactoring
     // fn create_real_restoration_service() -> FileRestorationApplicationServiceImpl {
     //     let config = FileIOConfig::default();
-    //     let file_io_service = Arc::new(FileIOServiceImpl::new(config));
+    //     let file_io_service = Arc::new(TokioFileIO::new(config));
     //     FileRestorationApplicationServiceImpl::new(file_io_service)
     // }
 

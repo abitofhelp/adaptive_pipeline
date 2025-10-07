@@ -53,7 +53,7 @@ use byte_unit::Byte;
 use std::path::PathBuf;
 use tracing::info;
 
-use crate::infrastructure::services::{BinaryFormatService, BinaryFormatServiceImpl};
+use crate::infrastructure::services::{BinaryFormatService, AdapipeFormat};
 
 /// Use case for validating .adapipe binary format files.
 ///
@@ -171,7 +171,7 @@ impl ValidateFileUseCase {
             println!("Warning: File does not have .adapipe extension");
         }
 
-        let binary_format_service = BinaryFormatServiceImpl::new();
+        let binary_format_service = AdapipeFormat::new();
 
         // Step 1: Basic format validation
         println!("🔍 Validating .adapipe file format...");
