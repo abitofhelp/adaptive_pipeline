@@ -118,7 +118,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use tracing::debug;
 
-use crate::infrastructure::metrics::metrics_service::MetricsService;
+use crate::infrastructure::metrics::service::MetricsService;
 use pipeline_domain::services::pipeline_service::ProcessingObserver;
 use pipeline_domain::ProcessingMetrics;
 

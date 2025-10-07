@@ -55,7 +55,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, error, warn};
 
-use crate::application::services::pipeline_service::PipelineServiceImpl;
+use crate::application::services::pipeline::PipelineServiceImpl;
 use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
 use crate::infrastructure::adapters::repositories::sqlite_pipeline_repository_adapter::SqlitePipelineRepository;
 use crate::infrastructure::adapters::{CompressionServiceImpl, EncryptionServiceImpl};

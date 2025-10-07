@@ -181,7 +181,7 @@ use tracing::{debug, error, info, warn};
 use crate::application::commands::RestoreFileCommand;
 // File restoration is now handled via use_cases::restore_file
 use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
-use crate::infrastructure::services::progress_indicator_service::ProgressIndicatorService;
+use crate::infrastructure::services::progress_indicator::ProgressIndicatorService;
 use pipeline_domain::value_objects::binary_file_format::FileHeader;
 use pipeline_domain::value_objects::chunk_size::ChunkSize;
 use pipeline_domain::value_objects::worker_count::WorkerCount;
@@ -245,7 +245,7 @@ use pipeline_domain::{FileChunk, Pipeline, PipelineStage, ProcessingContext, Sec
 // Application layer imports (duplicates removed - already imported above)
 use pipeline_domain::services::file_io_service::FileIOService;
 
-use crate::application::services::pipeline_service::PipelineServiceImpl;
+use crate::application::services::pipeline::PipelineServiceImpl;
 use crate::infrastructure::adapters::repositories::sqlite_pipeline_repository_adapter::SqlitePipelineRepository;
 use crate::infrastructure::adapters::{CompressionServiceImpl, EncryptionServiceImpl};
 use crate::infrastructure::logging::ObservabilityService;

@@ -48,8 +48,8 @@ use pipeline_domain::services::{
 use pipeline_domain::value_objects::{ChunkFormat, ChunkSize, FileChunk, PipelineId, WorkerCount};
 use pipeline_domain::PipelineError;
 
-use crate::infrastructure::services::binary_format_service::{BinaryFormatService, BinaryFormatWriter};
-use crate::infrastructure::services::progress_indicator_service::ProgressIndicatorService;
+use crate::infrastructure::services::binary_format::{BinaryFormatService, BinaryFormatWriter};
+use crate::infrastructure::services::progress_indicator::ProgressIndicatorService;
 
 /// Concrete implementation of the pipeline service
 ///

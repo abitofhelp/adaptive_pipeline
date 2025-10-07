@@ -21,18 +21,18 @@
 //! - **PassThroughService**: No-op stage that passes data unchanged
 //! - **DebugService**: Diagnostic stage with Prometheus metrics (SHA256, bytes)
 
-pub mod base64_encoding_service;
-pub mod binary_format_service;
-pub mod debug_service;
-pub mod passthrough_service;
-pub mod pii_masking_service;
-pub mod progress_indicator_service;
-pub mod tee_service;
+pub mod base64_encoding;
+pub mod binary_format;
+pub mod debug;
+pub mod passthrough;
+pub mod pii_masking;
+pub mod progress_indicator;
+pub mod tee;
 
 // Re-export service implementations
-pub use base64_encoding_service::Base64EncodingService;
-pub use binary_format_service::{BinaryFormatService, BinaryFormatServiceImpl, BinaryFormatWriter};
-pub use debug_service::DebugService;
-pub use passthrough_service::PassThroughService;
-pub use pii_masking_service::PiiMaskingService;
-pub use tee_service::TeeService;
+pub use base64_encoding::Base64EncodingService;
+pub use binary_format::{BinaryFormatService, BinaryFormatServiceImpl, BinaryFormatWriter};
+pub use debug::DebugService;
+pub use passthrough::PassThroughService;
+pub use pii_masking::PiiMaskingService;
+pub use tee::TeeService;

@@ -109,7 +109,7 @@ use tokio::net::TcpListener;
 use tracing::{debug, error, info};
 
 use crate::infrastructure::config::config_service::ConfigService;
-use crate::infrastructure::metrics::metrics_service::MetricsService;
+use crate::infrastructure::metrics::service::MetricsService;
 use pipeline_domain::error::PipelineError;
 
 /// Lightweight HTTP server for exposing Prometheus metrics and health check

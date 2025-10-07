@@ -112,5 +112,5 @@
 //!
 //! ### With Error Handling
 
-pub mod observability_service;
-pub use observability_service::*;
+pub mod observability;
+pub use observability::*;
