@@ -171,8 +171,8 @@ println!("Optimal workers: {}", workers);  // e.g., "8 workers"
 **Configuration:**
 
 ```rust
-use pipeline::infrastructure::services::FileIOServiceImpl;
-use pipeline_domain::services::FileIOConfig;
+use pipeline::infrastructure::adapters::file_io::TokioFileIO;
+use pipeline_domain::services::file_io_service::FileIOConfig;
 
 let config = FileIOConfig {
     enable_memory_mapping: true,
@@ -181,7 +181,7 @@ let config = FileIOConfig {
     ..Default::default()
 };
 
-let service = FileIOServiceImpl::new(config);
+let service = TokioFileIO::new(config);
 ```
 
 **Benchmark Results** (from `pipeline/benches/file_io_benchmark.rs`):

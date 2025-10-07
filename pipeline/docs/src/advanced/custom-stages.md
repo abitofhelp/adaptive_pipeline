@@ -263,9 +263,9 @@ mod tests {
 ### 1. Export from Module
 
 ```rust
-// pipeline/src/infrastructure/services/mod.rs
+// pipeline/src/infrastructure/services.rs
 
-pub mod base64_encoding_service;
+pub mod base64_encoding;
 pub mod pii_masking_service;
 pub mod tee_service;
 pub mod rot13_service;  // Add your service

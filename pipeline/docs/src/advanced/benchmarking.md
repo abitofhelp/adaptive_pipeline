@@ -42,7 +42,7 @@ The benchmark suite covers four main categories:
 
 **Configuration:**
 ```rust
-let service = FileIOServiceImpl::new(FileIOConfig {
+let service = TokioFileIO::new(FileIOConfig {
     default_chunk_size: 64 * 1024,     // 64KB chunks
     max_mmap_size: 1024 * 1024 * 1024, // 1GB threshold
     enable_memory_mapping: true,

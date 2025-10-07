@@ -391,6 +391,7 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
                 pipeline,
                 chunk_size_mb,
                 workers,
+                channel_depth: Some(cli.channel_depth),
             };
             let use_case = ProcessFileUseCase::new(
                 metrics_service.clone(),

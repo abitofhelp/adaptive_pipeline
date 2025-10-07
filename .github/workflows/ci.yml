@@ -1,0 +1,62 @@
+name: CI
+
+on:
+    pull_request:
+        branches: [main]
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    build-test:
+        name: build & test
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: dtolnay/rust-toolchain@stable
+            - uses: Swatinem/rust-cache@v2
+            - run: cargo build --workspace --all-targets --locked
+            - run: cargo test  --workspace --all-features --locked
+
+    fmt:
+        name: fmt
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: dtolnay/rust-toolchain@stable
+            - run: rustup component add rustfmt
+            - run: cargo fmt --all -- --check
+
+    clippy:
+        name: clippy
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: dtolnay/rust-toolchain@stable
+            - run: rustup component add clippy
+            - run: cargo clippy --workspace --all-targets -- -D warnings
+
+    semver-pipeline-domain:
+        name: semver (pipeline-domain)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with: { fetch-depth: 0 }
+            - name: Find last release tag for pipeline-domain
+              id: baseline
+              run: |
+                  echo "BASELINE_TAG=$(git describe --tags --match 'pipeline-domain-v*' --abbrev=0 || echo '')" >> $GITHUB_ENV
+            - name: No baseline? First release — skip check
+              if: env.BASELINE_TAG == ''
+              run: echo "No baseline tag found; skipping semver check."
+            - name: cargo-semver-checks (against last tag)
+              if: env.BASELINE_TAG != ''
+              uses: obi1kenobi/cargo-semver-checks-action@v2
+              with:
+                  package: pipeline-domain
+                  baseline-revision: ${{ env.BASELINE_TAG }}
+                  # derives required bump from Cargo.toml by default; override with "release-type" if needed

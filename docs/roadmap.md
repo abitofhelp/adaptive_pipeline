@@ -47,29 +47,33 @@ This document tracks medium and low priority enhancements and technical debt ite
 
 ---
 
-#### 2. Configurable Channel Depth
-**Location**: `pipeline/src/application/services/pipeline.rs:850`
-**Status**: Hardcoded
-**Description**: Make channel depth configurable via CLI/config file
+#### 2. ✅ Configurable Channel Depth (COMPLETED 2025-10-06)
+**Location**: `pipeline/src/application/services/pipeline.rs:851`
+**Status**: ✅ **Implemented**
+**Description**: Make channel depth configurable via CLI
 
-**Current State**:
+**Implementation**:
 ```rust
-let channel_depth = 4; // TODO: Make this configurable via CLI
+let channel_depth = channel_depth_override.unwrap_or(4);
+debug!("Using channel depth: {}", channel_depth);
 ```
 
-**Requirements**:
-- Add CLI parameter `--channel-depth`
-- Add configuration file option
-- Validate range (1-1024 recommended)
-- Document performance implications
-- Default: 4 (current hardcoded value)
+**Completed Features**:
+- ✅ Added CLI parameter `--channel-depth` with default value 4
+- ✅ Passed through ValidatedCli, ProcessFileConfig, and PipelineService
+- ✅ Used in pipeline execution with proper fallback to default
+- ✅ Comprehensive help documentation with educational content
+- ✅ Validated and tested with multiple channel depth values
 
-**Files to Modify**:
-- `bootstrap/src/cli/parser.rs`
-- `bootstrap/src/cli/validator.rs`
-- `pipeline/src/application/services/pipeline.rs`
+**Files Modified**:
+- `bootstrap/src/cli/parser.rs` - Added --channel-depth parameter
+- `bootstrap/src/cli.rs` - Added to ValidatedCli struct
+- `pipeline/src/application/use_cases/process_file.rs` - Added to ProcessFileConfig
+- `pipeline/src/main.rs` - Passed from CLI to config
+- `pipeline-domain/src/services/pipeline_service.rs` - Added to trait
+- `pipeline/src/application/services/pipeline.rs` - Implemented functionality
 
-**Estimated Effort**: 2-3 hours
+**Actual Effort**: ~1 hour
 
 ---
 

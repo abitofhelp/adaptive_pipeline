@@ -606,6 +606,7 @@ impl PipelineService for ConcurrentPipeline {
         output_path: &std::path::Path,
         security_context: SecurityContext,
         user_worker_override: Option<usize>,
+        channel_depth_override: Option<usize>,
         observer: Option<std::sync::Arc<dyn pipeline_domain::services::pipeline_service::ProcessingObserver>>,
     ) -> Result<ProcessingMetrics, PipelineError> {
         debug!(
@@ -847,7 +848,8 @@ impl PipelineService for ConcurrentPipeline {
 
         // STEP 5: Create bounded channels for pipeline stages
         // Educational: Channel depth creates backpressure to prevent memory overload
-        let channel_depth = 4; // TODO: Make this configurable via CLI
+        let channel_depth = channel_depth_override.unwrap_or(4);
+        debug!("Using channel depth: {}", channel_depth);
         let (tx_cpu, rx_cpu) = tokio::sync::mpsc::channel::<ChunkMessage>(channel_depth);
 
         // STEP 5: Wrap receiver in Arc<Mutex> for sharing among workers

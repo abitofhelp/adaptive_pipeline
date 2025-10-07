@@ -1848,8 +1848,9 @@ impl PipelineRepository for SQLitePipelineRepository {
 </ul>
 <h3 id="structure-3"><a class="header" href="#structure-3">Structure</a></h3>
 <pre><code>pipeline/src/presentation/
-├── mod.rs                    # Presentation module
-└── (CLI is in main.rs)
+├── presentation.rs           # Presentation module (Rust 2018+ pattern)
+├── adapters.rs               # Adapter declarations
+└── (CLI logic is in bootstrap crate)
 </code></pre>
 <h3 id="example-3"><a class="header" href="#example-3">Example</a></h3>
 <pre><pre class="playground"><code class="language-rust">// Presentation layer - CLI interaction
@@ -16852,8 +16853,8 @@ println!("Optimal workers: {}", workers);  // e.g., "8 workers"
 <p><strong>Configuration:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::services::FileIOServiceImpl;
-use pipeline_domain::services::FileIOConfig;
+</span>use pipeline::infrastructure::adapters::file_io::TokioFileIO;
+use pipeline_domain::services::file_io_service::FileIOConfig;
 
 let config = FileIOConfig {
     enable_memory_mapping: true,
@@ -16862,7 +16863,7 @@ let config = FileIOConfig {
     ..Default::default()
 };
 
-let service = FileIOServiceImpl::new(config);
+let service = TokioFileIO::new(config);
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Benchmark Results</strong> (from <code>pipeline/benches/file_io_benchmark.rs</code>):</p>
 <div class="table-wrapper"><table><thead><tr><th>File Size</th><th>Regular I/O</th><th>Memory Mapping</th><th>Winner</th></tr></thead><tbody>
@@ -17468,7 +17469,7 @@ let chunk_size = ChunkSize::from_mb(16)?;  // Smaller
 <p><strong>Configuration:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let service = FileIOServiceImpl::new(FileIOConfig {
+</span>let service = TokioFileIO::new(FileIOConfig {
     default_chunk_size: 64 * 1024,     // 64KB chunks
     max_mmap_size: 1024 * 1024 * 1024, // 1GB threshold
     enable_memory_mapping: true,
@@ -18934,8 +18935,8 @@ impl MetricsCollector for AdvancedMetricsCollector {
 <p><strong>Adapters (Implementations):</strong></p>
 <ul>
 <li>Infrastructure Services (BrotliCompressionService, AesEncryptionService)</li>
-<li>Infrastructure Adapters (FileIOServiceImpl, SQLitePipelineRepository)</li>
-<li>Application Services (PipelineServiceImpl, FileProcessorServiceImpl)</li>
+<li>Infrastructure Adapters (TokioFileIO, SQLitePipelineRepository)</li>
+<li>Application Services (ConcurrentPipeline, StreamingFileProcessor)</li>
 </ul>
 <p><strong>Extension Strategy:</strong></p>
 <ol>
@@ -18989,12 +18990,14 @@ pub trait MyService: Send + Sync {
 }
 
 // ✅ Good: Infrastructure implementation in infrastructure layer
-// pipeline/src/infrastructure/services/my_service_impl.rs
-pub struct MyServiceImpl {
+// pipeline/src/infrastructure/services/my_custom_service.rs
+// Note: Use technology-based names (e.g., TokioFileIO, BrotliCompression)
+// rather than "Impl" suffix for actual implementations
+pub struct MyCustomService {
     config: MyConfig,
 }
 
-impl MyService for MyServiceImpl {
+impl MyService for MyCustomService {
     fn process(&amp;self, data: &amp;[u8]) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt; {
         // Implementation details
     }
@@ -19002,7 +19005,7 @@ impl MyService for MyServiceImpl {
 
 // ❌ Bad: Implementation in domain layer
 // pipeline-domain/src/services/my_service.rs
-pub struct MyServiceImpl { /* ... */ }  // Wrong layer!
+pub struct MyCustomService { /* ... */ }  // Wrong layer!
 <span class="boring">}</span></code></pre></pre>
 <h3 id="2-use-type-safe-configuration"><a class="header" href="#2-use-type-safe-configuration">2. Use Type-Safe Configuration</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -19035,7 +19038,7 @@ pub struct MyStageConfig {
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// ✅ Good: Specific error types
-impl MyService for MyServiceImpl {
+impl MyService for MyCustomService {
     fn process(&amp;self, data: &amp;[u8]) -&gt; Result&lt;Vec&lt;u8&gt;, PipelineError&gt; {
         self.validate_input(data)
             .map_err(|e| PipelineError::ValidationError(format!("Invalid input: {}", e)))?;
@@ -19494,9 +19497,9 @@ mod tests {
 <h3 id="1-export-from-module"><a class="header" href="#1-export-from-module">1. Export from Module</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// pipeline/src/infrastructure/services/mod.rs
+</span>// pipeline/src/infrastructure/services.rs
 
-pub mod base64_encoding_service;
+pub mod base64_encoding;
 pub mod pii_masking_service;
 pub mod tee_service;
 pub mod rot13_service;  // Add your service

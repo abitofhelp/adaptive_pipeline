@@ -332,8 +332,8 @@ println!("Optimal workers: {}", workers);  // e.g., "8 workers"
 <p><strong>Configuration:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::services::FileIOServiceImpl;
-use pipeline_domain::services::FileIOConfig;
+</span>use pipeline::infrastructure::adapters::file_io::TokioFileIO;
+use pipeline_domain::services::file_io_service::FileIOConfig;
 
 let config = FileIOConfig {
     enable_memory_mapping: true,
@@ -342,7 +342,7 @@ let config = FileIOConfig {
     ..Default::default()
 };
 
-let service = FileIOServiceImpl::new(config);
+let service = TokioFileIO::new(config);
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Benchmark Results</strong> (from <code>pipeline/benches/file_io_benchmark.rs</code>):</p>
 <div class="table-wrapper"><table><thead><tr><th>File Size</th><th>Regular I/O</th><th>Memory Mapping</th><th>Winner</th></tr></thead><tbody>

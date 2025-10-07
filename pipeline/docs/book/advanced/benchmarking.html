@@ -213,7 +213,7 @@
 <p><strong>Configuration:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let service = FileIOServiceImpl::new(FileIOConfig {
+</span>let service = TokioFileIO::new(FileIOConfig {
     default_chunk_size: 64 * 1024,     // 64KB chunks
     max_mmap_size: 1024 * 1024 * 1024, // 1GB threshold
     enable_memory_mapping: true,

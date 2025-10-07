@@ -79,6 +79,7 @@ pub struct ProcessFileConfig {
     pub pipeline: String,
     pub chunk_size_mb: Option<usize>,
     pub workers: Option<usize>,
+    pub channel_depth: Option<usize>,
 }
 
 /// Use case for processing files through pipelines.
@@ -152,6 +153,7 @@ impl ProcessFileUseCase {
             pipeline,
             chunk_size_mb,
             workers,
+            channel_depth,
         } = config;
 
         // Ensure output file has .adapipe extension
@@ -254,6 +256,7 @@ impl ProcessFileUseCase {
                 output.as_path(),
                 security_context,
                 workers,
+                channel_depth,
                 Some(metrics_observer),
             )
             .await;

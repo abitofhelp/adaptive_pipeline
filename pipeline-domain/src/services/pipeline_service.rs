@@ -243,6 +243,7 @@ pub trait PipelineService: Send + Sync {
         output_path: &Path,
         security_context: SecurityContext,
         user_worker_override: Option<usize>,
+        channel_depth_override: Option<usize>,
         observer: Option<Arc<dyn ProcessingObserver>>,
     ) -> Result<ProcessingMetrics, PipelineError>;
 

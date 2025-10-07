@@ -481,8 +481,9 @@ impl PipelineRepository for SQLitePipelineRepository {
 </ul>
 <h3 id="structure-3"><a class="header" href="#structure-3">Structure</a></h3>
 <pre><code>pipeline/src/presentation/
-├── mod.rs                    # Presentation module
-└── (CLI is in main.rs)
+├── presentation.rs           # Presentation module (Rust 2018+ pattern)
+├── adapters.rs               # Adapter declarations
+└── (CLI logic is in bootstrap crate)
 </code></pre>
 <h3 id="example-3"><a class="header" href="#example-3">Example</a></h3>
 <pre><pre class="playground"><code class="language-rust">// Presentation layer - CLI interaction

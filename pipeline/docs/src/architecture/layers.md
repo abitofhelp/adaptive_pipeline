@@ -337,8 +337,9 @@ The presentation layer handles user interaction and input/output. It translates 
 
 ```
 pipeline/src/presentation/
-├── mod.rs                    # Presentation module
-└── (CLI is in main.rs)
+├── presentation.rs           # Presentation module (Rust 2018+ pattern)
+├── adapters.rs               # Adapter declarations
+└── (CLI logic is in bootstrap crate)
 ```
 
 ### Example

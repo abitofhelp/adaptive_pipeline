@@ -416,8 +416,8 @@ The pipeline uses hexagonal architecture (Ports and Adapters):
 
 **Adapters (Implementations):**
 - Infrastructure Services (BrotliCompressionService, AesEncryptionService)
-- Infrastructure Adapters (FileIOServiceImpl, SQLitePipelineRepository)
-- Application Services (PipelineServiceImpl, FileProcessorServiceImpl)
+- Infrastructure Adapters (TokioFileIO, SQLitePipelineRepository)
+- Application Services (ConcurrentPipeline, StreamingFileProcessor)
 
 **Extension Strategy:**
 1. Define domain trait (port)
@@ -473,12 +473,14 @@ pub trait MyService: Send + Sync {
 }
 
 // ✅ Good: Infrastructure implementation in infrastructure layer
-// pipeline/src/infrastructure/services/my_service_impl.rs
-pub struct MyServiceImpl {
+// pipeline/src/infrastructure/services/my_custom_service.rs
+// Note: Use technology-based names (e.g., TokioFileIO, BrotliCompression)
+// rather than "Impl" suffix for actual implementations
+pub struct MyCustomService {
     config: MyConfig,
 }
 
-impl MyService for MyServiceImpl {
+impl MyService for MyCustomService {
     fn process(&self, data: &[u8]) -> Result<Vec<u8>, PipelineError> {
         // Implementation details
     }
@@ -486,7 +488,7 @@ impl MyService for MyServiceImpl {
 
 // ❌ Bad: Implementation in domain layer
 // pipeline-domain/src/services/my_service.rs
-pub struct MyServiceImpl { /* ... */ }  // Wrong layer!
+pub struct MyCustomService { /* ... */ }  // Wrong layer!
 ```
 
 ### 2. Use Type-Safe Configuration
@@ -521,7 +523,7 @@ pub struct MyStageConfig {
 
 ```rust
 // ✅ Good: Specific error types
-impl MyService for MyServiceImpl {
+impl MyService for MyCustomService {
     fn process(&self, data: &[u8]) -> Result<Vec<u8>, PipelineError> {
         self.validate_input(data)
             .map_err(|e| PipelineError::ValidationError(format!("Invalid input: {}", e)))?;

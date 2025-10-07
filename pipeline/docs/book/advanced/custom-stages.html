@@ -424,9 +424,9 @@ mod tests {
 <h3 id="1-export-from-module"><a class="header" href="#1-export-from-module">1. Export from Module</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// pipeline/src/infrastructure/services/mod.rs
+</span>// pipeline/src/infrastructure/services.rs
 
-pub mod base64_encoding_service;
+pub mod base64_encoding;
 pub mod pii_masking_service;
 pub mod tee_service;
 pub mod rot13_service;  // Add your service
