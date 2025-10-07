@@ -1,0 +1,49 @@
+[package]
+name = "adaptive-pipeline-domain"
+version = "1.0.1"
+description = "Domain layer for optimized, adaptive pipeline - pure reusable business logic, entities, value objects, and domain services following DDD principles"
+edition = "2021"
+license = "BSD-3-Clause"
+repository = "https://github.com/abitofhelp/adaptive_pipeline.git"
+readme = "README.md"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Core domain dependencies (pure business logic only)
+serde = { workspace = true }
+uuid = { workspace = true }
+ulid = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+
+# Domain-specific validation and cryptography
+sha2 = "0.10"        # Checksums are domain concern
+zeroize = "1.8"      # Secure memory is domain concern
+regex = "1.11"        # Validation is domain concern
+hex = "0.4"          # Hex encoding for checksums
+serde_json = "1.0"   # Parameter serialization (domain configuration format)
+rand = "0.9"         # Random ID generation (domain entity identity)
+rayon = { workspace = true }  # Parallel processing for CPU-bound operations
+
+# Infrastructure ports (I/O-bound traits that remain async)
+async-trait = "0.1"  # For FileIOService, FileProcessorService, repositories (infrastructure ports)
+futures = "0.3"      # For FileIOService stream support
+
+# Note: Some domain files define infrastructure ports (traits for I/O operations)
+# These ports can be async since they deal with I/O, not CPU-bound business logic
+# Core domain services (CompressionService, EncryptionService, ChecksumService) are sync
+# Infrastructure ports (FileIOService, repositories) remain async
+
+# Note: Removed from domain:
+# - tokio → Only infrastructure uses tokio runtime
+# - tracing → Logging is infrastructure concern
+# - anyhow → Domain uses PipelineError only
+# - ring → Using sha2 is sufficient
+# - serde_json, toml, serde_yaml → Serialization format choice is infrastructure concern
+# - rand → Move to infrastructure if needed
+
+[dev-dependencies]
+proptest = { workspace = true }
+tempfile = "3.23"

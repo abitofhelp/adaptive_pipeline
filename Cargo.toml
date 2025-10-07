@@ -1,35 +1,39 @@
 [workspace]
-members = ["pipeline-domain", "pipeline", "bootstrap"]
+members = [
+    "adaptive_pipeline_domain",
+    "adaptive_pipeline",
+    "adaptive_pipeline_bootstrap",
+]
 resolver = "2"
 
 # Suppress specific warnings that are intentional design choices
 # while keeping other warnings visible for real issues
 [workspace.lints.rust]
-dead_code = "allow"              # Infrastructure code for future features
-unused_variables = "allow"       # Trait method parameters, future use
-unused_imports = "allow"         # False positives from multi-binary workspace
+dead_code = "allow"        # Infrastructure code for future features
+unused_variables = "allow" # Trait method parameters, future use
+unused_imports = "allow"   # False positives from multi-binary workspace
 
 [workspace.dependencies]
 # Core dependencies
 serde = { version = "1.0", features = ["derive"] }
-uuid = { version = "1.0", features = ["v4", "serde"] }
-ulid = { version = "1.1", features = ["serde"] }
-rand = "0.8"
-thiserror = "1.0"
+uuid = { version = "1.18", features = ["v4", "serde"] }
+ulid = { version = "1.2", features = ["serde"] }
+rand = "0.9"
+thiserror = "2.0"
 async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.47", features = ["full"] }
 anyhow = "1.0"
 
 # Configuration
-toml = "0.8"
+toml = "0.9"
 serde_yaml = "0.9"
 serde_json = "1.0"
-config = "0.14"
+config = "0.15"
 
 # Compression
-brotli = "3.4"
-flate2 = "1.0"
+brotli = "8.0"
+flate2 = "1.1"
 zstd = "0.13"
 
 # Encryption
@@ -40,25 +44,31 @@ scrypt = "0.11"
 ring = "0.17"
 
 # Performance
-rayon = "1.8"
+rayon = "1.11"
 crossbeam = "0.8"
 parking_lot = "0.12"
 memmap2 = "0.9"
 
 # Monitoring
-prometheus = "0.13"
+prometheus = "0.14"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
 # CLI
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"] }
 
 # Database
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid", "json"] }
+sqlx = { version = "0.8", features = [
+    "runtime-tokio-rustls",
+    "sqlite",
+    "chrono",
+    "uuid",
+    "json",
+] }
 
 # Async utilities
 futures = "0.3"
 
 # Testing
-proptest = "1.0"
-criterion = "0.5"
+proptest = "1.8"
+criterion = "0.7"

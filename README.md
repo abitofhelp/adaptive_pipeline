@@ -1,9 +1,10 @@
-# Optimized Adaptive Pipeline RS
+# Adaptive Pipeline
 
-A **production-grade**, **high-performance** file processing system built with Rust, featuring advanced concurrency patterns, adaptive performance optimization, and enterprise-level reliability. This project demonstrates professional Rust development with Channel-based Architecture, Domain-Driven Design, pipeline expansion through custom stages, and comprehensive error handling.
+A **production-grade**, **high-performance** file processing system built with Rust, featuring advanced concurrency patterns, adaptive performance optimization, and enterprise-level reliability.
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+[![crates.io](https://img.shields.io/crates/v/adaptive-pipeline.svg)](https://crates.io/crates/adaptive-pipeline)
 
 ## 🚀 What Makes This Different
 
@@ -16,42 +17,63 @@ This isn't just another file processor - it's a **showcase of advanced Rust patt
 - **🔐 Security First**: AES-256-GCM, ChaCha20-Poly1305 with Argon2 key derivation
 - **📊 Observable**: Prometheus metrics, structured tracing, performance dashboards
 
+## 📦 Workspace Structure
+
+This project is organized as a multi-crate workspace following Clean Architecture principles:
+
+| Crate | Purpose | Documentation |
+|-------|---------|---------------|
+| **[adaptive-pipeline](adaptive_pipeline/)** | Application & infrastructure layers, CLI | [README](adaptive_pipeline/README.md) |
+| **[adaptive-pipeline-domain](adaptive_pipeline_domain/)** | Pure business logic, DDD entities & services | [README](adaptive_pipeline_domain/README.md) |
+| **[adaptive-pipeline-bootstrap](adaptive_pipeline_bootstrap/)** | Platform abstraction, signal handling, DI | [README](adaptive_pipeline_bootstrap/README.md) |
+
+Each crate is independently publishable on crates.io and has its own comprehensive documentation.
+
 ## 📋 Table of Contents
 
-- [Architecture](#architecture)
-- [Performance](#performance)
-- [Quick Start](#quick-start)
+- [Workspace Structure](#-workspace-structure)
+- [Quick Start](#-quick-start)
 - [Command Line Reference](#-command-line-reference)
-- [Features](#features)
-- [Development](#development)
-- [Advanced Usage](#advanced-usage)
+- [Architecture](#-architecture)
+- [Performance](#-performance)
+- [Features](#-features)
+- [Development](#-development)
+- [Advanced Usage](#-advanced-usage)
 
 ## 🏗️ Architecture
 
-### Workspace Structure
-
-The project uses a **3-crate workspace** for clean separation of concerns:
+### Clean Architecture Layers
 
 ```
-optimized_adaptive_pipeline_rs/
-├── pipeline-domain/          # Pure domain logic (no async, no I/O)
-│   ├── entities/             # Business entities with identity
-│   ├── value_objects/        # Immutable domain values
-│   ├── services/             # Core business logic (sync)
-│   └── Cargo.toml           # Zero infrastructure deps
-│
-├── pipeline/                 # Application & Infrastructure
-│   ├── application/          # Use cases, orchestration
-│   ├── infrastructure/       # I/O, persistence, adapters
-│   ├── presentation/         # CLI interface
-│   └── Cargo.toml           # Full feature set
-│
-├── bootstrap/                # Entry point & platform layer
-│   ├── config.rs            # DI container, service registry
-│   ├── signals.rs           # SIGTERM/SIGINT/SIGHUP handling
-│   └── platform/            # Cross-platform abstractions
-│
-└── Cargo.toml               # Workspace config
+┌─────────────────────────────────────────────┐
+│         Bootstrap Layer                     │
+│  (DI, Platform Detection, Signal Handling)  │
+│  📦 adaptive-pipeline-bootstrap             │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│         Presentation Layer                  │
+│  (CLI, API endpoints, DTOs)                 │
+│  📦 adaptive-pipeline (CLI)                 │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│         Application Layer                   │
+│  (Use cases, orchestration, async services) │
+│  📦 adaptive-pipeline (use cases)           │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│           Domain Layer                      │
+│  (Pure business logic - SYNC only)          │
+│  📦 adaptive-pipeline-domain                │
+└─────────────────────────────────────────────┘
+                    ↑
+┌─────────────────────────────────────────────┐
+│        Infrastructure Layer                 │
+│  (Database, File I/O, External Systems)     │
+│  📦 adaptive-pipeline (infrastructure)      │
+└─────────────────────────────────────────────┘
 ```
 
 ### Concurrency Model
@@ -75,41 +97,15 @@ optimized_adaptive_pipeline_rs/
 3. **Direct Writes**: Workers write directly to calculated positions - **no writer bottleneck**
 4. **Resource Manager**: Global semaphores prevent CPU/IO oversubscription
 
-### Layer Responsibilities
-
-```
-┌─────────────────────────────────────────────┐
-│         Bootstrap Layer                     │
-│  (DI, Platform Detection, Signal Handling)  │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│         Presentation Layer                  │
-│  (CLI, API endpoints, DTOs)                 │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│         Application Layer                   │
-│  (Use cases, orchestration, async services) │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│           Domain Layer                      │
-│  (Pure business logic - SYNC only)          │
-└─────────────────────────────────────────────┘
-                    ↑
-┌─────────────────────────────────────────────┐
-│        Infrastructure Layer                 │
-│  (Database, File I/O, External Systems)     │
-└─────────────────────────────────────────────┘
-```
-
 **Architecture Principles:**
 
-- **Domain Layer**: Pure Rust, no async, no I/O - just business logic
-- **Infrastructure Layer**: All I/O, all async, all external dependencies
+- **Domain Layer** ([adaptive-pipeline-domain](adaptive_pipeline_domain/)): Pure Rust, no async, no I/O - just business logic
+- **Infrastructure Layer** ([adaptive-pipeline](adaptive_pipeline/)): All I/O, all async, all external dependencies
+- **Bootstrap Layer** ([adaptive-pipeline-bootstrap](adaptive_pipeline_bootstrap/)): Platform abstraction, DI, signal handling
 - **Dependency Inversion**: Domain defines interfaces, infrastructure implements
 - **Hexagonal Ports**: `FileIOService`, `CompressionService` are domain ports
+
+For detailed architecture documentation, see each crate's README.
 
 ## ⚡ Performance
 
@@ -149,14 +145,22 @@ optimized_adaptive_pipeline_rs/
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### As a CLI Tool
+
+#### Prerequisites
 
 - **Rust**: 1.70 or later (install via [rustup](https://rustup.rs/))
 - **SQLite**: For pipeline persistence
-- **OS**: macOS, Linux, or Windows (WSL recommended)
+- **OS**: macOS, Linux, or Windows
 
-### Installation
+#### Installation
 
+**From crates.io:**
+```bash
+cargo install adaptive-pipeline
+```
+
+**From source:**
 ```bash
 # Clone the repository
 git clone https://github.com/abitofhelp/optimized_adaptive_pipeline_rs.git
@@ -165,12 +169,22 @@ cd optimized_adaptive_pipeline_rs
 # Build optimized binary
 make build-release
 
-# Run tests to verify
-make test
-
 # Binary location
-./target/release/pipeline --help
+./target/release/adaptive-pipeline --help
 ```
+
+### As a Library
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+adaptive-pipeline = "1.0"
+adaptive-pipeline-domain = "1.0"  # For pure domain logic
+adaptive-pipeline-bootstrap = "1.0"  # For platform abstraction
+```
+
+See the [adaptive-pipeline README](adaptive_pipeline/README.md) for library usage examples.
 
 ### First Run
 
@@ -179,7 +193,7 @@ make test
 dd if=/dev/urandom of=test.dat bs=1M count=100
 
 # Process with compression + encryption
-./target/release/pipeline process \
+adaptive-pipeline process \
   --input test.dat \
   --output test.adapipe \
   --compress \
@@ -189,7 +203,7 @@ dd if=/dev/urandom of=test.dat bs=1M count=100
 ls -lh test.adapipe
 
 # Restore original
-./target/release/pipeline restore \
+adaptive-pipeline restore \
   --input test.adapipe \
   --output restored.dat
 
@@ -202,7 +216,7 @@ diff test.dat restored.dat
 ### Global Options
 
 ```bash
-pipeline [OPTIONS] <COMMAND>
+adaptive-pipeline [OPTIONS] <COMMAND>
 
 Options:
   -v, --verbose              Enable verbose logging
@@ -222,7 +236,7 @@ Options:
 Process a file through a configured pipeline with compression, encryption, or validation.
 
 ```bash
-pipeline process --input <FILE> --output <FILE> --pipeline <NAME> [OPTIONS]
+adaptive-pipeline process --input <FILE> --output <FILE> --pipeline <NAME> [OPTIONS]
 
 Options:
   -i, --input <FILE>         Input file path
@@ -249,7 +263,7 @@ Examples:
 Create a new processing pipeline with custom stages.
 
 ```bash
-pipeline create --name <NAME> --stages <STAGES> [OPTIONS]
+adaptive-pipeline create --name <NAME> --stages <STAGES> [OPTIONS]
 
 Options:
   -n, --name <NAME>          Pipeline name (kebab-case)
@@ -281,7 +295,7 @@ Examples:
 List all configured pipelines in the database.
 
 ```bash
-pipeline list
+adaptive-pipeline list
 
 Example Output:
   Found 3 pipeline(s):
@@ -299,7 +313,7 @@ Example Output:
 Display detailed information about a specific pipeline.
 
 ```bash
-pipeline show <PIPELINE_NAME>
+adaptive-pipeline show <PIPELINE_NAME>
 
 Arguments:
   <PIPELINE_NAME>  Name of the pipeline to show
@@ -331,7 +345,7 @@ Example Output:
 Delete a pipeline from the database.
 
 ```bash
-pipeline delete <PIPELINE_NAME> [OPTIONS]
+adaptive-pipeline delete <PIPELINE_NAME> [OPTIONS]
 
 Arguments:
   <PIPELINE_NAME>  Name of the pipeline to delete
@@ -352,7 +366,7 @@ Examples:
 Restore an original file from a processed `.adapipe` file.
 
 ```bash
-pipeline restore --input <FILE> [OPTIONS]
+adaptive-pipeline restore --input <FILE> [OPTIONS]
 
 Options:
   -i, --input <FILE>         .adapipe file to restore from
@@ -376,7 +390,7 @@ Examples:
 Validate a pipeline configuration file (TOML/JSON/YAML).
 
 ```bash
-pipeline validate <CONFIG_FILE>
+adaptive-pipeline validate <CONFIG_FILE>
 
 Arguments:
   <CONFIG_FILE>  Path to configuration file
@@ -395,7 +409,7 @@ Example:
 Validate the integrity of a processed `.adapipe` file.
 
 ```bash
-pipeline validate-file --file <FILE> [OPTIONS]
+adaptive-pipeline validate-file --file <FILE> [OPTIONS]
 
 Options:
   -f, --file <FILE>  .adapipe file to validate
@@ -414,7 +428,7 @@ Examples:
 Compare an original file against its `.adapipe` processed version.
 
 ```bash
-pipeline compare --original <FILE> --adapipe <FILE> [OPTIONS]
+adaptive-pipeline compare --original <FILE> --adapipe <FILE> [OPTIONS]
 
 Options:
   -o, --original <FILE>  Original file to compare
@@ -445,7 +459,7 @@ Example Output:
 Run performance benchmarks to optimize configuration.
 
 ```bash
-pipeline benchmark [OPTIONS]
+adaptive-pipeline benchmark [OPTIONS]
 
 Options:
   -f, --file <FILE>          Use existing file for benchmark
@@ -484,7 +498,7 @@ The CLI uses standard Unix exit codes (sysexits.h):
 **Usage in scripts:**
 ```bash
 #!/bin/bash
-pipeline process -i input.dat -o output.adapipe -p compress-encrypt
+adaptive-pipeline process -i input.dat -o output.adapipe -p compress-encrypt
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
@@ -518,16 +532,16 @@ Generate shell completion scripts for your shell:
 
 ```bash
 # Bash
-pipeline --generate-completion bash > /etc/bash_completion.d/pipeline
+adaptive-pipeline --generate-completion bash > /etc/bash_completion.d/pipeline
 
 # Zsh
-pipeline --generate-completion zsh > /usr/local/share/zsh/site-functions/_pipeline
+adaptive-pipeline --generate-completion zsh > /usr/local/share/zsh/site-functions/_pipeline
 
 # Fish
-pipeline --generate-completion fish > ~/.config/fish/completions/pipeline.fish
+adaptive-pipeline --generate-completion fish > ~/.config/fish/completions/pipeline.fish
 
 # PowerShell
-pipeline --generate-completion powershell > pipeline.ps1
+adaptive-pipeline --generate-completion powershell > pipeline.ps1
 ```
 
 ## ✨ Features
@@ -726,16 +740,16 @@ pipeline.process("input.dat", "output.adapipe").await?;
 
 ```bash
 # Auto-benchmark all file sizes
-./target/release/pipeline benchmark
+adaptive-pipeline benchmark
 
 # Specific size with iterations
-./target/release/pipeline benchmark \
+adaptive-pipeline benchmark \
   --size-mb 1000 \
   --iterations 5 \
   --output-report bench_results.md
 
 # Compare configurations
-./target/release/pipeline compare \
+adaptive-pipeline compare \
   --configs baseline.toml,optimized.toml \
   --size-mb 500
 ```
@@ -744,7 +758,7 @@ pipeline.process("input.dat", "output.adapipe").await?;
 
 ```bash
 # Start with metrics
-./target/release/pipeline serve --metrics-port 9090
+adaptive-pipeline serve --metrics-port 9090
 
 # Query Prometheus
 curl http://localhost:9090/metrics
