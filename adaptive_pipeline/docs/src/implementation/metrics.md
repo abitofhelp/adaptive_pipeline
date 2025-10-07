@@ -61,7 +61,7 @@ The system uses a two-level metrics architecture:
 Tracks performance data for individual pipeline executions:
 
 ```rust
-use pipeline_domain::entities::ProcessingMetrics;
+use adaptive_pipeline_domain::entities::ProcessingMetrics;
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 
@@ -507,7 +507,7 @@ pipeline_compression_ratio 0.35
 Metrics are automatically collected during processing:
 
 ```rust
-use pipeline::MetricsService;
+use adaptive_pipeline::MetricsService;
 
 async fn process_file_with_metrics(
     input_path: &str,

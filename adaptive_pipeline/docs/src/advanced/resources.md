@@ -98,7 +98,7 @@ let cpu_token_count = (available_cores - 1).max(1);
 
 **Custom Configuration:**
 ```rust
-use pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig};
+use adaptive_pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig};
 
 // Initialize with custom CPU token count
 let config = ResourceConfig {
@@ -114,7 +114,7 @@ init_resource_manager(config)?;
 **Acquire CPU token before CPU-intensive work:**
 
 ```rust
-use pipeline::infrastructure::runtime::RESOURCE_MANAGER;
+use adaptive_pipeline::infrastructure::runtime::RESOURCE_MANAGER;
 
 async fn process_chunk(chunk: FileChunk) -> Result<FileChunk, PipelineError> {
     // 1. Acquire global CPU token (waits if system is saturated)
@@ -163,7 +163,7 @@ This backpressure prevents overwhelming the CPU with too many concurrent tasks.
 ### Monitoring CPU Saturation
 
 ```rust
-use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 
 // Check CPU saturation percentage
 let saturation = CONCURRENCY_METRICS.cpu_saturation_percent();
@@ -297,7 +297,7 @@ The pipeline uses **memory tracking** (not enforcement) to monitor memory pressu
 **Atomic counter** (`AtomicUsize`) tracks allocated memory:
 
 ```rust
-use pipeline::infrastructure::runtime::RESOURCE_MANAGER;
+use adaptive_pipeline::infrastructure::runtime::RESOURCE_MANAGER;
 
 // Track memory allocation
 let chunk_size = 1024 * 1024;  // 1 MB
@@ -350,7 +350,7 @@ init_resource_manager(config)?;
 ### Monitoring Memory Usage
 
 ```rust
-use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 
 // Check current memory usage
 let used_bytes = RESOURCE_MANAGER.memory_used();
@@ -384,7 +384,7 @@ The pipeline provides comprehensive metrics for monitoring resource utilization,
 ### CPU Metrics
 
 ```rust
-use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 
 // Instant metrics (gauges)
 let cpu_available = CONCURRENCY_METRICS.cpu_tokens_available();
@@ -485,7 +485,7 @@ pub struct ResourceConfig {
 **In `main()`, before any operations:**
 
 ```rust
-use pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig, StorageType};
+use adaptive_pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig, StorageType};
 
 #[tokio::main]
 async fn main() -> Result<()> {

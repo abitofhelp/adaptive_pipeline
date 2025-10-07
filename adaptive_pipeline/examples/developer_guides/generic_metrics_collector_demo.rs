@@ -393,8 +393,8 @@ use std::time::{Duration, Instant};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use pipeline_domain::error::PipelineError;
-use pipeline_domain::services::generic_metrics_collector::{
+use adaptive_pipeline_domain::error::PipelineError;
+use adaptive_pipeline_domain::services::generic_metrics_collector::{
     GenericMetricsCollector, CollectibleMetrics, MetricsEnabled, MetricEntry, metrics_collector,
 };
 

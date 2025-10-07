@@ -24,7 +24,7 @@
 //! ## Usage
 //!
 //! ```rust,ignore
-//! use pipeline::infrastructure::config::rayon_config::RAYON_POOLS;
+//! use adaptive_pipeline::infrastructure::config::rayon_config::RAYON_POOLS;
 //!
 //! // Use CPU-bound pool for intensive operations
 //! let results = RAYON_POOLS.cpu_bound_pool().install(|| {

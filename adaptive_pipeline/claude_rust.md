@@ -2,6 +2,54 @@
 
 This document captures Rust-specific coding conventions and architectural decisions for this project.
 
+## ⚠️ Strict Rules (Non-Negotiable)
+
+These rules must be followed in all new code and existing code should be migrated:
+
+### 1. **No `mod.rs` Files** - Use Rust 2018+ Module Pattern
+
+**NEVER use `mod.rs` files.** Always use the Rust 2018+ pattern with named module files:
+
+✅ **REQUIRED**:
+```
+src/
+  application/
+    services.rs       ← Module declaration & re-exports
+    services/
+      pipeline.rs
+      file_processor.rs
+```
+
+❌ **FORBIDDEN**:
+```
+src/
+  application/
+    services/
+      mod.rs          ← DO NOT USE
+      pipeline.rs
+```
+
+**Why this is mandatory:**
+- Editor tabs show `services.rs` instead of confusing multiple `mod.rs` tabs
+- Clearer hierarchy - module interface visible at parent level
+- Better IDE navigation and searchability
+- Official Rust recommendation since 2018 edition
+- Prevents confusion when multiple `mod.rs` files are open
+
+### 2. **No `unwrap()`, `expect()`, or `panic!()` in Production Code**
+
+Production code (library code in `src/`) must not use:
+- `.unwrap()`
+- `.expect()`
+- `panic!()`
+- `unreachable!()`
+
+Test code and examples may use these for test assertions.
+
+### 3. **Error Propagation with `?` Operator**
+
+Always use `?` operator for error propagation. Handle errors gracefully with proper error types.
+
 ## File and Module Naming
 
 ### File Naming Convention
@@ -47,35 +95,6 @@ let entity = Pipeline::new(...);
 - Entities: `Pipeline` not `PipelineEntity`
 - Value Objects: `FileHeader` not `FileHeaderValue`
 - When there's no ambiguity or semantic benefit
-
-### Module Declaration Pattern
-
-**Use Rust 2018+ module pattern** (`module.rs` instead of `mod.rs`):
-
-✅ **Preferred (Rust 2018+)**:
-```
-src/
-  application/
-    services.rs       ← Module declaration & re-exports
-    services/
-      pipeline.rs
-      file_processor.rs
-```
-
-❌ **Deprecated (Pre-2018)**:
-```
-src/
-  application/
-    services/
-      mod.rs          ← Old pattern
-      pipeline.rs
-```
-
-**Benefits:**
-- Editor tabs show `services.rs` instead of multiple `mod.rs` tabs
-- Clearer hierarchy - module interface visible at parent level
-- Better searchability
-- Official Rust recommendation since 2018 edition
 
 ## Import Organization
 

@@ -294,7 +294,7 @@ ChunkSize::DEFAULT   // 1 MB
 <h3 id="creating-chunk-sizes"><a class="header" href="#creating-chunk-sizes">Creating Chunk Sizes</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::ChunkSize;
+</span>use adaptive_pipeline_domain::ChunkSize;
 
 // From bytes
 let chunk = ChunkSize::new(1024 * 1024)?;  // 1 MB
@@ -687,7 +687,7 @@ for (size, duration) in results {
 <hr />
 <h2 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h2>
 <h3 id="example-1-basic-chunking"><a class="header" href="#example-1-basic-chunking">Example 1: Basic Chunking</a></h3>
-<pre><pre class="playground"><code class="language-rust">use pipeline_domain::{ChunkSize, FileChunk};
+<pre><pre class="playground"><code class="language-rust">use adaptive_pipeline_domain::{ChunkSize, FileChunk};
 use std::path::Path;
 
 #[tokio::main]

@@ -203,10 +203,12 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
         Ok(())
     }
 
-    async fn write_chunk_at_position(&self, chunk: ChunkFormat, _sequence_number: u64) -> Result<(), PipelineError> {
+    async fn write_chunk_at_position(&self, _chunk: ChunkFormat, _sequence_number: u64) -> Result<(), PipelineError> {
         // For buffered writer, this would need interior mutability (Mutex<Vec>)
-        // but it's only used for tests with write_chunk(), so we can panic here
-        unimplemented!("BufferedBinaryWriter doesn't support concurrent writes - use StreamingBinaryWriter")
+        // but it's only used for tests with write_chunk(), so we return an error here
+        Err(PipelineError::processing_failed(
+            "BufferedBinaryWriter doesn't support concurrent writes - use StreamingBinaryWriter"
+        ))
     }
 
     async fn finalize(&self, mut final_header: FileHeader) -> Result<u64, PipelineError> {

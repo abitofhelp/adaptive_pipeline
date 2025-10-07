@@ -349,7 +349,7 @@ pub async fn initialize_database(database_url: &str) -> Result<SqlitePool, sqlx:
 **Usage in application startup**:
 
 ```rust
-use pipeline::infrastructure::repositories::schema;
+use adaptive_pipeline::infrastructure::repositories::schema;
 
 #[tokio::main]
 async fn main() -> Result<()> {

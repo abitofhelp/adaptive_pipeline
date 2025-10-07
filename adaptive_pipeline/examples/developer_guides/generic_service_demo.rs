@@ -113,11 +113,11 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 
-use pipeline_domain::error::PipelineError;
-use pipeline_domain::services::generic_service_base::{
+use adaptive_pipeline_domain::error::PipelineError;
+use adaptive_pipeline_domain::services::generic_service_base::{
     GenericServiceBase, ServiceConfig, ServiceStats, ServiceLifecycle, ServiceMetrics,
 };
-use pipeline_domain::services::generic_config_manager::{
+use adaptive_pipeline_domain::services::generic_config_manager::{
     GenericConfigManager, ConfigValidation, ConfigValidationResult, FileConfigSource,
 };
 

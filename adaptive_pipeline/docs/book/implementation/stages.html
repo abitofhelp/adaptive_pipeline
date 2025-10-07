@@ -272,7 +272,7 @@ pub enum StageType {
 <p>Stage types support case-insensitive parsing from strings:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::entities::pipeline_stage::StageType;
+</span>use adaptive_pipeline_domain::entities::pipeline_stage::StageType;
 use std::str::FromStr;
 
 // Parse from lowercase
@@ -330,7 +330,7 @@ pub struct PipelineStage {
 <h3 id="creating-a-stage"><a class="header" href="#creating-a-stage">Creating a Stage</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+</span>use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 use std::collections::HashMap;
 
 let mut params = HashMap::new();
@@ -739,7 +739,7 @@ req1.merge(&amp;req2);  // Takes maximum of each field
 <h3 id="example-1-creating-a-compression-stage"><a class="header" href="#example-1-creating-a-compression-stage">Example 1: Creating a Compression Stage</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+</span>use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 use std::collections::HashMap;
 
 let mut params = HashMap::new();
@@ -833,7 +833,7 @@ for i in 0..stages.len() - 1 {
 <h3 id="example-4-executing-a-stage"><a class="header" href="#example-4-executing-a-stage">Example 4: Executing a Stage</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::repositories::stage_executor::StageExecutor;
+</span>use adaptive_pipeline_domain::repositories::stage_executor::StageExecutor;
 
 let executor: Arc&lt;dyn StageExecutor&gt; = /* ... */;
 let stage = /* ... */;

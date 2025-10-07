@@ -488,9 +488,9 @@ impl From<CompressionError> for PipelineError {
 ### Basic Compression
 
 ```rust
-use pipeline::infrastructure::adapters::CompressionServiceAdapter;
-use pipeline_domain::services::CompressionService;
-use pipeline_domain::value_objects::Algorithm;
+use adaptive_pipeline::infrastructure::adapters::CompressionServiceAdapter;
+use adaptive_pipeline_domain::services::CompressionService;
+use adaptive_pipeline_domain::value_objects::Algorithm;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -158,8 +158,8 @@ Implement domain service traits for custom functionality.
 **Example: Custom Compression Service**
 
 ```rust
-use pipeline_domain::services::CompressionService;
-use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
+use adaptive_pipeline_domain::services::CompressionService;
+use adaptive_pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
 
 /// Custom compression service using Snappy algorithm
 pub struct SnappyCompressionService;
@@ -251,7 +251,7 @@ Create infrastructure adapters for external systems.
 
 ```rust
 use async_trait::async_trait;
-use pipeline_domain::services::FileIOService;
+use adaptive_pipeline_domain::services::FileIOService;
 use std::path::Path;
 
 /// Custom adapter for cloud storage (e.g., S3, Azure Blob)
@@ -328,7 +328,7 @@ Extend observability with custom metrics collectors.
 **Example: Custom Metrics Collector**
 
 ```rust
-use pipeline::infrastructure::metrics::MetricsCollector;
+use adaptive_pipeline::infrastructure::metrics::MetricsCollector;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Custom metrics collector for advanced analytics
@@ -607,7 +607,7 @@ mod tests {
 /// # Examples
 ///
 /// ```
-/// use pipeline::infrastructure::services::SanitizationService;
+/// use adaptive_pipeline::infrastructure::services::SanitizationService;
 ///
 /// let service = SanitizationService::new();
 /// let sanitized = service.sanitize(chunk, &mut context)?;

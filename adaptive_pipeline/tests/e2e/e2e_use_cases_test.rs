@@ -8,18 +8,8 @@ use std::process::Command;
 use tempfile::TempDir;
 use tokio::fs;
 
-/// Helper to get the pipeline binary path
-fn get_pipeline_bin() -> &'static str {
-    env!("CARGO_BIN_EXE_pipeline")
-}
-
-/// Helper to calculate SHA256 checksum
-fn calculate_sha256(data: &[u8]) -> String {
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(data);
-    format!("{:x}", hasher.finalize())
-}
+// Import shared test helpers
+use crate::common::{calculate_sha256, get_pipeline_bin};
 
 /// Tests CreatePipelineUseCase via CLI
 #[tokio::test]

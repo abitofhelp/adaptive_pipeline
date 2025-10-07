@@ -120,7 +120,7 @@ fn create_custom_runtime() -> Runtime {
 The pipeline uses a global `RAYON_POOLS` manager with two specialized pools:
 
 ```rust
-use pipeline::infrastructure::config::rayon_config::RAYON_POOLS;
+use adaptive_pipeline::infrastructure::config::rayon_config::RAYON_POOLS;
 
 // Access CPU-bound pool
 let cpu_pool = RAYON_POOLS.cpu_bound_pool();
@@ -328,7 +328,7 @@ Tokio maintains a **separate blocking thread pool** for `spawn_blocking`:
 The pipeline uses a sophisticated `WorkerCount` value object for adaptive thread allocation:
 
 ```rust
-use pipeline_domain::value_objects::WorkerCount;
+use adaptive_pipeline_domain::value_objects::WorkerCount;
 
 // Optimal for file size (empirically validated)
 let workers = WorkerCount::optimal_for_file_size(file_size);

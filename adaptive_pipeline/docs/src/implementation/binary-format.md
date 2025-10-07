@@ -256,7 +256,7 @@ pub struct ChunkFormat {
 ### Basic File Creation
 
 ```rust
-use pipeline_domain::value_objects::{FileHeader, ProcessingStep};
+use adaptive_pipeline_domain::value_objects::{FileHeader, ProcessingStep};
 use std::fs::File;
 use std::io::Write;
 

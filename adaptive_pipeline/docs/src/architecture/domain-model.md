@@ -63,7 +63,7 @@ pub struct Pipeline {
 
 **Example:**
 ```rust
-use pipeline_domain::Pipeline;
+use adaptive_pipeline_domain::Pipeline;
 
 // Two pipelines with same ID are equal, even if names differ
 let pipeline1 = Pipeline::new("Original Name", stages.clone())?;

@@ -287,7 +287,7 @@
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Application code depends on domain trait
-use pipeline_domain::repositories::PipelineRepository;
+use adaptive_pipeline_domain::repositories::PipelineRepository;
 
 async fn create_pipeline(
     repo: &amp;dyn PipelineRepository,
@@ -299,7 +299,7 @@ async fn create_pipeline(
 }
 
 // Infrastructure provides concrete implementation
-use pipeline::infrastructure::repositories::SqlitePipelineRepository;
+use adaptive_pipeline::infrastructure::repositories::SqlitePipelineRepository;
 
 let repository = SqlitePipelineRepository::new(pool);
 let pipeline = create_pipeline(&amp;repository, "my-pipeline".to_string()).await?;
@@ -551,7 +551,7 @@ updated_at TEXT NOT NULL   -- RFC 3339 format
 <p><strong>Automated Migration System:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::repositories::schema;
+</span>use adaptive_pipeline::infrastructure::repositories::schema;
 
 // High-level initialization (recommended)
 let pool = schema::initialize_database("sqlite://./pipeline.db").await?;
@@ -942,8 +942,8 @@ let pipeline = sqlx::query_as::&lt;_, Pipeline&gt;("SELECT * FROM pipelines WHER
 <hr />
 <h2 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h2>
 <h3 id="example-1-basic-crud-operations"><a class="header" href="#example-1-basic-crud-operations">Example 1: Basic CRUD Operations</a></h3>
-<pre><pre class="playground"><code class="language-rust">use pipeline::infrastructure::repositories::{schema, SqlitePipelineRepository};
-use pipeline_domain::Pipeline;
+<pre><pre class="playground"><code class="language-rust">use adaptive_pipeline::infrastructure::repositories::{schema, SqlitePipelineRepository};
+use adaptive_pipeline_domain::Pipeline;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

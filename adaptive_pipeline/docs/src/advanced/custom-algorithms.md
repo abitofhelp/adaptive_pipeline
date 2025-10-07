@@ -85,8 +85,8 @@ impl std::str::FromStr for CompressionAlgorithm {
 ```rust
 // pipeline/src/infrastructure/services/snappy_compression_service.rs
 
-use pipeline_domain::services::CompressionService;
-use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
+use adaptive_pipeline_domain::services::CompressionService;
+use adaptive_pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
 use snap::raw::{Encoder, Decoder};
 
 /// Snappy compression service implementation
@@ -188,7 +188,7 @@ impl Default for SnappyCompressionService {
 // In service factory or dependency injection
 
 use std::sync::Arc;
-use pipeline_domain::services::CompressionService;
+use adaptive_pipeline_domain::services::CompressionService;
 
 fn create_compression_service(
     algorithm: CompressionAlgorithm,
@@ -238,8 +238,8 @@ pub enum EncryptionAlgorithm {
 ```rust
 // pipeline/src/infrastructure/services/aes128_encryption_service.rs
 
-use pipeline_domain::services::EncryptionService;
-use pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
+use adaptive_pipeline_domain::services::EncryptionService;
+use adaptive_pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
 use aes_gcm::{
     aead::{Aead, KeyInit, OsRng},
     Aes128Gcm, Nonce,
@@ -381,8 +381,8 @@ pub enum HashAlgorithm {
 ```rust
 // pipeline/src/infrastructure/services/xxhash_checksum_service.rs
 
-use pipeline_domain::services::ChecksumService;
-use pipeline_domain::{FileChunk, PipelineError, ProcessingContext, Checksum};
+use adaptive_pipeline_domain::services::ChecksumService;
+use adaptive_pipeline_domain::{FileChunk, PipelineError, ProcessingContext, Checksum};
 use xxhash_rust::xxh3::Xxh3;
 
 /// xxHash checksum service implementation
@@ -454,7 +454,7 @@ impl Default for XxHashChecksumService {
 ### Compression Configuration
 
 ```rust
-use pipeline_domain::entities::StageConfiguration;
+use adaptive_pipeline_domain::entities::StageConfiguration;
 use std::collections::HashMap;
 
 // Snappy configuration (minimal parameters)

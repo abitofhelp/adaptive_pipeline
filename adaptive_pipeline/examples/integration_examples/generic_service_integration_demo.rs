@@ -84,7 +84,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 // Import all the generics we'll be using
-use pipeline_domain::{
+use adaptive_pipeline_domain::{
     PipelineError,
     services::{
         // Generic Service Base

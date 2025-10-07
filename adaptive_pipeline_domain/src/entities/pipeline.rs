@@ -80,8 +80,8 @@ pub struct PipelineData {
 /// ### Creating a New Pipeline
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline::Pipeline;
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline::Pipeline;
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// // Create user-defined stages
@@ -113,8 +113,8 @@ pub struct PipelineData {
 /// ### Modifying Pipeline Configuration
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline::Pipeline;
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline::Pipeline;
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// let stage = PipelineStage::new(
@@ -142,8 +142,8 @@ pub struct PipelineData {
 /// ### Adding Stages Dynamically
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline::Pipeline;
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline::Pipeline;
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 ///
 /// let initial_stage = PipelineStage::new(
 ///     "compress".to_string(),
@@ -294,8 +294,8 @@ impl Pipeline {
     /// # Example
     ///
     /// ```
-    /// use pipeline_domain::entities::pipeline::Pipeline;
-    /// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+    /// use adaptive_pipeline_domain::entities::pipeline::Pipeline;
+    /// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
     ///
     /// let compression = PipelineStage::new(
     ///     "compress".to_string(),

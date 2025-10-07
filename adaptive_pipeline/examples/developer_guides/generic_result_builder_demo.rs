@@ -482,8 +482,8 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 
-use pipeline_domain::error::PipelineError;
-use pipeline_domain::services::generic_result_builder::{
+use adaptive_pipeline_domain::error::PipelineError;
+use adaptive_pipeline_domain::services::generic_result_builder::{
     GenericResultBuilder, OperationResult, GenericProcessingResult, result_builder,
 };
 

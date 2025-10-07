@@ -32,7 +32,7 @@
 //!
 //! ```rust
 //! use adaptive_pipeline_domain::services::StageService;
-//! use pipeline::infrastructure::services::TeeService;
+//! use adaptive_pipeline::infrastructure::services::TeeService;
 //!
 //! let service = TeeService::new();
 //! // Used automatically by pipeline when configured with StageType::Transform

@@ -1,49 +1,47 @@
 <!DOCTYPE HTML>
 <html lang="en" class="light sidebar-visible" dir="ltr">
-
-<head>
-    <!-- Book generated using mdBook -->
-    <meta charset="UTF-8">
-    <title>Software Design - Pipeline Developer Guide</title>
-
-
-    <!-- Custom HTML head -->
-
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#ffffff">
-
-    <link rel="icon" href="../favicon.svg">
-    <link rel="shortcut icon" href="../favicon.png">
-    <link rel="stylesheet" href="../css/variables.css">
-    <link rel="stylesheet" href="../css/general.css">
-    <link rel="stylesheet" href="../css/chrome.css">
-    <link rel="stylesheet" href="../css/print.css" media="print">
-
-    <!-- Fonts -->
-    <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
-    <link rel="stylesheet" href="../fonts/fonts.css">
-
-    <!-- Highlight.js Stylesheets -->
-    <link rel="stylesheet" id="highlight-css" href="../highlight.css">
-    <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
-    <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
-
-    <!-- Custom theme stylesheets -->
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Software Design - Pipeline Developer Guide</title>
 
 
-    <!-- Provide site root and default themes to javascript -->
-    <script>
-        const path_to_root = "../";
-        const default_light_theme = "light";
-        const default_dark_theme = "navy";
-        window.path_to_searchindex_js = "../searchindex.js";
-    </script>
-    <!-- Start loading toc.js asap -->
-    <script src="../toc.js"></script>
-</head>
+        <!-- Custom HTML head -->
 
-<body>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
     <div id="mdbook-help-container">
         <div id="mdbook-help-popup">
             <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
@@ -76,7 +74,7 @@
         <script>
             const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
             let theme;
-            try { theme = localStorage.getItem('mdbook-theme'); } catch (e) { }
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
             html.classList.remove('light')
@@ -91,7 +89,7 @@
             let sidebar = null;
             const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
-                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch (e) { }
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
@@ -121,14 +119,10 @@
                 <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor"
-                            title="Toggle Table of Contents" aria-label="Toggle Table of Contents"
-                            aria-controls="sidebar">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
                             <i class="fa fa-bars"></i>
                         </label>
-                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme"
-                            aria-label="Change theme" aria-haspopup="true" aria-expanded="false"
-                            aria-controls="theme-list">
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
@@ -139,9 +133,7 @@
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)"
-                            aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s"
-                            aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -159,8 +151,7 @@
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
                         <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..."
-                                aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                             <div class="spinner-wrapper">
                                 <i class="fa fa-spinner fa-spin"></i>
                             </div>
@@ -177,91 +168,81 @@
                 <script>
                     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
                     document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
-                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function (link) {
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
                         link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
                     });
                 </script>
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="software-design-document-sdd"><a class="header"
-                                href="#software-design-document-sdd">Software Design Document (SDD)</a></h1>
-                        <p><strong>Version:</strong> 1.0
-                            <strong>Date:</strong> 2025-01-04
-                            <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
-                            <strong>License File:</strong> See the LICENSE file in the project root.
-                            <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-                            <strong>Authors:</strong> Michael Gardner, Claude Code
-                            <strong>Status:</strong> Active
-                        </p>
-                        <hr />
-                        <h2 id="1-introduction"><a class="header" href="#1-introduction">1. Introduction</a></h2>
-                        <h3 id="11-purpose"><a class="header" href="#11-purpose">1.1 Purpose</a></h3>
-                        <p>This Software Design Document (SDD) describes the architectural and detailed design of the
-                            Adaptive Pipeline system. It provides technical specifications for developers implementing,
-                            maintaining, and extending the system.</p>
-                        <p><strong>Intended Audience:</strong></p>
-                        <ul>
-                            <li>Software developers implementing features</li>
-                            <li>Technical architects reviewing design decisions</li>
-                            <li>Code reviewers evaluating pull requests</li>
-                            <li>New team members onboarding to the codebase</li>
-                        </ul>
-                        <h3 id="12-scope"><a class="header" href="#12-scope">1.2 Scope</a></h3>
-                        <p>This document covers the design of a high-performance file processing pipeline implemented in
-                            Rust, following Domain-Driven Design (DDD), Clean Architecture, and Hexagonal Architecture
-                            principles.</p>
-                        <p><strong>Covered Topics:</strong></p>
-                        <ul>
-                            <li>System architecture and layer organization</li>
-                            <li>Component interactions and dependencies</li>
-                            <li>Data structures and algorithms</li>
-                            <li>Interface specifications</li>
-                            <li>Design patterns and rationale</li>
-                            <li>Technology stack and tooling</li>
-                            <li>Cross-cutting concerns</li>
-                        </ul>
-                        <p><strong>Not Covered:</strong></p>
-                        <ul>
-                            <li>Requirements (see SRS)</li>
-                            <li>Testing strategies (see Test Plan)</li>
-                            <li>Deployment procedures</li>
-                            <li>Operational procedures</li>
-                        </ul>
-                        <h3 id="13-design-philosophy"><a class="header" href="#13-design-philosophy">1.3 Design
-                                Philosophy</a></h3>
-                        <p><strong>Core Principles:</strong></p>
-                        <ol>
-                            <li><strong>Domain-Driven Design</strong>: Business logic isolated in domain layer</li>
-                            <li><strong>Clean Architecture</strong>: Dependencies point inward toward domain</li>
-                            <li><strong>Hexagonal Architecture</strong>: Ports and adapters isolate external concerns
-                            </li>
-                            <li><strong>SOLID Principles</strong>: Single responsibility, dependency inversion</li>
-                            <li><strong>Rust Idioms</strong>: Zero-cost abstractions, ownership, type safety</li>
-                        </ol>
-                        <p><strong>Design Goals:</strong></p>
-                        <ul>
-                            <li><strong>Correctness</strong>: Type-safe, compiler-verified invariants</li>
-                            <li><strong>Performance</strong>: Async I/O, parallel processing, minimal allocations</li>
-                            <li><strong>Maintainability</strong>: Clear separation of concerns, testable components</li>
-                            <li><strong>Extensibility</strong>: Plugin architecture for custom stages</li>
-                            <li><strong>Observability</strong>: Comprehensive metrics and logging</li>
-                        </ul>
-                        <h3 id="14-references"><a class="header" href="#14-references">1.4 References</a></h3>
-                        <ul>
-                            <li><a href="requirements.html">Software Requirements Specification</a></li>
-                            <li><a href="../architecture/overview.html">Architecture Overview</a></li>
-                            <li><a href="../architecture/domain-model.html">Domain Model</a></li>
-                            <li>Clean Architecture: Robert C. Martin, 2017</li>
-                            <li>Domain-Driven Design: Eric Evans, 2003</li>
-                        </ul>
-                        <hr />
-                        <h2 id="2-system-architecture"><a class="header" href="#2-system-architecture">2. System
-                                Architecture</a></h2>
-                        <h3 id="21-architectural-overview"><a class="header" href="#21-architectural-overview">2.1
-                                Architectural Overview</a></h3>
-                        <p>The system follows a <strong>layered architecture</strong> with strict dependency rules:</p>
-                        <pre><code>┌─────────────────────────────────────────────┐
+                        <h1 id="software-design-document-sdd"><a class="header" href="#software-design-document-sdd">Software Design Document (SDD)</a></h1>
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2025-01-04
+<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+<strong>License File:</strong> See the LICENSE file in the project root.
+<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+<strong>Authors:</strong> Michael Gardner, Claude Code
+<strong>Status:</strong> Active</p>
+<hr />
+<h2 id="1-introduction"><a class="header" href="#1-introduction">1. Introduction</a></h2>
+<h3 id="11-purpose"><a class="header" href="#11-purpose">1.1 Purpose</a></h3>
+<p>This Software Design Document (SDD) describes the architectural and detailed design of the Adaptive Pipeline system. It provides technical specifications for developers implementing, maintaining, and extending the system.</p>
+<p><strong>Intended Audience:</strong></p>
+<ul>
+<li>Software developers implementing features</li>
+<li>Technical architects reviewing design decisions</li>
+<li>Code reviewers evaluating pull requests</li>
+<li>New team members onboarding to the codebase</li>
+</ul>
+<h3 id="12-scope"><a class="header" href="#12-scope">1.2 Scope</a></h3>
+<p>This document covers the design of a high-performance file processing pipeline implemented in Rust, following Domain-Driven Design (DDD), Clean Architecture, and Hexagonal Architecture principles.</p>
+<p><strong>Covered Topics:</strong></p>
+<ul>
+<li>System architecture and layer organization</li>
+<li>Component interactions and dependencies</li>
+<li>Data structures and algorithms</li>
+<li>Interface specifications</li>
+<li>Design patterns and rationale</li>
+<li>Technology stack and tooling</li>
+<li>Cross-cutting concerns</li>
+</ul>
+<p><strong>Not Covered:</strong></p>
+<ul>
+<li>Requirements (see SRS)</li>
+<li>Testing strategies (see Test Plan)</li>
+<li>Deployment procedures</li>
+<li>Operational procedures</li>
+</ul>
+<h3 id="13-design-philosophy"><a class="header" href="#13-design-philosophy">1.3 Design Philosophy</a></h3>
+<p><strong>Core Principles:</strong></p>
+<ol>
+<li><strong>Domain-Driven Design</strong>: Business logic isolated in domain layer</li>
+<li><strong>Clean Architecture</strong>: Dependencies point inward toward domain</li>
+<li><strong>Hexagonal Architecture</strong>: Ports and adapters isolate external concerns</li>
+<li><strong>SOLID Principles</strong>: Single responsibility, dependency inversion</li>
+<li><strong>Rust Idioms</strong>: Zero-cost abstractions, ownership, type safety</li>
+</ol>
+<p><strong>Design Goals:</strong></p>
+<ul>
+<li><strong>Correctness</strong>: Type-safe, compiler-verified invariants</li>
+<li><strong>Performance</strong>: Async I/O, parallel processing, minimal allocations</li>
+<li><strong>Maintainability</strong>: Clear separation of concerns, testable components</li>
+<li><strong>Extensibility</strong>: Plugin architecture for custom stages</li>
+<li><strong>Observability</strong>: Comprehensive metrics and logging</li>
+</ul>
+<h3 id="14-references"><a class="header" href="#14-references">1.4 References</a></h3>
+<ul>
+<li><a href="requirements.html">Software Requirements Specification</a></li>
+<li><a href="../architecture/overview.html">Architecture Overview</a></li>
+<li><a href="../architecture/domain-model.html">Domain Model</a></li>
+<li>Clean Architecture: Robert C. Martin, 2017</li>
+<li>Domain-Driven Design: Eric Evans, 2003</li>
+</ul>
+<hr />
+<h2 id="2-system-architecture"><a class="header" href="#2-system-architecture">2. System Architecture</a></h2>
+<h3 id="21-architectural-overview"><a class="header" href="#21-architectural-overview">2.1 Architectural Overview</a></h3>
+<p>The system follows a <strong>layered architecture</strong> with strict dependency rules:</p>
+<pre><code>┌─────────────────────────────────────────────┐
 │         Presentation Layer                  │ ← CLI, Future APIs
 │  (bootstrap, cli, config, logger)           │
 ├─────────────────────────────────────────────┤
@@ -277,94 +258,89 @@
 
 Dependency Rule: Inner layers know nothing about outer layers
 </code></pre>
-                        <h3 id="22-layered-architecture-details"><a class="header"
-                                href="#22-layered-architecture-details">2.2 Layered Architecture Details</a></h3>
-                        <h4 id="221-presentation-layer-bootstrap-crate"><a class="header"
-                                href="#221-presentation-layer-bootstrap-crate">2.2.1 Presentation Layer (Bootstrap
-                                Crate)</a></h4>
-                        <p><strong>Responsibilities:</strong></p>
-                        <ul>
-                            <li>CLI argument parsing and validation</li>
-                            <li>Application configuration</li>
-                            <li>Logging and console output</li>
-                            <li>Exit code handling</li>
-                            <li>Platform-specific concerns</li>
-                        </ul>
-                        <p><strong>Key Components:</strong></p>
-                        <ul>
-                            <li><code>cli::parser</code> - Command-line argument parsing</li>
-                            <li><code>cli::validator</code> - Input validation and sanitization</li>
-                            <li><code>config::AppConfig</code> - Application configuration</li>
-                            <li><code>logger::Logger</code> - Logging abstraction</li>
-                            <li><code>platform::Platform</code> - Platform detection</li>
-                        </ul>
-                        <p><strong>Design Decisions:</strong></p>
-                        <ul>
-                            <li>Separate crate for clean separation</li>
-                            <li>No domain dependencies</li>
-                            <li>Generic, reusable components</li>
-                        </ul>
-                        <h4 id="222-application-layer"><a class="header" href="#222-application-layer">2.2.2 Application
-                                Layer</a></h4>
-                        <p><strong>Responsibilities:</strong></p>
-                        <ul>
-                            <li>Orchestrate use cases</li>
-                            <li>Coordinate domain services</li>
-                            <li>Manage transactions</li>
-                            <li>Handle application-level errors</li>
-                        </ul>
-                        <p><strong>Key Components:</strong></p>
-                        <ul>
-                            <li><code>use_cases::ProcessFileUseCase</code> - File processing orchestration</li>
-                            <li><code>use_cases::RestoreFileUseCase</code> - File restoration orchestration</li>
-                            <li><code>commands::ProcessFileCommand</code> - Command pattern implementation</li>
-                            <li><code>commands::RestoreFileCommand</code> - Restoration command</li>
-                        </ul>
-                        <p><strong>Design Patterns:</strong></p>
-                        <ul>
-                            <li><strong>Command Pattern</strong>: Encapsulate requests as objects</li>
-                            <li><strong>Use Case Pattern</strong>: Application-specific business rules</li>
-                            <li><strong>Dependency Injection</strong>: Services injected via constructors</li>
-                        </ul>
-                        <p><strong>Key Abstractions:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<h3 id="22-layered-architecture-details"><a class="header" href="#22-layered-architecture-details">2.2 Layered Architecture Details</a></h3>
+<h4 id="221-presentation-layer-bootstrap-crate"><a class="header" href="#221-presentation-layer-bootstrap-crate">2.2.1 Presentation Layer (Bootstrap Crate)</a></h4>
+<p><strong>Responsibilities:</strong></p>
+<ul>
+<li>CLI argument parsing and validation</li>
+<li>Application configuration</li>
+<li>Logging and console output</li>
+<li>Exit code handling</li>
+<li>Platform-specific concerns</li>
+</ul>
+<p><strong>Key Components:</strong></p>
+<ul>
+<li><code>cli::parser</code> - Command-line argument parsing</li>
+<li><code>cli::validator</code> - Input validation and sanitization</li>
+<li><code>config::AppConfig</code> - Application configuration</li>
+<li><code>logger::Logger</code> - Logging abstraction</li>
+<li><code>platform::Platform</code> - Platform detection</li>
+</ul>
+<p><strong>Design Decisions:</strong></p>
+<ul>
+<li>Separate crate for clean separation</li>
+<li>No domain dependencies</li>
+<li>Generic, reusable components</li>
+</ul>
+<h4 id="222-application-layer"><a class="header" href="#222-application-layer">2.2.2 Application Layer</a></h4>
+<p><strong>Responsibilities:</strong></p>
+<ul>
+<li>Orchestrate use cases</li>
+<li>Coordinate domain services</li>
+<li>Manage transactions</li>
+<li>Handle application-level errors</li>
+</ul>
+<p><strong>Key Components:</strong></p>
+<ul>
+<li><code>use_cases::ProcessFileUseCase</code> - File processing orchestration</li>
+<li><code>use_cases::RestoreFileUseCase</code> - File restoration orchestration</li>
+<li><code>commands::ProcessFileCommand</code> - Command pattern implementation</li>
+<li><code>commands::RestoreFileCommand</code> - Restoration command</li>
+</ul>
+<p><strong>Design Patterns:</strong></p>
+<ul>
+<li><strong>Command Pattern</strong>: Encapsulate requests as objects</li>
+<li><strong>Use Case Pattern</strong>: Application-specific business rules</li>
+<li><strong>Dependency Injection</strong>: Services injected via constructors</li>
+</ul>
+<p><strong>Key Abstractions:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[async_trait]
 pub trait UseCase&lt;Input, Output&gt; {
     async fn execute(&amp;self, input: Input) -&gt; Result&lt;Output&gt;;
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h4 id="223-domain-layer"><a class="header" href="#223-domain-layer">2.2.3 Domain Layer</a></h4>
-                        <p><strong>Responsibilities:</strong></p>
-                        <ul>
-                            <li>Core business logic</li>
-                            <li>Domain rules and invariants</li>
-                            <li>Domain events</li>
-                            <li>Pure functions (no I/O)</li>
-                        </ul>
-                        <p><strong>Key Components:</strong></p>
-                        <p><strong>Entities:</strong></p>
-                        <ul>
-                            <li><code>Pipeline</code> - Aggregate root for pipeline configuration</li>
-                            <li><code>PipelineStage</code> - Individual processing stage</li>
-                            <li><code>FileMetadata</code> - File information and state</li>
-                        </ul>
-                        <p><strong>Value Objects:</strong></p>
-                        <ul>
-                            <li><code>ChunkSize</code> - Validated chunk size</li>
-                            <li><code>PipelineId</code> - Unique pipeline identifier</li>
-                            <li><code>StageType</code> - Type-safe stage classification</li>
-                        </ul>
-                        <p><strong>Domain Services:</strong></p>
-                        <ul>
-                            <li><code>CompressionService</code> - Compression/decompression logic</li>
-                            <li><code>EncryptionService</code> - Encryption/decryption logic</li>
-                            <li><code>ChecksumService</code> - Integrity verification logic</li>
-                            <li><code>FileIOService</code> - File operations abstraction</li>
-                        </ul>
-                        <p><strong>Invariants Enforced:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h4 id="223-domain-layer"><a class="header" href="#223-domain-layer">2.2.3 Domain Layer</a></h4>
+<p><strong>Responsibilities:</strong></p>
+<ul>
+<li>Core business logic</li>
+<li>Domain rules and invariants</li>
+<li>Domain events</li>
+<li>Pure functions (no I/O)</li>
+</ul>
+<p><strong>Key Components:</strong></p>
+<p><strong>Entities:</strong></p>
+<ul>
+<li><code>Pipeline</code> - Aggregate root for pipeline configuration</li>
+<li><code>PipelineStage</code> - Individual processing stage</li>
+<li><code>FileMetadata</code> - File information and state</li>
+</ul>
+<p><strong>Value Objects:</strong></p>
+<ul>
+<li><code>ChunkSize</code> - Validated chunk size</li>
+<li><code>PipelineId</code> - Unique pipeline identifier</li>
+<li><code>StageType</code> - Type-safe stage classification</li>
+</ul>
+<p><strong>Domain Services:</strong></p>
+<ul>
+<li><code>CompressionService</code> - Compression/decompression logic</li>
+<li><code>EncryptionService</code> - Encryption/decryption logic</li>
+<li><code>ChecksumService</code> - Integrity verification logic</li>
+<li><code>FileIOService</code> - File operations abstraction</li>
+</ul>
+<p><strong>Invariants Enforced:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl Pipeline {
     pub fn new(name: String, stages: Vec&lt;PipelineStage&gt;) -&gt; Result&lt;Self&gt; {
@@ -384,47 +360,43 @@ pub trait UseCase&lt;Input, Output&gt; {
         Ok(Pipeline { name, stages })
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h4 id="224-infrastructure-layer"><a class="header" href="#224-infrastructure-layer">2.2.4
-                                Infrastructure Layer</a></h4>
-                        <p><strong>Responsibilities:</strong></p>
-                        <ul>
-                            <li>External system integration</li>
-                            <li>Data persistence</li>
-                            <li>File I/O operations</li>
-                            <li>Third-party library adapters</li>
-                        </ul>
-                        <p><strong>Key Components:</strong></p>
-                        <p><strong>Repositories:</strong></p>
-                        <ul>
-                            <li><code>SqlitePipelineRepository</code> - SQLite-based persistence</li>
-                            <li><code>InMemoryPipelineRepository</code> - Testing/development</li>
-                        </ul>
-                        <p><strong>Adapters:</strong></p>
-                        <ul>
-                            <li><code>BrotliCompressionAdapter</code> - Brotli compression</li>
-                            <li><code>ZstdCompressionAdapter</code> - Zstandard compression</li>
-                            <li><code>AesGcmEncryptionAdapter</code> - AES-256-GCM encryption</li>
-                            <li><code>Sha256ChecksumAdapter</code> - SHA-256 hashing</li>
-                        </ul>
-                        <p><strong>File I/O:</strong></p>
-                        <ul>
-                            <li><code>BinaryFileWriter</code> - .adapipe format writer</li>
-                            <li><code>BinaryFileReader</code> - .adapipe format reader</li>
-                            <li><code>ChunkedFileReader</code> - Streaming file reader</li>
-                            <li><code>ChunkedFileWriter</code> - Streaming file writer</li>
-                        </ul>
-                        <h3 id="23-hexagonal-architecture-ports--adapters"><a class="header"
-                                href="#23-hexagonal-architecture-ports--adapters">2.3 Hexagonal Architecture (Ports
-                                &amp; Adapters)</a></h3>
-                        <p><strong>Primary Ports</strong> (driving adapters - how the world uses us):</p>
-                        <ul>
-                            <li>CLI commands</li>
-                            <li>Future: REST API, gRPC API</li>
-                        </ul>
-                        <p><strong>Secondary Ports</strong> (driven adapters - how we use the world):</p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h4 id="224-infrastructure-layer"><a class="header" href="#224-infrastructure-layer">2.2.4 Infrastructure Layer</a></h4>
+<p><strong>Responsibilities:</strong></p>
+<ul>
+<li>External system integration</li>
+<li>Data persistence</li>
+<li>File I/O operations</li>
+<li>Third-party library adapters</li>
+</ul>
+<p><strong>Key Components:</strong></p>
+<p><strong>Repositories:</strong></p>
+<ul>
+<li><code>SqlitePipelineRepository</code> - SQLite-based persistence</li>
+<li><code>InMemoryPipelineRepository</code> - Testing/development</li>
+</ul>
+<p><strong>Adapters:</strong></p>
+<ul>
+<li><code>BrotliCompressionAdapter</code> - Brotli compression</li>
+<li><code>ZstdCompressionAdapter</code> - Zstandard compression</li>
+<li><code>AesGcmEncryptionAdapter</code> - AES-256-GCM encryption</li>
+<li><code>Sha256ChecksumAdapter</code> - SHA-256 hashing</li>
+</ul>
+<p><strong>File I/O:</strong></p>
+<ul>
+<li><code>BinaryFileWriter</code> - .adapipe format writer</li>
+<li><code>BinaryFileReader</code> - .adapipe format reader</li>
+<li><code>ChunkedFileReader</code> - Streaming file reader</li>
+<li><code>ChunkedFileWriter</code> - Streaming file writer</li>
+</ul>
+<h3 id="23-hexagonal-architecture-ports--adapters"><a class="header" href="#23-hexagonal-architecture-ports--adapters">2.3 Hexagonal Architecture (Ports &amp; Adapters)</a></h3>
+<p><strong>Primary Ports</strong> (driving adapters - how the world uses us):</p>
+<ul>
+<li>CLI commands</li>
+<li>Future: REST API, gRPC API</li>
+</ul>
+<p><strong>Secondary Ports</strong> (driven adapters - how we use the world):</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Domain defines the interface (port)
 #[async_trait]
@@ -444,22 +416,19 @@ impl CompressionPort for BrotliAdapter {
         // Brotli-specific implementation
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <p><strong>Benefits:</strong></p>
-                        <ul>
-                            <li>Domain layer testable in isolation</li>
-                            <li>Easy to swap implementations</li>
-                            <li>Third-party dependencies isolated</li>
-                            <li>Technology-agnostic core</li>
-                        </ul>
-                        <hr />
-                        <h2 id="3-component-design"><a class="header" href="#3-component-design">3. Component Design</a>
-                        </h2>
-                        <h3 id="31-pipeline-processing-engine"><a class="header"
-                                href="#31-pipeline-processing-engine">3.1 Pipeline Processing Engine</a></h3>
-                        <p><strong>Architecture:</strong></p>
-                        <pre><code>┌──────────────┐
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Domain layer testable in isolation</li>
+<li>Easy to swap implementations</li>
+<li>Third-party dependencies isolated</li>
+<li>Technology-agnostic core</li>
+</ul>
+<hr />
+<h2 id="3-component-design"><a class="header" href="#3-component-design">3. Component Design</a></h2>
+<h3 id="31-pipeline-processing-engine"><a class="header" href="#31-pipeline-processing-engine">3.1 Pipeline Processing Engine</a></h3>
+<p><strong>Architecture:</strong></p>
+<pre><code>┌──────────────┐
 │   Pipeline   │ (Aggregate Root)
 │              │
 │  - name      │
@@ -477,8 +446,8 @@ impl CompressionPort for BrotliAdapter {
 │  - order     │
 └──────────────┘
 </code></pre>
-                        <p><strong>Processing Flow:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<p><strong>Processing Flow:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PipelineProcessor {
     context: Arc&lt;PipelineContext&gt;,
@@ -534,19 +503,17 @@ impl PipelineProcessor {
         Ok(Chunk { data, ..chunk })
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="32-chunk-processing-strategy"><a class="header" href="#32-chunk-processing-strategy">3.2
-                                Chunk Processing Strategy</a></h3>
-                        <p><strong>Design Rationale:</strong></p>
-                        <ul>
-                            <li>Large files cannot fit in memory</li>
-                            <li>Streaming processing enables arbitrary file sizes</li>
-                            <li>Parallel chunk processing utilizes multiple cores</li>
-                            <li>Fixed chunk size simplifies memory management</li>
-                        </ul>
-                        <p><strong>Implementation:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="32-chunk-processing-strategy"><a class="header" href="#32-chunk-processing-strategy">3.2 Chunk Processing Strategy</a></h3>
+<p><strong>Design Rationale:</strong></p>
+<ul>
+<li>Large files cannot fit in memory</li>
+<li>Streaming processing enables arbitrary file sizes</li>
+<li>Parallel chunk processing utilizes multiple cores</li>
+<li>Fixed chunk size simplifies memory management</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub const DEFAULT_CHUNK_SIZE: usize = 1_048_576; // 1 MB
 
@@ -583,10 +550,9 @@ impl ChunkedFileReader {
         Ok(Some(chunk))
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <p><strong>Parallel Processing:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parallel Processing:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use tokio::task::JoinSet;
 
@@ -613,13 +579,10 @@ pub async fn process_chunks_parallel(
 
     Ok(results)
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="33-repository-pattern-implementation"><a class="header"
-                                href="#33-repository-pattern-implementation">3.3 Repository Pattern Implementation</a>
-                        </h3>
-                        <p><strong>Interface (Port):</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="33-repository-pattern-implementation"><a class="header" href="#33-repository-pattern-implementation">3.3 Repository Pattern Implementation</a></h3>
+<p><strong>Interface (Port):</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[async_trait]
 pub trait PipelineRepository: Send + Sync {
@@ -629,10 +592,9 @@ pub trait PipelineRepository: Send + Sync {
     async fn delete(&amp;self, id: &amp;str) -&gt; Result&lt;()&gt;;
     async fn list_all(&amp;self) -&gt; Result&lt;Vec&lt;Pipeline&gt;&gt;;
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <p><strong>SQLite Implementation:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<p><strong>SQLite Implementation:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct SqlitePipelineRepository {
     pool: Arc&lt;SqlitePool&gt;,
@@ -673,14 +635,11 @@ impl PipelineRepository for SqlitePipelineRepository {
         Ok(())
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="34-adapter-pattern-for-algorithms"><a class="header"
-                                href="#34-adapter-pattern-for-algorithms">3.4 Adapter Pattern for Algorithms</a></h3>
-                        <p><strong>Design:</strong> Each algorithm family has a common interface with multiple
-                            implementations.</p>
-                        <p><strong>Compression Adapters:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="34-adapter-pattern-for-algorithms"><a class="header" href="#34-adapter-pattern-for-algorithms">3.4 Adapter Pattern for Algorithms</a></h3>
+<p><strong>Design:</strong> Each algorithm family has a common interface with multiple implementations.</p>
+<p><strong>Compression Adapters:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[async_trait]
 pub trait CompressionAdapter: Send + Sync {
@@ -716,10 +675,9 @@ impl CompressionAdapter for BrotliAdapter {
         Ok(output)
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <p><strong>Factory Pattern:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Factory Pattern:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AdapterFactory;
 
@@ -738,14 +696,12 @@ impl AdapterFactory {
         }
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <hr />
-                        <h2 id="4-data-design"><a class="header" href="#4-data-design">4. Data Design</a></h2>
-                        <h3 id="41-domain-entities"><a class="header" href="#41-domain-entities">4.1 Domain Entities</a>
-                        </h3>
-                        <p><strong>Pipeline Entity:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<hr />
+<h2 id="4-data-design"><a class="header" href="#4-data-design">4. Data Design</a></h2>
+<h3 id="41-domain-entities"><a class="header" href="#41-domain-entities">4.1 Domain Entities</a></h3>
+<p><strong>Pipeline Entity:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct Pipeline {
     id: PipelineId,
@@ -775,10 +731,9 @@ impl Pipeline {
         self.stages.iter().rev().cloned().collect()
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <p><strong>PipelineStage Entity:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<p><strong>PipelineStage Entity:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PipelineStage {
     name: String,
@@ -800,11 +755,10 @@ pub struct StageConfiguration {
     pub parallel_processing: bool,
     pub chunk_size: Option&lt;usize&gt;,
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="42-value-objects"><a class="header" href="#42-value-objects">4.2 Value Objects</a></h3>
-                        <p><strong>ChunkSize:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="42-value-objects"><a class="header" href="#42-value-objects">4.2 Value Objects</a></h3>
+<p><strong>ChunkSize:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ChunkSize(usize);
@@ -829,12 +783,10 @@ impl ChunkSize {
         self.0
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="43-database-schema"><a class="header" href="#43-database-schema">4.3 Database Schema</a>
-                        </h3>
-                        <p><strong>Schema Management:</strong> Using <code>sqlx</code> with migrations</p>
-                        <pre><code class="language-sql">-- migrations/20250101000000_initial_schema.sql
+<span class="boring">}</span></code></pre></pre>
+<h3 id="43-database-schema"><a class="header" href="#43-database-schema">4.3 Database Schema</a></h3>
+<p><strong>Schema Management:</strong> Using <code>sqlx</code> with migrations</p>
+<pre><code class="language-sql">-- migrations/20250101000000_initial_schema.sql
 
 -- Pipelines table: stores pipeline configurations
 CREATE TABLE IF NOT EXISTS pipelines (
@@ -914,10 +866,9 @@ CREATE INDEX IF NOT EXISTS idx_pipeline_configuration_pipeline_id ON pipeline_co
 CREATE INDEX IF NOT EXISTS idx_stage_parameters_stage_id ON stage_parameters(stage_id);
 CREATE INDEX IF NOT EXISTS idx_pipelines_name ON pipelines(name) WHERE archived = false;
 </code></pre>
-                        <h3 id="44-binary-file-format-adapipe"><a class="header"
-                                href="#44-binary-file-format-adapipe">4.4 Binary File Format (.adapipe)</a></h3>
-                        <p><strong>Format Specification:</strong></p>
-                        <pre><code>.adapipe File Structure:
+<h3 id="44-binary-file-format-adapipe"><a class="header" href="#44-binary-file-format-adapipe">4.4 Binary File Format (.adapipe)</a></h3>
+<p><strong>Format Specification:</strong></p>
+<pre><code>.adapipe File Structure:
 ┌────────────────────────────────────┐
 │ Magic Number (4 bytes): "ADPI"    │
 │ Version (2 bytes): Major.Minor     │
@@ -945,8 +896,8 @@ CREATE INDEX IF NOT EXISTS idx_pipelines_name ON pipelines(name) WHERE archived 
 │  - created_at                      │
 └────────────────────────────────────┘
 </code></pre>
-                        <p><strong>Implementation:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<p><strong>Implementation:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AdapipeHeader {
     pub pipeline_name: String,
@@ -989,14 +940,12 @@ impl BinaryFileWriter {
         Ok(())
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <hr />
-                        <h2 id="5-interface-design"><a class="header" href="#5-interface-design">5. Interface Design</a>
-                        </h2>
-                        <h3 id="51-public-api"><a class="header" href="#51-public-api">5.1 Public API</a></h3>
-                        <p><strong>Command-Line Interface:</strong></p>
-                        <pre><code class="language-bash"># Process a file
+<span class="boring">}</span></code></pre></pre>
+<hr />
+<h2 id="5-interface-design"><a class="header" href="#5-interface-design">5. Interface Design</a></h2>
+<h3 id="51-public-api"><a class="header" href="#51-public-api">5.1 Public API</a></h3>
+<p><strong>Command-Line Interface:</strong></p>
+<pre><code class="language-bash"># Process a file
 pipeline process \
     --input ./document.pdf \
     --output ./document.adapipe \
@@ -1019,8 +968,8 @@ pipeline create \
     --name my-pipeline \
     --stages compress:zstd,encrypt:aes256gcm
 </code></pre>
-                        <p><strong>Future: Library API:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust">use pipeline_domain::entities::{Pipeline, PipelineStage, StageType, StageConfiguration};
+<p><strong>Future: Library API:</strong></p>
+<pre><pre class="playground"><code class="language-rust">use adaptive_pipeline_domain::entities::{Pipeline, PipelineStage, StageType, StageConfiguration};
 use std::collections::HashMap;
 
 #[tokio::main]
@@ -1060,11 +1009,10 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
     println!("Pipeline created: {}", pipeline.name());
     Ok(())
-}</code></pre>
-                        </pre>
-                        <h3 id="52-internal-apis"><a class="header" href="#52-internal-apis">5.2 Internal APIs</a></h3>
-                        <p><strong>Domain Service Interfaces:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+}</code></pre></pre>
+<h3 id="52-internal-apis"><a class="header" href="#52-internal-apis">5.2 Internal APIs</a></h3>
+<p><strong>Domain Service Interfaces:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[async_trait]
 pub trait CompressionService: Send + Sync {
@@ -1097,119 +1045,76 @@ pub trait EncryptionService: Send + Sync {
         key: &amp;[u8]
     ) -&gt; Result&lt;Vec&lt;u8&gt;&gt;;
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <hr />
-                        <h2 id="6-technology-stack"><a class="header" href="#6-technology-stack">6. Technology Stack</a>
-                        </h2>
-                        <h3 id="61-core-technologies"><a class="header" href="#61-core-technologies">6.1 Core
-                                Technologies</a></h3>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Technology</th>
-                                        <th>Purpose</th>
-                                        <th>Version</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Rust</td>
-                                        <td>Primary language</td>
-                                        <td>1.75+</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Tokio</td>
-                                        <td>Async runtime</td>
-                                        <td>1.35+</td>
-                                    </tr>
-                                    <tr>
-                                        <td>SQLx</td>
-                                        <td>Database access</td>
-                                        <td>0.7+</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Serde</td>
-                                        <td>Serialization</td>
-                                        <td>1.0+</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Anyhow</td>
-                                        <td>Error handling</td>
-                                        <td>1.0+</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Clap</td>
-                                        <td>CLI parsing</td>
-                                        <td>4.5+</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <h3 id="62-algorithms--libraries"><a class="header" href="#62-algorithms--libraries">6.2
-                                Algorithms &amp; Libraries</a></h3>
-                        <p><strong>Compression:</strong></p>
-                        <ul>
-                            <li>Brotli (<code>brotli</code> crate)</li>
-                            <li>Zstandard (<code>zstd</code> crate)</li>
-                            <li>Gzip (<code>flate2</code> crate)</li>
-                            <li>LZ4 (<code>lz4</code> crate)</li>
-                        </ul>
-                        <p><strong>Encryption:</strong></p>
-                        <ul>
-                            <li>AES-GCM (<code>aes-gcm</code> crate)</li>
-                            <li>ChaCha20-Poly1305 (<code>chacha20poly1305</code> crate)</li>
-                        </ul>
-                        <p><strong>Hashing:</strong></p>
-                        <ul>
-                            <li>SHA-256/SHA-512 (<code>sha2</code> crate)</li>
-                            <li>BLAKE3 (<code>blake3</code> crate)</li>
-                        </ul>
-                        <p><strong>Testing:</strong></p>
-                        <ul>
-                            <li>Criterion (benchmarking)</li>
-                            <li>Proptest (property testing)</li>
-                            <li>Mockall (mocking)</li>
-                        </ul>
-                        <h3 id="63-development-tools"><a class="header" href="#63-development-tools">6.3 Development
-                                Tools</a></h3>
-                        <ul>
-                            <li><strong>Cargo</strong>: Build system and package manager</li>
-                            <li><strong>Clippy</strong>: Linter</li>
-                            <li><strong>Rustfmt</strong>: Code formatter</li>
-                            <li><strong>Cargo-audit</strong>: Security auditing</li>
-                            <li><strong>Cargo-deny</strong>: Dependency validation</li>
-                            <li><strong>mdBook</strong>: Documentation generation</li>
-                        </ul>
-                        <hr />
-                        <h2 id="7-design-patterns"><a class="header" href="#7-design-patterns">7. Design Patterns</a>
-                        </h2>
-                        <h3 id="71-repository-pattern"><a class="header" href="#71-repository-pattern">7.1 Repository
-                                Pattern</a></h3>
-                        <p><strong>Purpose:</strong> Abstract data persistence logic from domain logic.</p>
-                        <p><strong>Implementation:</strong> See Section 3.3</p>
-                        <p><strong>Benefits:</strong></p>
-                        <ul>
-                            <li>Domain layer independent of storage mechanism</li>
-                            <li>Easy to swap SQLite for PostgreSQL or other storage</li>
-                            <li>Testable with in-memory implementation</li>
-                        </ul>
-                        <h3 id="72-adapter-pattern"><a class="header" href="#72-adapter-pattern">7.2 Adapter Pattern</a>
-                        </h3>
-                        <p><strong>Purpose:</strong> Integrate third-party algorithms without coupling.</p>
-                        <p><strong>Implementation:</strong> See Section 3.4</p>
-                        <p><strong>Benefits:</strong></p>
-                        <ul>
-                            <li>Easy to add new algorithms</li>
-                            <li>Algorithm selection at runtime</li>
-                            <li>Consistent interface across all adapters</li>
-                        </ul>
-                        <h3 id="73-strategy-pattern"><a class="header" href="#73-strategy-pattern">7.3 Strategy
-                                Pattern</a></h3>
-                        <p><strong>Purpose:</strong> Select algorithm implementation dynamically.</p>
-                        <p><strong>Example:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<hr />
+<h2 id="6-technology-stack"><a class="header" href="#6-technology-stack">6. Technology Stack</a></h2>
+<h3 id="61-core-technologies"><a class="header" href="#61-core-technologies">6.1 Core Technologies</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Technology</th><th>Purpose</th><th>Version</th></tr></thead><tbody>
+<tr><td>Rust</td><td>Primary language</td><td>1.75+</td></tr>
+<tr><td>Tokio</td><td>Async runtime</td><td>1.35+</td></tr>
+<tr><td>SQLx</td><td>Database access</td><td>0.7+</td></tr>
+<tr><td>Serde</td><td>Serialization</td><td>1.0+</td></tr>
+<tr><td>Anyhow</td><td>Error handling</td><td>1.0+</td></tr>
+<tr><td>Clap</td><td>CLI parsing</td><td>4.5+</td></tr>
+</tbody></table>
+</div>
+<h3 id="62-algorithms--libraries"><a class="header" href="#62-algorithms--libraries">6.2 Algorithms &amp; Libraries</a></h3>
+<p><strong>Compression:</strong></p>
+<ul>
+<li>Brotli (<code>brotli</code> crate)</li>
+<li>Zstandard (<code>zstd</code> crate)</li>
+<li>Gzip (<code>flate2</code> crate)</li>
+<li>LZ4 (<code>lz4</code> crate)</li>
+</ul>
+<p><strong>Encryption:</strong></p>
+<ul>
+<li>AES-GCM (<code>aes-gcm</code> crate)</li>
+<li>ChaCha20-Poly1305 (<code>chacha20poly1305</code> crate)</li>
+</ul>
+<p><strong>Hashing:</strong></p>
+<ul>
+<li>SHA-256/SHA-512 (<code>sha2</code> crate)</li>
+<li>BLAKE3 (<code>blake3</code> crate)</li>
+</ul>
+<p><strong>Testing:</strong></p>
+<ul>
+<li>Criterion (benchmarking)</li>
+<li>Proptest (property testing)</li>
+<li>Mockall (mocking)</li>
+</ul>
+<h3 id="63-development-tools"><a class="header" href="#63-development-tools">6.3 Development Tools</a></h3>
+<ul>
+<li><strong>Cargo</strong>: Build system and package manager</li>
+<li><strong>Clippy</strong>: Linter</li>
+<li><strong>Rustfmt</strong>: Code formatter</li>
+<li><strong>Cargo-audit</strong>: Security auditing</li>
+<li><strong>Cargo-deny</strong>: Dependency validation</li>
+<li><strong>mdBook</strong>: Documentation generation</li>
+</ul>
+<hr />
+<h2 id="7-design-patterns"><a class="header" href="#7-design-patterns">7. Design Patterns</a></h2>
+<h3 id="71-repository-pattern"><a class="header" href="#71-repository-pattern">7.1 Repository Pattern</a></h3>
+<p><strong>Purpose:</strong> Abstract data persistence logic from domain logic.</p>
+<p><strong>Implementation:</strong> See Section 3.3</p>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Domain layer independent of storage mechanism</li>
+<li>Easy to swap SQLite for PostgreSQL or other storage</li>
+<li>Testable with in-memory implementation</li>
+</ul>
+<h3 id="72-adapter-pattern"><a class="header" href="#72-adapter-pattern">7.2 Adapter Pattern</a></h3>
+<p><strong>Purpose:</strong> Integrate third-party algorithms without coupling.</p>
+<p><strong>Implementation:</strong> See Section 3.4</p>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Easy to add new algorithms</li>
+<li>Algorithm selection at runtime</li>
+<li>Consistent interface across all adapters</li>
+</ul>
+<h3 id="73-strategy-pattern"><a class="header" href="#73-strategy-pattern">7.3 Strategy Pattern</a></h3>
+<p><strong>Purpose:</strong> Select algorithm implementation dynamically.</p>
+<p><strong>Example:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PipelineProcessor {
     compression_strategy: Box&lt;dyn CompressionAdapter&gt;,
@@ -1231,24 +1136,20 @@ impl PipelineProcessor {
         })
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="74-builder-pattern"><a class="header" href="#74-builder-pattern">7.4 Builder Pattern</a>
-                        </h3>
-                        <p><strong>Purpose:</strong> Construct complex objects step by step.</p>
-                        <p><strong>Note:</strong> Builder pattern is a potential future enhancement. Current API uses
-                            direct construction.</p>
-                        <p><strong>Current API:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="74-builder-pattern"><a class="header" href="#74-builder-pattern">7.4 Builder Pattern</a></h3>
+<p><strong>Purpose:</strong> Construct complex objects step by step.</p>
+<p><strong>Note:</strong> Builder pattern is a potential future enhancement. Current API uses direct construction.</p>
+<p><strong>Current API:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let pipeline = Pipeline::new(
     "my-pipeline".to_string(),
     vec![compression_stage, encryption_stage],
 )?;
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <p><strong>Potential Future Builder API:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Potential Future Builder API:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Not yet implemented - potential future enhancement
 let pipeline = Pipeline::builder()
@@ -1256,13 +1157,11 @@ let pipeline = Pipeline::builder()
     .add_stage(compression_stage)
     .add_stage(encryption_stage)
     .build()?;
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="75-command-pattern"><a class="header" href="#75-command-pattern">7.5 Command Pattern</a>
-                        </h3>
-                        <p><strong>Purpose:</strong> Encapsulate requests as objects for undo/redo, queueing.</p>
-                        <p><strong>Example:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="75-command-pattern"><a class="header" href="#75-command-pattern">7.5 Command Pattern</a></h3>
+<p><strong>Purpose:</strong> Encapsulate requests as objects for undo/redo, queueing.</p>
+<p><strong>Example:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[async_trait]
 pub trait Command: Send + Sync {
@@ -1281,16 +1180,12 @@ impl Command for ProcessFileCommand {
         // Processing logic
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <hr />
-                        <h2 id="8-cross-cutting-concerns"><a class="header" href="#8-cross-cutting-concerns">8.
-                                Cross-Cutting Concerns</a></h2>
-                        <h3 id="81-error-handling"><a class="header" href="#81-error-handling">8.1 Error Handling</a>
-                        </h3>
-                        <p><strong>Strategy:</strong> Use <code>anyhow::Result</code> for application errors, custom
-                            error types for domain errors.</p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<hr />
+<h2 id="8-cross-cutting-concerns"><a class="header" href="#8-cross-cutting-concerns">8. Cross-Cutting Concerns</a></h2>
+<h3 id="81-error-handling"><a class="header" href="#81-error-handling">8.1 Error Handling</a></h3>
+<p><strong>Strategy:</strong> Use <code>anyhow::Result</code> for application errors, custom error types for domain errors.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, thiserror::Error)]
 pub enum PipelineError {
@@ -1312,11 +1207,10 @@ pub enum PipelineError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="82-logging"><a class="header" href="#82-logging">8.2 Logging</a></h3>
-                        <p><strong>Strategy:</strong> Structured logging with tracing.</p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="82-logging"><a class="header" href="#82-logging">8.2 Logging</a></h3>
+<p><strong>Strategy:</strong> Structured logging with tracing.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use tracing::{info, warn, error, debug, instrument};
 
@@ -1339,12 +1233,10 @@ async fn process_chunk(&amp;self, chunk_id: usize, data: &amp;[u8])
 
     Ok(result)
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="83-metrics-collection"><a class="header" href="#83-metrics-collection">8.3 Metrics
-                                Collection</a></h3>
-                        <p><strong>Strategy:</strong> Prometheus-style metrics.</p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="83-metrics-collection"><a class="header" href="#83-metrics-collection">8.3 Metrics Collection</a></h3>
+<p><strong>Strategy:</strong> Prometheus-style metrics.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PipelineMetrics {
     pub chunks_processed: AtomicUsize,
@@ -1366,44 +1258,39 @@ impl PipelineMetrics {
         self.compression_ratio.store(ratio, Ordering::Relaxed);
     }
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="84-security"><a class="header" href="#84-security">8.4 Security</a></h3>
-                        <p><strong>Key Management:</strong></p>
-                        <ul>
-                            <li>Keys never logged or persisted unencrypted</li>
-                            <li>Argon2 key derivation from passwords</li>
-                            <li>Secure memory wiping for key material</li>
-                        </ul>
-                        <p><strong>Input Validation:</strong></p>
-                        <ul>
-                            <li>CLI inputs sanitized against injection</li>
-                            <li>File paths validated</li>
-                            <li>Chunk sizes bounded</li>
-                        </ul>
-                        <p><strong>Algorithm Selection:</strong></p>
-                        <ul>
-                            <li>Only vetted, well-known algorithms</li>
-                            <li>Default to secure settings</li>
-                            <li>AEAD ciphers for authenticated encryption</li>
-                        </ul>
-                        <hr />
-                        <h2 id="9-performance-considerations"><a class="header" href="#9-performance-considerations">9.
-                                Performance Considerations</a></h2>
-                        <h3 id="91-asynchronous-io"><a class="header" href="#91-asynchronous-io">9.1 Asynchronous
-                                I/O</a></h3>
-                        <p><strong>Rationale:</strong> File I/O is the primary bottleneck. Async I/O allows overlap of
-                            CPU and I/O operations.</p>
-                        <p><strong>Implementation:</strong></p>
-                        <ul>
-                            <li>Tokio async runtime</li>
-                            <li><code>tokio::fs</code> for file operations</li>
-                            <li><code>tokio::io::AsyncRead</code> and <code>AsyncWrite</code> traits</li>
-                        </ul>
-                        <h3 id="92-parallel-processing"><a class="header" href="#92-parallel-processing">9.2 Parallel
-                                Processing</a></h3>
-                        <p><strong>Chunk-level Parallelism:</strong></p>
-                        <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<span class="boring">}</span></code></pre></pre>
+<h3 id="84-security"><a class="header" href="#84-security">8.4 Security</a></h3>
+<p><strong>Key Management:</strong></p>
+<ul>
+<li>Keys never logged or persisted unencrypted</li>
+<li>Argon2 key derivation from passwords</li>
+<li>Secure memory wiping for key material</li>
+</ul>
+<p><strong>Input Validation:</strong></p>
+<ul>
+<li>CLI inputs sanitized against injection</li>
+<li>File paths validated</li>
+<li>Chunk sizes bounded</li>
+</ul>
+<p><strong>Algorithm Selection:</strong></p>
+<ul>
+<li>Only vetted, well-known algorithms</li>
+<li>Default to secure settings</li>
+<li>AEAD ciphers for authenticated encryption</li>
+</ul>
+<hr />
+<h2 id="9-performance-considerations"><a class="header" href="#9-performance-considerations">9. Performance Considerations</a></h2>
+<h3 id="91-asynchronous-io"><a class="header" href="#91-asynchronous-io">9.1 Asynchronous I/O</a></h3>
+<p><strong>Rationale:</strong> File I/O is the primary bottleneck. Async I/O allows overlap of CPU and I/O operations.</p>
+<p><strong>Implementation:</strong></p>
+<ul>
+<li>Tokio async runtime</li>
+<li><code>tokio::fs</code> for file operations</li>
+<li><code>tokio::io::AsyncRead</code> and <code>AsyncWrite</code> traits</li>
+</ul>
+<h3 id="92-parallel-processing"><a class="header" href="#92-parallel-processing">9.2 Parallel Processing</a></h3>
+<p><strong>Chunk-level Parallelism:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use rayon::prelude::*;
 
@@ -1416,186 +1303,105 @@ pub fn process_chunks_parallel(
         .map(|chunk| processor.process(chunk))
         .collect()
 }
-<span class="boring">}</span></code></pre>
-                        </pre>
-                        <h3 id="93-memory-management"><a class="header" href="#93-memory-management">9.3 Memory
-                                Management</a></h3>
-                        <p><strong>Strategies:</strong></p>
-                        <ul>
-                            <li>Fixed chunk size limits peak memory</li>
-                            <li>Streaming processing avoids loading entire files</li>
-                            <li>Buffer pooling for frequently allocated buffers</li>
-                            <li>Zero-copy where possible</li>
-                        </ul>
-                        <h3 id="94-algorithm-selection"><a class="header" href="#94-algorithm-selection">9.4 Algorithm
-                                Selection</a></h3>
-                        <p><strong>Performance Profiles:</strong></p>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Algorithm</th>
-                                        <th>Speed</th>
-                                        <th>Ratio</th>
-                                        <th>Memory</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>LZ4</td>
-                                        <td>★★★★★</td>
-                                        <td>★★☆☆☆</td>
-                                        <td>★★★★★</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Zstd</td>
-                                        <td>★★★★☆</td>
-                                        <td>★★★★☆</td>
-                                        <td>★★★★☆</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Gzip</td>
-                                        <td>★★★☆☆</td>
-                                        <td>★★★☆☆</td>
-                                        <td>★★★★☆</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Brotli</td>
-                                        <td>★★☆☆☆</td>
-                                        <td>★★★★★</td>
-                                        <td>★★★☆☆</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <hr />
-                        <h2 id="10-testing-strategy-overview"><a class="header" href="#10-testing-strategy-overview">10.
-                                Testing Strategy (Overview)</a></h2>
-                        <h3 id="101-test-organization"><a class="header" href="#101-test-organization">10.1 Test
-                                Organization</a></h3>
-                        <ul>
-                            <li><strong>Unit Tests</strong>: <code>#[cfg(test)]</code> modules in source files</li>
-                            <li><strong>Integration Tests</strong>: <code>tests/integration/</code></li>
-                            <li><strong>E2E Tests</strong>: <code>tests/e2e/</code></li>
-                            <li><strong>Benchmarks</strong>: <code>benches/</code></li>
-                        </ul>
-                        <h3 id="102-test-coverage-goals"><a class="header" href="#102-test-coverage-goals">10.2 Test
-                                Coverage Goals</a></h3>
-                        <ul>
-                            <li>Domain layer: 90%+ coverage</li>
-                            <li>Application layer: 80%+ coverage</li>
-                            <li>Infrastructure: 70%+ coverage (mocked external deps)</li>
-                        </ul>
-                        <h3 id="103-testing-tools"><a class="header" href="#103-testing-tools">10.3 Testing Tools</a>
-                        </h3>
-                        <ul>
-                            <li>Mockall for mocking</li>
-                            <li>Proptest for property-based testing</li>
-                            <li>Criterion for benchmarking</li>
-                            <li>Cargo-tarpaulin for coverage</li>
-                        </ul>
-                        <hr />
-                        <h2 id="11-future-enhancements"><a class="header" href="#11-future-enhancements">11. Future
-                                Enhancements</a></h2>
-                        <h3 id="111-planned-features"><a class="header" href="#111-planned-features">11.1 Planned
-                                Features</a></h3>
-                        <ol>
-                            <li><strong>Distributed Processing</strong>: Process files across multiple machines</li>
-                            <li><strong>Cloud Integration</strong>: S3, Azure Blob, GCS support</li>
-                            <li><strong>REST API</strong>: HTTP API for remote processing</li>
-                            <li><strong>Plugin System</strong>: Dynamic loading of custom stages</li>
-                            <li><strong>Web UI</strong>: Browser-based configuration and monitoring</li>
-                        </ol>
-                        <h3 id="112-architectural-evolution"><a class="header" href="#112-architectural-evolution">11.2
-                                Architectural Evolution</a></h3>
-                        <p><strong>Phase 1 (Current):</strong> Single-machine CLI application</p>
-                        <p><strong>Phase 2:</strong> Library + CLI + REST API</p>
-                        <p><strong>Phase 3:</strong> Distributed processing with coordinator nodes</p>
-                        <p><strong>Phase 4:</strong> Cloud-native deployment with Kubernetes</p>
-                        <hr />
-                        <h2 id="12-conclusion"><a class="header" href="#12-conclusion">12. Conclusion</a></h2>
-                        <p>This Software Design Document describes a robust, extensible file processing pipeline built
-                            on solid architectural principles. The design prioritizes:</p>
-                        <ul>
-                            <li><strong>Correctness</strong> through type safety and domain-driven design</li>
-                            <li><strong>Performance</strong> through async I/O and parallel processing</li>
-                            <li><strong>Maintainability</strong> through clean architecture and separation of concerns
-                            </li>
-                            <li><strong>Extensibility</strong> through ports &amp; adapters and plugin architecture</li>
-                        </ul>
-                        <p>The implementation follows Rust best practices and leverages the language's strengths in
-                            safety, concurrency, and zero-cost abstractions.</p>
-                        <hr />
-                        <h2 id="appendix-a-glossary"><a class="header" href="#appendix-a-glossary">Appendix A:
-                                Glossary</a></h2>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Term</th>
-                                        <th>Definition</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Aggregate</td>
-                                        <td>Domain entity that serves as consistency boundary</td>
-                                    </tr>
-                                    <tr>
-                                        <td>AEAD</td>
-                                        <td>Authenticated Encryption with Associated Data</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Chunk</td>
-                                        <td>Fixed-size portion of file for streaming processing</td>
-                                    </tr>
-                                    <tr>
-                                        <td>DDD</td>
-                                        <td>Domain-Driven Design architectural approach</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Port</td>
-                                        <td>Interface defined by application core</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Adapter</td>
-                                        <td>Implementation of port for external system</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Use Case</td>
-                                        <td>Application-specific business rule</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Value Object</td>
-                                        <td>Immutable object defined by its attributes</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <hr />
-                        <h2 id="appendix-b-diagrams"><a class="header" href="#appendix-b-diagrams">Appendix B:
-                                Diagrams</a></h2>
-                        <p>See the following chapters for detailed diagrams:</p>
-                        <ul>
-                            <li><a href="../architecture/layers.html">Layered Architecture</a></li>
-                            <li><a href="../architecture/domain-model.html">Domain Model</a></li>
-                            <li><a href="../diagrams/pipeline-flow.svg">Pipeline Flow</a></li>
-                            <li><a href="../architecture/overview.html">Hexagonal Architecture</a></li>
-                        </ul>
+<span class="boring">}</span></code></pre></pre>
+<h3 id="93-memory-management"><a class="header" href="#93-memory-management">9.3 Memory Management</a></h3>
+<p><strong>Strategies:</strong></p>
+<ul>
+<li>Fixed chunk size limits peak memory</li>
+<li>Streaming processing avoids loading entire files</li>
+<li>Buffer pooling for frequently allocated buffers</li>
+<li>Zero-copy where possible</li>
+</ul>
+<h3 id="94-algorithm-selection"><a class="header" href="#94-algorithm-selection">9.4 Algorithm Selection</a></h3>
+<p><strong>Performance Profiles:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Algorithm</th><th>Speed</th><th>Ratio</th><th>Memory</th></tr></thead><tbody>
+<tr><td>LZ4</td><td>★★★★★</td><td>★★☆☆☆</td><td>★★★★★</td></tr>
+<tr><td>Zstd</td><td>★★★★☆</td><td>★★★★☆</td><td>★★★★☆</td></tr>
+<tr><td>Gzip</td><td>★★★☆☆</td><td>★★★☆☆</td><td>★★★★☆</td></tr>
+<tr><td>Brotli</td><td>★★☆☆☆</td><td>★★★★★</td><td>★★★☆☆</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="10-testing-strategy-overview"><a class="header" href="#10-testing-strategy-overview">10. Testing Strategy (Overview)</a></h2>
+<h3 id="101-test-organization"><a class="header" href="#101-test-organization">10.1 Test Organization</a></h3>
+<ul>
+<li><strong>Unit Tests</strong>: <code>#[cfg(test)]</code> modules in source files</li>
+<li><strong>Integration Tests</strong>: <code>tests/integration/</code></li>
+<li><strong>E2E Tests</strong>: <code>tests/e2e/</code></li>
+<li><strong>Benchmarks</strong>: <code>benches/</code></li>
+</ul>
+<h3 id="102-test-coverage-goals"><a class="header" href="#102-test-coverage-goals">10.2 Test Coverage Goals</a></h3>
+<ul>
+<li>Domain layer: 90%+ coverage</li>
+<li>Application layer: 80%+ coverage</li>
+<li>Infrastructure: 70%+ coverage (mocked external deps)</li>
+</ul>
+<h3 id="103-testing-tools"><a class="header" href="#103-testing-tools">10.3 Testing Tools</a></h3>
+<ul>
+<li>Mockall for mocking</li>
+<li>Proptest for property-based testing</li>
+<li>Criterion for benchmarking</li>
+<li>Cargo-tarpaulin for coverage</li>
+</ul>
+<hr />
+<h2 id="11-future-enhancements"><a class="header" href="#11-future-enhancements">11. Future Enhancements</a></h2>
+<h3 id="111-planned-features"><a class="header" href="#111-planned-features">11.1 Planned Features</a></h3>
+<ol>
+<li><strong>Distributed Processing</strong>: Process files across multiple machines</li>
+<li><strong>Cloud Integration</strong>: S3, Azure Blob, GCS support</li>
+<li><strong>REST API</strong>: HTTP API for remote processing</li>
+<li><strong>Plugin System</strong>: Dynamic loading of custom stages</li>
+<li><strong>Web UI</strong>: Browser-based configuration and monitoring</li>
+</ol>
+<h3 id="112-architectural-evolution"><a class="header" href="#112-architectural-evolution">11.2 Architectural Evolution</a></h3>
+<p><strong>Phase 1 (Current):</strong> Single-machine CLI application</p>
+<p><strong>Phase 2:</strong> Library + CLI + REST API</p>
+<p><strong>Phase 3:</strong> Distributed processing with coordinator nodes</p>
+<p><strong>Phase 4:</strong> Cloud-native deployment with Kubernetes</p>
+<hr />
+<h2 id="12-conclusion"><a class="header" href="#12-conclusion">12. Conclusion</a></h2>
+<p>This Software Design Document describes a robust, extensible file processing pipeline built on solid architectural principles. The design prioritizes:</p>
+<ul>
+<li><strong>Correctness</strong> through type safety and domain-driven design</li>
+<li><strong>Performance</strong> through async I/O and parallel processing</li>
+<li><strong>Maintainability</strong> through clean architecture and separation of concerns</li>
+<li><strong>Extensibility</strong> through ports &amp; adapters and plugin architecture</li>
+</ul>
+<p>The implementation follows Rust best practices and leverages the language's strengths in safety, concurrency, and zero-cost abstractions.</p>
+<hr />
+<h2 id="appendix-a-glossary"><a class="header" href="#appendix-a-glossary">Appendix A: Glossary</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Term</th><th>Definition</th></tr></thead><tbody>
+<tr><td>Aggregate</td><td>Domain entity that serves as consistency boundary</td></tr>
+<tr><td>AEAD</td><td>Authenticated Encryption with Associated Data</td></tr>
+<tr><td>Chunk</td><td>Fixed-size portion of file for streaming processing</td></tr>
+<tr><td>DDD</td><td>Domain-Driven Design architectural approach</td></tr>
+<tr><td>Port</td><td>Interface defined by application core</td></tr>
+<tr><td>Adapter</td><td>Implementation of port for external system</td></tr>
+<tr><td>Use Case</td><td>Application-specific business rule</td></tr>
+<tr><td>Value Object</td><td>Immutable object defined by its attributes</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="appendix-b-diagrams"><a class="header" href="#appendix-b-diagrams">Appendix B: Diagrams</a></h2>
+<p>See the following chapters for detailed diagrams:</p>
+<ul>
+<li><a href="../architecture/layers.html">Layered Architecture</a></li>
+<li><a href="../architecture/domain-model.html">Domain Model</a></li>
+<li><a href="../diagrams/pipeline-flow.svg">Pipeline Flow</a></li>
+<li><a href="../architecture/overview.html">Hexagonal Architecture</a></li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                        <a rel="prev" href="../formal/requirements.html" class="mobile-nav-chapters previous"
-                            title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                            <i class="fa fa-angle-left"></i>
-                        </a>
+                            <a rel="prev" href="../formal/requirements.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-                        <a rel="next prefetch" href="../formal/testing.html" class="mobile-nav-chapters next"
-                            title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                            <i class="fa fa-angle-right"></i>
-                        </a>
+                            <a rel="next prefetch" href="../formal/testing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -1603,15 +1409,13 @@ pub fn process_chunks_parallel(
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                <a rel="prev" href="../formal/requirements.html" class="nav-chapters previous" title="Previous chapter"
-                    aria-label="Previous chapter" aria-keyshortcuts="Left">
-                    <i class="fa fa-angle-left"></i>
-                </a>
+                    <a rel="prev" href="../formal/requirements.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
-                <a rel="next prefetch" href="../formal/testing.html" class="nav-chapters next" title="Next chapter"
-                    aria-label="Next chapter" aria-keyshortcuts="Right">
-                    <i class="fa fa-angle-right"></i>
-                </a>
+                    <a rel="next prefetch" href="../formal/testing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>
@@ -1637,6 +1441,5 @@ pub fn process_chunks_parallel(
 
 
     </div>
-</body>
-
+    </body>
 </html>

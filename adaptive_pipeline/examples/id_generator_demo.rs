@@ -374,9 +374,9 @@
 //! - Testing strategies for ID generation systems
 //! - Security considerations for identifier systems
 
-use pipeline_domain::entities::pipeline_stage::{StageConfiguration, StageType};
-use pipeline_domain::value_objects::{PipelineId, StageId};
-use pipeline_domain::{Pipeline, PipelineStage};
+use adaptive_pipeline_domain::entities::pipeline_stage::{StageConfiguration, StageType};
+use adaptive_pipeline_domain::value_objects::{PipelineId, StageId};
+use adaptive_pipeline_domain::{Pipeline, PipelineStage};
 use std::collections::HashMap;
 
 #[tokio::main]

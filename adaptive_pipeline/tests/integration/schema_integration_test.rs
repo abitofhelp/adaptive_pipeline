@@ -10,7 +10,7 @@
 //! These tests verify that the schema module correctly initializes databases
 //! and runs migrations for repository implementations.
 
-use pipeline::infrastructure::repositories::schema;
+use adaptive_pipeline::infrastructure::repositories::schema;
 use tempfile::NamedTempFile;
 
 #[tokio::test]

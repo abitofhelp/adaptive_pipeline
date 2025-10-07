@@ -230,7 +230,7 @@
 <p>Tracks performance data for individual pipeline executions:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::entities::ProcessingMetrics;
+</span>use adaptive_pipeline_domain::entities::ProcessingMetrics;
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 
@@ -649,7 +649,7 @@ pipeline_compression_ratio 0.35
 <p>Metrics are automatically collected during processing:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::MetricsService;
+</span>use adaptive_pipeline::MetricsService;
 
 async fn process_file_with_metrics(
     input_path: &amp;str,

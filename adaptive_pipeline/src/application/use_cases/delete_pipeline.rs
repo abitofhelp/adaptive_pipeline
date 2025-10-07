@@ -42,7 +42,7 @@
 //! ## Usage Examples
 //!
 //! ```rust,ignore
-//! use pipeline::application::use_cases::DeletePipelineUseCase;
+//! use adaptive_pipeline::application::use_cases::DeletePipelineUseCase;
 //!
 //! // Interactive deletion (requires confirmation)
 //! let use_case = DeletePipelineUseCase::new(pipeline_repository);

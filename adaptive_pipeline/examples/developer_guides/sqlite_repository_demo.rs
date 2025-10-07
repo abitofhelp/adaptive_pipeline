@@ -266,11 +266,11 @@
 
 use std::sync::Arc;
 use uuid::Uuid;
-use pipeline_domain::{
+use adaptive_pipeline_domain::{
     entities::{Pipeline, PipelineStage, ProcessingMetrics},
     PipelineError,
 };
-use pipeline::infrastructure::{
+use adaptive_pipeline::infrastructure::{
     Repository, RepositoryFactory, RepositoryConfig,
     SqliteRepositoryAdapter, InMemoryRepository,
 };

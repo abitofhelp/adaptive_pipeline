@@ -21,7 +21,7 @@
 //!
 //! ```rust
 //! use adaptive_pipeline_domain::services::StageService;
-//! use pipeline::infrastructure::services::PassThroughService;
+//! use adaptive_pipeline::infrastructure::services::PassThroughService;
 //!
 //! let service = PassThroughService::new();
 //! // Data passes through completely unchanged

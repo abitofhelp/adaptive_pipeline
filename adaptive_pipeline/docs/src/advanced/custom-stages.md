@@ -41,8 +41,8 @@ Every stage implements two traits:
 Extracts typed configuration from `HashMap<String, String>`:
 
 ```rust
-use pipeline_domain::services::FromParameters;
-use pipeline_domain::PipelineError;
+use adaptive_pipeline_domain::services::FromParameters;
+use adaptive_pipeline_domain::PipelineError;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,12 +81,12 @@ impl FromParameters for Base64Config {
 Defines how your stage processes data:
 
 ```rust
-use pipeline_domain::services::StageService;
-use pipeline_domain::entities::{
+use adaptive_pipeline_domain::services::StageService;
+use adaptive_pipeline_domain::entities::{
     Operation, ProcessingContext, StageConfiguration, StagePosition, StageType,
 };
-use pipeline_domain::value_objects::file_chunk::FileChunk;
-use pipeline_domain::PipelineError;
+use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
+use adaptive_pipeline_domain::PipelineError;
 
 pub struct Base64EncodingService;
 
@@ -170,12 +170,12 @@ Here's a minimal custom stage (rot13 cipher):
 ```rust
 // pipeline/src/infrastructure/services/rot13_service.rs
 
-use pipeline_domain::entities::{
+use adaptive_pipeline_domain::entities::{
     Operation, ProcessingContext, StageConfiguration, StagePosition, StageType,
 };
-use pipeline_domain::services::{FromParameters, StageService};
-use pipeline_domain::value_objects::file_chunk::FileChunk;
-use pipeline_domain::PipelineError;
+use adaptive_pipeline_domain::services::{FromParameters, StageService};
+use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
+use adaptive_pipeline_domain::PipelineError;
 use std::collections::HashMap;
 
 /// Configuration for ROT13 cipher (no parameters needed)
@@ -281,7 +281,7 @@ pub use rot13_service::Rot13Service;  // Export
 ```rust
 // pipeline/src/main.rs
 
-use pipeline::infrastructure::services::{
+use adaptive_pipeline::infrastructure::services::{
     Base64EncodingService, PiiMaskingService, TeeService, Rot13Service,
 };
 
@@ -307,8 +307,8 @@ let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
 ### 3. Use in Pipeline Configuration
 
 ```rust
-use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
-use pipeline_domain::entities::Operation;
+use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+use adaptive_pipeline_domain::entities::Operation;
 use std::collections::HashMap;
 
 // Create ROT13 stage
@@ -427,7 +427,7 @@ Test your service in isolation:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pipeline_domain::entities::{SecurityContext, SecurityLevel};
+    use adaptive_pipeline_domain::entities::{SecurityContext, SecurityLevel};
     use std::path::PathBuf;
 
     #[test]

@@ -343,7 +343,7 @@ pub struct FileChunk {
 <h3 id="creating-chunks"><a class="header" href="#creating-chunks">Creating Chunks</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::FileChunk;
+</span>use adaptive_pipeline_domain::FileChunk;
 
 // Basic chunk creation
 let data = vec![1, 2, 3, 4, 5];
@@ -410,7 +410,7 @@ let output: FilePath&lt;OutputPath&gt; = FilePath::new("./output.dat")?;
 <h3 id="path-validation"><a class="header" href="#path-validation">Path Validation</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::value_objects::{FilePath, InputPath};
+</span>use adaptive_pipeline_domain::value_objects::{FilePath, InputPath};
 
 // Create and validate path
 let path = FilePath::&lt;InputPath&gt;::new("/path/to/file.dat")?;
@@ -454,7 +454,7 @@ ChunkSize::DEFAULT   // 1 MB
 <h3 id="creating-chunk-sizes"><a class="header" href="#creating-chunk-sizes">Creating Chunk Sizes</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::ChunkSize;
+</span>use adaptive_pipeline_domain::ChunkSize;
 
 // From bytes
 let size = ChunkSize::new(1024 * 1024)?;  // 1 MB
@@ -552,7 +552,7 @@ pub trait FileIOService: Send + Sync {
 <h3 id="reading-small-files"><a class="header" href="#reading-small-files">Reading Small Files</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::FileIOService;
+</span>use adaptive_pipeline_domain::FileIOService;
 
 // Read entire file into chunks
 let service: Arc&lt;dyn FileIOService&gt; = /* ... */;
@@ -702,7 +702,7 @@ process_all_chunks(chunks).await?;
 <h3 id="common-errors"><a class="header" href="#common-errors">Common Errors</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::PipelineError;
+</span>use adaptive_pipeline_domain::PipelineError;
 
 match service.read_file_chunks(path, chunk_size).await {
     Ok(chunks) =&gt; { /* success */ },
@@ -829,7 +829,7 @@ while let Some(chunk) = read_chunk(&amp;mut reader).await? {
 <hr />
 <h2 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h2>
 <h3 id="example-1-basic-file-processing"><a class="header" href="#example-1-basic-file-processing">Example 1: Basic File Processing</a></h3>
-<pre><pre class="playground"><code class="language-rust">use pipeline_domain::{FileIOService, ChunkSize};
+<pre><pre class="playground"><code class="language-rust">use adaptive_pipeline_domain::{FileIOService, ChunkSize};
 use std::path::Path;
 
 #[tokio::main]

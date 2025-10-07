@@ -604,9 +604,9 @@ impl From<EncryptionError> for PipelineError {
 ### Basic Encryption
 
 ```rust
-use pipeline::infrastructure::adapters::EncryptionServiceAdapter;
-use pipeline_domain::services::EncryptionService;
-use pipeline_domain::value_objects::Algorithm;
+use adaptive_pipeline::infrastructure::adapters::EncryptionServiceAdapter;
+use adaptive_pipeline_domain::services::EncryptionService;
+use adaptive_pipeline_domain::value_objects::Algorithm;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

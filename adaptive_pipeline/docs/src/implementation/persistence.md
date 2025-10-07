@@ -127,7 +127,7 @@ The persistence layer follows a three-tier architecture aligned with Domain-Driv
 
 ```rust
 // Application code depends on domain trait
-use pipeline_domain::repositories::PipelineRepository;
+use adaptive_pipeline_domain::repositories::PipelineRepository;
 
 async fn create_pipeline(
     repo: &dyn PipelineRepository,
@@ -139,7 +139,7 @@ async fn create_pipeline(
 }
 
 // Infrastructure provides concrete implementation
-use pipeline::infrastructure::repositories::SqlitePipelineRepository;
+use adaptive_pipeline::infrastructure::repositories::SqlitePipelineRepository;
 
 let repository = SqlitePipelineRepository::new(pool);
 let pipeline = create_pipeline(&repository, "my-pipeline".to_string()).await?;
@@ -446,7 +446,7 @@ updated_at TEXT NOT NULL   -- RFC 3339 format
 **Automated Migration System:**
 
 ```rust
-use pipeline::infrastructure::repositories::schema;
+use adaptive_pipeline::infrastructure::repositories::schema;
 
 // High-level initialization (recommended)
 let pool = schema::initialize_database("sqlite://./pipeline.db").await?;
@@ -895,8 +895,8 @@ async fn save_multiple_pipelines(
 ### Example 1: Basic CRUD Operations
 
 ```rust
-use pipeline::infrastructure::repositories::{schema, SqlitePipelineRepository};
-use pipeline_domain::Pipeline;
+use adaptive_pipeline::infrastructure::repositories::{schema, SqlitePipelineRepository};
+use adaptive_pipeline_domain::Pipeline;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

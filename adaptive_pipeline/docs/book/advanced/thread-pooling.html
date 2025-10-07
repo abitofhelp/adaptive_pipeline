@@ -280,7 +280,7 @@ fn create_custom_runtime() -&gt; Runtime {
 <p>The pipeline uses a global <code>RAYON_POOLS</code> manager with two specialized pools:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::config::rayon_config::RAYON_POOLS;
+</span>use adaptive_pipeline::infrastructure::config::rayon_config::RAYON_POOLS;
 
 // Access CPU-bound pool
 let cpu_pool = RAYON_POOLS.cpu_bound_pool();
@@ -480,7 +480,7 @@ fn compress_chunk_sync(
 <p>The pipeline uses a sophisticated <code>WorkerCount</code> value object for adaptive thread allocation:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::value_objects::WorkerCount;
+</span>use adaptive_pipeline_domain::value_objects::WorkerCount;
 
 // Optimal for file size (empirically validated)
 let workers = WorkerCount::optimal_for_file_size(file_size);

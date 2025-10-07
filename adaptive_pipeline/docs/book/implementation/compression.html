@@ -634,9 +634,9 @@ impl From&lt;CompressionError&gt; for PipelineError {
 <span class="boring">}</span></code></pre></pre>
 <h2 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h2>
 <h3 id="basic-compression"><a class="header" href="#basic-compression">Basic Compression</a></h3>
-<pre><pre class="playground"><code class="language-rust">use pipeline::infrastructure::adapters::CompressionServiceAdapter;
-use pipeline_domain::services::CompressionService;
-use pipeline_domain::value_objects::Algorithm;
+<pre><pre class="playground"><code class="language-rust">use adaptive_pipeline::infrastructure::adapters::CompressionServiceAdapter;
+use adaptive_pipeline_domain::services::CompressionService;
+use adaptive_pipeline_domain::value_objects::Algorithm;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

@@ -105,7 +105,7 @@ Integrity stages ensure your data hasn't been corrupted or tampered with. They c
 Each stage has a configuration that specifies how it should process data:
 
 ```rust
-use pipeline_domain::entities::{PipelineStage, StageType, StageConfiguration};
+use adaptive_pipeline_domain::entities::{PipelineStage, StageType, StageConfiguration};
 use std::collections::HashMap;
 
 // Example: Compression stage

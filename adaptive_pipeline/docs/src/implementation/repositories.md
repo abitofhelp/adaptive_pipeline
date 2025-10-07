@@ -25,10 +25,10 @@ The repository pattern provides an abstraction layer between the domain and data
 The domain layer defines the repository interface:
 
 ```rust
-use pipeline_domain::repositories::PipelineRepository;
-use pipeline_domain::entities::Pipeline;
-use pipeline_domain::value_objects::PipelineId;
-use pipeline_domain::PipelineError;
+use adaptive_pipeline_domain::repositories::PipelineRepository;
+use adaptive_pipeline_domain::entities::Pipeline;
+use adaptive_pipeline_domain::value_objects::PipelineId;
+use adaptive_pipeline_domain::PipelineError;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -101,7 +101,7 @@ pub struct UnsafeRepository {
 The SQLite repository implements the domain interface using sqlx for type-safe queries:
 
 ```rust
-use pipeline_domain::repositories::PipelineRepository;
+use adaptive_pipeline_domain::repositories::PipelineRepository;
 use sqlx::SqlitePool;
 
 pub struct SqlitePipelineRepository {

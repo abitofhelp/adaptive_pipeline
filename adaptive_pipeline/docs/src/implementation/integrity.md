@@ -23,7 +23,7 @@ The checksum service operates in two modes:
 **Industry-standard cryptographic hash function**
 
 ```rust
-use pipeline_domain::value_objects::Algorithm;
+use adaptive_pipeline_domain::value_objects::Algorithm;
 
 let algorithm = Algorithm::sha256();
 ```
@@ -98,10 +98,10 @@ let algorithm = Algorithm::blake3();
 The domain layer defines the checksum service interface:
 
 ```rust
-use pipeline_domain::services::ChecksumService;
-use pipeline_domain::entities::ProcessingContext;
-use pipeline_domain::value_objects::FileChunk;
-use pipeline_domain::PipelineError;
+use adaptive_pipeline_domain::services::ChecksumService;
+use adaptive_pipeline_domain::entities::ProcessingContext;
+use adaptive_pipeline_domain::value_objects::FileChunk;
+use adaptive_pipeline_domain::PipelineError;
 
 /// Domain service for integrity verification
 pub trait ChecksumService: Send + Sync {
@@ -127,7 +127,7 @@ pub trait ChecksumService: Send + Sync {
 The infrastructure layer provides concrete implementations:
 
 ```rust
-use pipeline_domain::services::{ChecksumService, ChecksumProcessor};
+use adaptive_pipeline_domain::services::{ChecksumService, ChecksumProcessor};
 
 /// Concrete checksum processor using SHA-256
 pub struct ChecksumProcessor {
@@ -239,7 +239,7 @@ impl ChecksumProcessor {
 The checksum service implements the `ChunkProcessor` trait for integration with the pipeline:
 
 ```rust
-use pipeline_domain::services::file_processor_service::ChunkProcessor;
+use adaptive_pipeline_domain::services::file_processor_service::ChunkProcessor;
 
 impl ChunkProcessor for ChecksumProcessor {
     /// Process chunk with checksum calculation/verification
@@ -394,8 +394,8 @@ impl ChecksumProcessor {
 Configure integrity stages in your pipeline:
 
 ```rust
-use pipeline_domain::entities::PipelineStage;
-use pipeline_domain::value_objects::{Algorithm, StageType};
+use adaptive_pipeline_domain::entities::PipelineStage;
+use adaptive_pipeline_domain::value_objects::{Algorithm, StageType};
 
 // Input integrity verification
 let input_stage = PipelineStage::new(
@@ -507,7 +507,7 @@ impl ChecksumProcessor {
 Calculate SHA-256 checksums for data:
 
 ```rust
-use pipeline_domain::services::ChecksumProcessor;
+use adaptive_pipeline_domain::services::ChecksumProcessor;
 
 fn calculate_file_checksum(data: &[u8]) -> Result<String, PipelineError> {
     let processor = ChecksumProcessor::sha256_processor(false);
@@ -527,7 +527,7 @@ println!("SHA-256: {}", checksum);
 Verify data hasn't been tampered with:
 
 ```rust
-use pipeline_domain::value_objects::FileChunk;
+use adaptive_pipeline_domain::value_objects::FileChunk;
 
 fn verify_chunk_integrity(chunk: &FileChunk) -> Result<bool, PipelineError> {
     let processor = ChecksumProcessor::sha256_processor(true);
@@ -556,7 +556,7 @@ if verify_chunk_integrity(&chunk)? {
 Integrate checksums into processing pipeline:
 
 ```rust
-use pipeline_domain::entities::{Pipeline, PipelineStage};
+use adaptive_pipeline_domain::entities::{Pipeline, PipelineStage};
 
 fn create_verified_pipeline() -> Result<Pipeline, PipelineError> {
     let stages = vec![

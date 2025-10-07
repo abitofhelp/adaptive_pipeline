@@ -23,8 +23,8 @@
 //!
 //! ```rust,ignore
 //! use std::sync::Arc;
-//! use pipeline::infrastructure::adapters::AsyncCompressionAdapter;
-//! use pipeline::infrastructure::adapters::MultiAlgoCompression;
+//! use adaptive_pipeline::infrastructure::adapters::AsyncCompressionAdapter;
+//! use adaptive_pipeline::infrastructure::adapters::MultiAlgoCompression;
 //!
 //! // Create sync implementation
 //! let sync_service = Arc::new(MultiAlgoCompression::new());

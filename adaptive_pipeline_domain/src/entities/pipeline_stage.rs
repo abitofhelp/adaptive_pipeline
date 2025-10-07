@@ -24,7 +24,7 @@ use std::collections::HashMap;
 /// ## Parsing stage types from strings
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::StageType;
+/// use adaptive_pipeline_domain::entities::pipeline_stage::StageType;
 /// use std::str::FromStr;
 ///
 /// // Parse from lowercase
@@ -42,7 +42,7 @@ use std::collections::HashMap;
 /// ## Using stage types in pattern matching
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::StageType;
+/// use adaptive_pipeline_domain::entities::pipeline_stage::StageType;
 ///
 /// fn describe_stage(stage_type: StageType) -> &'static str {
 ///     match stage_type {
@@ -109,7 +109,7 @@ impl std::str::FromStr for StageType {
 /// # Examples
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::Operation;
+/// use adaptive_pipeline_domain::entities::pipeline_stage::Operation;
 ///
 /// let forward = Operation::Forward;
 /// let reverse = Operation::Reverse;
@@ -183,7 +183,7 @@ impl std::fmt::Display for Operation {
 /// # Examples
 ///
 /// ```rust
-/// use pipeline_domain::entities::pipeline_stage::StagePosition;
+/// use adaptive_pipeline_domain::entities::pipeline_stage::StagePosition;
 ///
 /// // PII masking must see plaintext
 /// let pii_position = StagePosition::PreBinary;
@@ -287,7 +287,7 @@ impl Default for StageConfiguration {
 /// ### Creating a Compression Stage
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();
@@ -306,7 +306,7 @@ impl Default for StageConfiguration {
 /// ### Creating an Encryption Stage
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();
@@ -323,7 +323,7 @@ impl Default for StageConfiguration {
 /// ### Modifying Stage Configuration
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 /// use std::collections::HashMap;
 ///
 /// let config = StageConfiguration::default();
@@ -342,7 +342,7 @@ impl Default for StageConfiguration {
 /// ### Stage Compatibility Checking
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 ///
 /// let compression = PipelineStage::new(
 ///     "compression".to_string(),
@@ -367,7 +367,7 @@ impl Default for StageConfiguration {
 /// ### Enabling and Disabling Stages
 ///
 /// ```
-/// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 ///
 /// let mut stage = PipelineStage::new(
 ///     "checksum".to_string(),
@@ -459,7 +459,7 @@ impl PipelineStage {
     /// # Examples
     ///
     /// ```
-    /// use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+    /// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
     /// use std::collections::HashMap;
     ///
     /// // Create a stage successfully

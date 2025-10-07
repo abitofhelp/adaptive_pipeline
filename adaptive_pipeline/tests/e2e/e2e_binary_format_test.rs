@@ -7,9 +7,12 @@
 use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
 
-use pipeline::infrastructure::services::{AdapipeFormat, BinaryFormatService, BinaryFormatWriter};
-use pipeline_domain::value_objects::FileHeader;
-use pipeline_domain::PipelineError;
+use adaptive_pipeline::infrastructure::services::{AdapipeFormat, BinaryFormatService, BinaryFormatWriter};
+use adaptive_pipeline_domain::value_objects::FileHeader;
+use adaptive_pipeline_domain::PipelineError;
+
+// Import shared test helpers
+use crate::common::{calculate_sha256, get_pipeline_bin};
 
 /// Tests complete .adapipe roundtrip using real pipeline processing via CLI.
 /// This test exercises the full stack: input file → real compression → .adapipe
@@ -19,7 +22,7 @@ async fn test_e2e_real_pipeline_roundtrip() {
     use std::process::Command;
 
     // Get the path to the compiled pipeline binary
-    let pipeline_bin = env!("CARGO_BIN_EXE_pipeline");
+    let pipeline_bin = get_pipeline_bin();
 
     let temp_dir = TempDir::new().unwrap();
     let db_path = temp_dir.path().join("test_roundtrip.db");
@@ -35,13 +38,13 @@ async fn test_e2e_real_pipeline_roundtrip() {
     let expected_size = test_data.len() as u64;
 
     // Step 0: Clean up any existing pipeline from previous test runs
-    let _ = Command::new(pipeline_bin)
+    let _ = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["delete", "--name", "e2e-test-roundtrip", "--force"])
         .output();
 
     // Step 1: Create a pipeline using the real CLI
-    let create_output = Command::new(pipeline_bin)
+    let create_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["create", "--name", "e2e-test-roundtrip", "--stages", "brotli"])
         .output()
@@ -56,7 +59,7 @@ async fn test_e2e_real_pipeline_roundtrip() {
     }
 
     // Step 2: Process the file using the real pipeline CLI
-    let process_output = Command::new(pipeline_bin)
+    let process_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&[
             "process",
@@ -116,7 +119,7 @@ async fn test_e2e_real_pipeline_roundtrip() {
     assert!(total_data_size > 0, "Should have read some data");
 
     // Step 6: Clean up - delete the test pipeline
-    let _delete_output = Command::new(pipeline_bin)
+    let _delete_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["delete", "--name", "e2e-test-roundtrip", "--force"])
         .output()
@@ -131,7 +134,7 @@ async fn test_e2e_real_pipeline_roundtrip() {
 async fn test_e2e_binary_format_pass_through() {
     use std::process::Command;
 
-    let pipeline_bin = env!("CARGO_BIN_EXE_pipeline");
+    let pipeline_bin = get_pipeline_bin();
 
     let temp_dir = TempDir::new().unwrap();
     let db_path = temp_dir.path().join("test_passthrough.db");
@@ -144,14 +147,14 @@ async fn test_e2e_binary_format_pass_through() {
     let expected_checksum = calculate_sha256(test_data);
 
     // Step 0: Clean up any existing pipeline from previous test runs
-    let _ = Command::new(pipeline_bin)
+    let _ = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["delete", "--name", "e2e-passthrough", "--force"])
         .output();
 
     // Step 1: Create a pipeline with only checksum stages (no
     // compression/encryption)
-    let create_output = Command::new(pipeline_bin)
+    let create_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["create", "--name", "e2e-passthrough", "--stages", "checksum"])
         .output()
@@ -160,7 +163,7 @@ async fn test_e2e_binary_format_pass_through() {
     assert!(create_output.status.success());
 
     // Step 2: Process the file
-    let process_output = Command::new(pipeline_bin)
+    let process_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&[
             "process",
@@ -190,7 +193,7 @@ async fn test_e2e_binary_format_pass_through() {
     assert_eq!(metadata.original_size, test_data.len() as u64);
 
     // Clean up
-    let _delete_output = Command::new(pipeline_bin)
+    let _delete_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["delete", "--name", "e2e-passthrough", "--force"])
         .output()
@@ -246,7 +249,7 @@ async fn test_e2e_binary_format_version_compatibility() {
 async fn test_e2e_binary_format_large_file() {
     use std::process::Command;
 
-    let pipeline_bin = env!("CARGO_BIN_EXE_pipeline");
+    let pipeline_bin = get_pipeline_bin();
 
     let temp_dir = TempDir::new().unwrap();
     let db_path = temp_dir.path().join("test_large_file.db");
@@ -258,13 +261,13 @@ async fn test_e2e_binary_format_large_file() {
     fs::write(&input_file, &test_data).await.unwrap();
 
     // Step 0: Clean up any existing pipeline from previous test runs
-    let _ = Command::new(pipeline_bin)
+    let _ = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["delete", "--name", "e2e-large-test", "--force"])
         .output();
 
     // Step 1: Create pipeline
-    let create_output = Command::new(pipeline_bin)
+    let create_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["create", "--name", "e2e-large-test", "--stages", "brotli"])
         .output()
@@ -278,7 +281,7 @@ async fn test_e2e_binary_format_large_file() {
 
     // Step 2: Process the large file with small chunk size to create multiple
     // chunks
-    let process_output = Command::new(pipeline_bin)
+    let process_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&[
             "process",
@@ -323,7 +326,7 @@ async fn test_e2e_binary_format_large_file() {
     assert!(total_data > 0, "Should have read data");
 
     // Clean up
-    let _delete_output = Command::new(pipeline_bin)
+    let _delete_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["delete", "--name", "e2e-large-test", "--force"])
         .output()
@@ -332,10 +335,3 @@ async fn test_e2e_binary_format_large_file() {
     println!("✅ E2E large file test passed");
 }
 
-// Helper functions
-
-fn calculate_sha256(data: &[u8]) -> String {
-    use ring::digest;
-    let digest = digest::digest(&digest::SHA256, data);
-    hex::encode(digest.as_ref())
-}

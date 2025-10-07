@@ -197,10 +197,10 @@
 <p>The domain layer defines the repository interface:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::repositories::PipelineRepository;
-use pipeline_domain::entities::Pipeline;
-use pipeline_domain::value_objects::PipelineId;
-use pipeline_domain::PipelineError;
+</span>use adaptive_pipeline_domain::repositories::PipelineRepository;
+use adaptive_pipeline_domain::entities::Pipeline;
+use adaptive_pipeline_domain::value_objects::PipelineId;
+use adaptive_pipeline_domain::PipelineError;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -268,7 +268,7 @@ pub struct UnsafeRepository {
 <p>The SQLite repository implements the domain interface using sqlx for type-safe queries:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::repositories::PipelineRepository;
+</span>use adaptive_pipeline_domain::repositories::PipelineRepository;
 use sqlx::SqlitePool;
 
 pub struct SqlitePipelineRepository {

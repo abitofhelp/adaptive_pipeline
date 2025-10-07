@@ -25,7 +25,7 @@
 //! ## Educational Example
 //!
 //! ```rust,ignore
-//! use pipeline::infrastructure::runtime::RESOURCE_MANAGER;
+//! use adaptive_pipeline::infrastructure::runtime::RESOURCE_MANAGER;
 //!
 //! async fn process_file() -> Result<()> {
 //!     // 1. Acquire global CPU token (waits if system is saturated)
@@ -367,7 +367,7 @@ impl GlobalResourceManager {
 /// ## Usage
 ///
 /// ```rust,ignore
-/// use pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig};
+/// use adaptive_pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig};
 ///
 /// // In main(), before any operations:
 /// init_resource_manager(ResourceConfig::default())?;

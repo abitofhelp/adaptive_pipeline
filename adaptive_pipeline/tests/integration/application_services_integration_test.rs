@@ -27,11 +27,11 @@ use std::sync::Arc;
 use tempfile::TempDir;
 use tokio::fs;
 
-use pipeline::application::commands::RestoreFileCommand;
-use pipeline_domain::entities::pipeline::Pipeline;
-use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
-use pipeline_domain::value_objects::binary_file_format::FileHeader;
-use pipeline_domain::PipelineError;
+use adaptive_pipeline::application::commands::RestoreFileCommand;
+use adaptive_pipeline_domain::entities::pipeline::Pipeline;
+use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+use adaptive_pipeline_domain::value_objects::binary_file_format::FileHeader;
+use adaptive_pipeline_domain::PipelineError;
 
 // ============================================================================
 // APPLICATION SERVICES INTEGRATION TEST FRAMEWORK

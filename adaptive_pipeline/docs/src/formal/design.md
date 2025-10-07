@@ -836,7 +836,7 @@ pipeline create \
 **Future: Library API:**
 
 ```rust
-use pipeline_domain::entities::{Pipeline, PipelineStage, StageType, StageConfiguration};
+use adaptive_pipeline_domain::entities::{Pipeline, PipelineStage, StageType, StageConfiguration};
 use std::collections::HashMap;
 
 #[tokio::main]

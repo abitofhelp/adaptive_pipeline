@@ -39,7 +39,7 @@
 //! ## Usage Examples
 //!
 //! ```rust,ignore
-//! use pipeline::application::use_cases::ListPipelinesUseCase;
+//! use adaptive_pipeline::application::use_cases::ListPipelinesUseCase;
 //!
 //! let use_case = ListPipelinesUseCase::new(pipeline_repository);
 //! use_case.execute().await?;

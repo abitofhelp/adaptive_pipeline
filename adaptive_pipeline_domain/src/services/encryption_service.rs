@@ -542,7 +542,7 @@ impl EncryptionConfig {
 /// ## Usage Example
 ///
 /// ```rust
-/// use pipeline_domain::services::{EncryptionConfig, FromParameters};
+/// use adaptive_pipeline_domain::services::{EncryptionConfig, FromParameters};
 /// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();

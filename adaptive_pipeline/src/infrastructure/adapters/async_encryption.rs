@@ -23,8 +23,8 @@
 //!
 //! ```rust,ignore
 //! use std::sync::Arc;
-//! use pipeline::infrastructure::adapters::AsyncEncryptionAdapter;
-//! use pipeline::infrastructure::adapters::MultiAlgoEncryption;
+//! use adaptive_pipeline::infrastructure::adapters::AsyncEncryptionAdapter;
+//! use adaptive_pipeline::infrastructure::adapters::MultiAlgoEncryption;
 //!
 //! // Create sync implementation
 //! let sync_service = Arc::new(MultiAlgoEncryption::new());

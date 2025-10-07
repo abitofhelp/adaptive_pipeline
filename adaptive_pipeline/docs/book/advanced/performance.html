@@ -205,7 +205,7 @@
 <p><strong>Definition</strong>: Bytes processed per second</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::entities::ProcessingMetrics;
+</span>use adaptive_pipeline_domain::entities::ProcessingMetrics;
 
 let metrics = ProcessingMetrics::new();
 metrics.start();
@@ -254,7 +254,7 @@ Peak Memory ≈ 64 MB × 7 × 1 = 448 MB
 <p><strong>Monitoring:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+</span>use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 
 let mem_mb = CONCURRENCY_METRICS.memory_used_mb();
 let mem_pct = CONCURRENCY_METRICS.memory_utilization_percent();
@@ -267,7 +267,7 @@ println!("Memory: {:.2} MB ({:.1}%)", mem_mb, mem_pct);
 <p><strong>Adaptive Chunk Sizing:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::value_objects::ChunkSize;
+</span>use adaptive_pipeline_domain::value_objects::ChunkSize;
 
 // Automatically selects optimal chunk size based on file size
 let chunk_size = ChunkSize::optimal_for_file_size(file_size);
@@ -292,7 +292,7 @@ println!("Optimal chunk size: {}", chunk_size);  // e.g., "4.0MB"
 <p><strong>Adaptive Worker Count:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::value_objects::WorkerCount;
+</span>use adaptive_pipeline_domain::value_objects::WorkerCount;
 
 // File size + system resources + processing type
 let workers = WorkerCount::optimal_for_processing_type(
@@ -332,8 +332,8 @@ println!("Optimal workers: {}", workers);  // e.g., "8 workers"
 <p><strong>Configuration:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::adapters::file_io::TokioFileIO;
-use pipeline_domain::services::file_io_service::FileIOConfig;
+</span>use adaptive_pipeline::infrastructure::adapters::file_io::TokioFileIO;
+use adaptive_pipeline_domain::services::file_io_service::FileIOConfig;
 
 let config = FileIOConfig {
     enable_memory_mapping: true,
@@ -363,7 +363,7 @@ let service = TokioFileIO::new(config);
 <p><strong>Adaptive Selection:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::services::CompressionPriority;
+</span>use adaptive_pipeline_domain::services::CompressionPriority;
 
 // Automatic algorithm selection
 let config = service.get_optimal_config(
@@ -391,7 +391,7 @@ println!("Selected: {:?}", config.algorithm);
 <p><strong>Configuration:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::services::EncryptionAlgorithm;
+</span>use adaptive_pipeline_domain::services::EncryptionAlgorithm;
 
 // Use AES-256-GCM if hardware support available
 let algorithm = if has_aes_ni() {
@@ -630,7 +630,7 @@ let workers = WorkerCount::optimal_for_processing_type(
 <h3 id="real-time-metrics"><a class="header" href="#real-time-metrics">Real-Time Metrics</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+</span>use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 use std::time::Duration;
 
 // Spawn monitoring task
@@ -666,7 +666,7 @@ tokio::spawn(async {
 <h3 id="processing-metrics"><a class="header" href="#processing-metrics">Processing Metrics</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::entities::ProcessingMetrics;
+</span>use adaptive_pipeline_domain::entities::ProcessingMetrics;
 
 let metrics = ProcessingMetrics::new();
 metrics.start();

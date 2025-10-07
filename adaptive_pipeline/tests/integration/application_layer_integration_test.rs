@@ -17,7 +17,7 @@
 //! cargo test application_layer_integration_test
 //! ```
 
-use pipeline::application::commands::RestoreFileCommand;
+use adaptive_pipeline::application::commands::RestoreFileCommand;
 use std::path::PathBuf;
 
 /// Tests RestoreFileCommand creation and fluent API configuration.

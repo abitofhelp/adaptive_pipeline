@@ -120,8 +120,8 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serde::{Serialize, Deserialize};
 
-use pipeline_domain::error::PipelineError;
-use pipeline_domain::services::generic_service_base::{
+use adaptive_pipeline_domain::error::PipelineError;
+use adaptive_pipeline_domain::services::generic_service_base::{
     GenericServiceBase, ServiceConfig, ServiceStats, ServiceLifecycle, ServiceMetrics
 };
 

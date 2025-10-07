@@ -43,7 +43,7 @@ pub async fn ensure_schema(pool: &SqlitePool) -> Result<(), sqlx::Error> {
 /// # Example
 ///
 /// ```rust,no_run
-/// # use pipeline::infrastructure::repositories::schema;
+/// # use adaptive_pipeline::infrastructure::repositories::schema;
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// schema::create_database_if_missing("sqlite://./pipeline.db").await?;
 /// # Ok(())
@@ -77,7 +77,7 @@ pub async fn create_database_if_missing(database_url: &str) -> Result<(), sqlx::
 /// # Example
 ///
 /// ```rust,no_run
-/// # use pipeline::infrastructure::repositories::schema;
+/// # use adaptive_pipeline::infrastructure::repositories::schema;
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// let pool = schema::initialize_database("sqlite://./pipeline.db").await?;
 /// // Database is ready to use!

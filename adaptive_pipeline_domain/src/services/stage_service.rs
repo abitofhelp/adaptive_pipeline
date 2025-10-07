@@ -94,11 +94,11 @@
 //! ### Implementing a Built-in Service
 //!
 //! ```rust,ignore
-//! use pipeline_domain::services::stage_service::StageService;
-//! use pipeline_domain::entities::{StageType, StagePosition, StageConfiguration};
-//! use pipeline_domain::value_objects::file_chunk::FileChunk;
-//! use pipeline_domain::value_objects::processing_context::ProcessingContext;
-//! use pipeline_domain::PipelineError;
+//! use adaptive_pipeline_domain::services::stage_service::StageService;
+//! use adaptive_pipeline_domain::entities::{StageType, StagePosition, StageConfiguration};
+//! use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
+//! use adaptive_pipeline_domain::value_objects::processing_context::ProcessingContext;
+//! use adaptive_pipeline_domain::PipelineError;
 //!
 //! pub struct BrotliCompressionService;
 //!
@@ -140,8 +140,8 @@
 //! ### Implementing a Custom Service
 //!
 //! ```rust,ignore
-//! use pipeline_domain::services::stage_service::StageService;
-//! use pipeline_domain::entities::{StageType, StagePosition};
+//! use adaptive_pipeline_domain::services::stage_service::StageService;
+//! use adaptive_pipeline_domain::entities::{StageType, StagePosition};
 //!
 //! pub struct PiiMaskingService;
 //!
@@ -301,8 +301,8 @@ use std::collections::HashMap;
 ///
 /// ```rust,ignore
 /// use std::collections::HashMap;
-/// use pipeline_domain::PipelineError;
-/// use pipeline_domain::services::FromParameters;
+/// use adaptive_pipeline_domain::PipelineError;
+/// use adaptive_pipeline_domain::services::FromParameters;
 ///
 /// #[derive(Debug, Clone)]
 /// pub struct MyStageConfig {

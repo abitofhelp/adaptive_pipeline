@@ -33,7 +33,7 @@ The pipeline is designed for high-performance file processing with several optim
 **Definition**: Bytes processed per second
 
 ```rust
-use pipeline_domain::entities::ProcessingMetrics;
+use adaptive_pipeline_domain::entities::ProcessingMetrics;
 
 let metrics = ProcessingMetrics::new();
 metrics.start();
@@ -86,7 +86,7 @@ Peak Memory ≈ 64 MB × 7 × 1 = 448 MB
 
 **Monitoring:**
 ```rust
-use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 
 let mem_mb = CONCURRENCY_METRICS.memory_used_mb();
 let mem_pct = CONCURRENCY_METRICS.memory_utilization_percent();
@@ -103,7 +103,7 @@ println!("Memory: {:.2} MB ({:.1}%)", mem_mb, mem_pct);
 **Adaptive Chunk Sizing:**
 
 ```rust
-use pipeline_domain::value_objects::ChunkSize;
+use adaptive_pipeline_domain::value_objects::ChunkSize;
 
 // Automatically selects optimal chunk size based on file size
 let chunk_size = ChunkSize::optimal_for_file_size(file_size);
@@ -131,7 +131,7 @@ println!("Optimal chunk size: {}", chunk_size);  // e.g., "4.0MB"
 **Adaptive Worker Count:**
 
 ```rust
-use pipeline_domain::value_objects::WorkerCount;
+use adaptive_pipeline_domain::value_objects::WorkerCount;
 
 // File size + system resources + processing type
 let workers = WorkerCount::optimal_for_processing_type(
@@ -171,8 +171,8 @@ println!("Optimal workers: {}", workers);  // e.g., "8 workers"
 **Configuration:**
 
 ```rust
-use pipeline::infrastructure::adapters::file_io::TokioFileIO;
-use pipeline_domain::services::file_io_service::FileIOConfig;
+use adaptive_pipeline::infrastructure::adapters::file_io::TokioFileIO;
+use adaptive_pipeline_domain::services::file_io_service::FileIOConfig;
 
 let config = FileIOConfig {
     enable_memory_mapping: true,
@@ -206,7 +206,7 @@ let service = TokioFileIO::new(config);
 **Adaptive Selection:**
 
 ```rust
-use pipeline_domain::services::CompressionPriority;
+use adaptive_pipeline_domain::services::CompressionPriority;
 
 // Automatic algorithm selection
 let config = service.get_optimal_config(
@@ -236,7 +236,7 @@ println!("Selected: {:?}", config.algorithm);
 **Configuration:**
 
 ```rust
-use pipeline_domain::services::EncryptionAlgorithm;
+use adaptive_pipeline_domain::services::EncryptionAlgorithm;
 
 // Use AES-256-GCM if hardware support available
 let algorithm = if has_aes_ni() {
@@ -486,7 +486,7 @@ let config = ResourceConfig {
 ### Real-Time Metrics
 
 ```rust
-use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 use std::time::Duration;
 
 // Spawn monitoring task
@@ -523,7 +523,7 @@ tokio::spawn(async {
 ### Processing Metrics
 
 ```rust
-use pipeline_domain::entities::ProcessingMetrics;
+use adaptive_pipeline_domain::entities::ProcessingMetrics;
 
 let metrics = ProcessingMetrics::new();
 metrics.start();

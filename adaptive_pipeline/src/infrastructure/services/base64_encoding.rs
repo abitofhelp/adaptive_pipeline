@@ -30,7 +30,7 @@
 //!
 //! ```rust
 //! use adaptive_pipeline_domain::services::StageService;
-//! use pipeline::infrastructure::services::Base64EncodingService;
+//! use adaptive_pipeline::infrastructure::services::Base64EncodingService;
 //!
 //! let service = Base64EncodingService::new();
 //! // Used automatically by pipeline when configured with StageType::Transform

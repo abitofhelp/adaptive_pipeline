@@ -29,7 +29,7 @@ use std::path::PathBuf;
 #[tokio::test]
 async fn test_application_layer_structure() {
     // Arrange - import application layer modules
-    use pipeline::application::commands::RestoreFileCommand;
+    use adaptive_pipeline::application::commands::RestoreFileCommand;
 
     // Act - create a test command to verify module structure
     let command = RestoreFileCommand::new(PathBuf::from("/tmp/source.adapipe"), PathBuf::from("/tmp/target.txt"));

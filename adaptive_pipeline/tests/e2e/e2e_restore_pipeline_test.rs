@@ -6,12 +6,12 @@
 use std::fs;
 use tempfile::TempDir;
 
-use pipeline_domain::entities::pipeline_stage::StageType;
-use pipeline_domain::value_objects::binary_file_format::FileHeader;
-use pipeline_domain::value_objects::file_chunk::FileChunk;
+use adaptive_pipeline_domain::entities::pipeline_stage::StageType;
+use adaptive_pipeline_domain::value_objects::binary_file_format::FileHeader;
+use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
 
 // Import the restore functions from restoration module
-use pipeline::create_restoration_pipeline;
+use adaptive_pipeline::create_restoration_pipeline;
 
 /// Tests complete restore workflow: .adapipe header → restoration pipeline with
 /// proper stage ordering.

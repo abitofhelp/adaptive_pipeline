@@ -32,7 +32,7 @@
 //!
 //! ```rust
 //! use adaptive_pipeline_domain::services::StageService;
-//! use pipeline::infrastructure::services::PiiMaskingService;
+//! use adaptive_pipeline::infrastructure::services::PiiMaskingService;
 //!
 //! let service = PiiMaskingService::new();
 //! // Used automatically by pipeline when configured with StageType::Transform

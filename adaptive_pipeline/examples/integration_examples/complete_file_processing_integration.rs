@@ -71,16 +71,16 @@ use std::io::Write;
 use tempfile::NamedTempFile;
 use async_trait::async_trait;
 
-use pipeline::infrastructure::services::TokioFileIO;
-use pipeline::application::services::StreamingFileProcessor;
-use pipeline_domain::services::{
+use adaptive_pipeline::infrastructure::services::TokioFileIO;
+use adaptive_pipeline::application::services::StreamingFileProcessor;
+use adaptive_pipeline_domain::services::{
     file_io_service::{FileIOService, FileIOConfig, ReadOptions, WriteOptions},
     file_processor_service::{
         FileProcessorService, FileProcessorConfig, ChunkProcessor, ChainProcessor
     },
     checksum_service::ChecksumProcessor
 };
-use pipeline_domain::{FileChunk, PipelineError};
+use adaptive_pipeline_domain::{FileChunk, PipelineError};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

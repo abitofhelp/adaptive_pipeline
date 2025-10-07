@@ -418,7 +418,7 @@ impl CompressionConfig {
 /// ## Usage Example
 ///
 /// ```rust
-/// use pipeline_domain::services::{CompressionConfig, FromParameters};
+/// use adaptive_pipeline_domain::services::{CompressionConfig, FromParameters};
 /// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();

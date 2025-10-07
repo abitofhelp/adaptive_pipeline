@@ -111,7 +111,7 @@ pub enum StageType {
 Stage types support case-insensitive parsing from strings:
 
 ```rust
-use pipeline_domain::entities::pipeline_stage::StageType;
+use adaptive_pipeline_domain::entities::pipeline_stage::StageType;
 use std::str::FromStr;
 
 // Parse from lowercase
@@ -175,7 +175,7 @@ pub struct PipelineStage {
 ### Creating a Stage
 
 ```rust
-use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 use std::collections::HashMap;
 
 let mut params = HashMap::new();
@@ -652,7 +652,7 @@ req1.merge(&req2);  // Takes maximum of each field
 ### Example 1: Creating a Compression Stage
 
 ```rust
-use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 use std::collections::HashMap;
 
 let mut params = HashMap::new();
@@ -749,7 +749,7 @@ for i in 0..stages.len() - 1 {
 ### Example 4: Executing a Stage
 
 ```rust
-use pipeline_domain::repositories::stage_executor::StageExecutor;
+use adaptive_pipeline_domain::repositories::stage_executor::StageExecutor;
 
 let executor: Arc<dyn StageExecutor> = /* ... */;
 let stage = /* ... */;

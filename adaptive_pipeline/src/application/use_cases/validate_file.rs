@@ -40,7 +40,7 @@
 //! ## Usage Examples
 //!
 //! ```rust,ignore
-//! use pipeline::application::use_cases::ValidateFileUseCase;
+//! use adaptive_pipeline::application::use_cases::ValidateFileUseCase;
 //!
 //! let use_case = ValidateFileUseCase::new();
 //!

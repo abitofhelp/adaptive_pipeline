@@ -11,25 +11,25 @@ use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
 use tokio::time::Instant;
 
-use pipeline::infrastructure::adapters::compression::MultiAlgoCompression;
-use pipeline::infrastructure::adapters::encryption::MultiAlgoEncryption;
-use pipeline::infrastructure::adapters::file_io::TokioFileIO;
-use pipeline_domain::entities::security_context::{SecurityContext, SecurityLevel};
-use pipeline_domain::entities::ProcessingContext;
-use pipeline_domain::services::checksum_service::{ChecksumProcessor, ChecksumService};
-use pipeline_domain::services::compression_service::{CompressionAlgorithm, CompressionConfig, CompressionService};
-use pipeline_domain::services::encryption_service::{
+use adaptive_pipeline::infrastructure::adapters::compression::MultiAlgoCompression;
+use adaptive_pipeline::infrastructure::adapters::encryption::MultiAlgoEncryption;
+use adaptive_pipeline::infrastructure::adapters::file_io::TokioFileIO;
+use adaptive_pipeline_domain::entities::security_context::{SecurityContext, SecurityLevel};
+use adaptive_pipeline_domain::entities::ProcessingContext;
+use adaptive_pipeline_domain::services::checksum_service::{ChecksumProcessor, ChecksumService};
+use adaptive_pipeline_domain::services::compression_service::{CompressionAlgorithm, CompressionConfig, CompressionService};
+use adaptive_pipeline_domain::services::encryption_service::{
     EncryptionAlgorithm, EncryptionConfig, EncryptionService, KeyMaterial,
 };
-use pipeline_domain::services::file_io_service::{
+use adaptive_pipeline_domain::services::file_io_service::{
     FileIOConfig, FileIOService, FileInfo, ReadOptions, ReadResult, WriteOptions, WriteResult,
 };
-use pipeline_domain::value_objects::algorithm::Algorithm;
-use pipeline_domain::value_objects::chunk_size::ChunkSize;
-use pipeline_domain::value_objects::encryption_key_id::EncryptionKeyId;
-use pipeline_domain::value_objects::file_chunk::FileChunk;
-use pipeline_domain::value_objects::file_chunk_id::FileChunkId;
-use pipeline_domain::PipelineError;
+use adaptive_pipeline_domain::value_objects::algorithm::Algorithm;
+use adaptive_pipeline_domain::value_objects::chunk_size::ChunkSize;
+use adaptive_pipeline_domain::value_objects::encryption_key_id::EncryptionKeyId;
+use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
+use adaptive_pipeline_domain::value_objects::file_chunk_id::FileChunkId;
+use adaptive_pipeline_domain::PipelineError;
 
 // ============================================================================
 // DOMAIN SERVICES TEST FRAMEWORK IMPLEMENTATION

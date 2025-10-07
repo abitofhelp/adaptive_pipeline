@@ -52,7 +52,7 @@
 //! ### Basic Chunk Size Creation
 //!
 //! ```
-//! use pipeline_domain::value_objects::ChunkSize;
+//! use adaptive_pipeline_domain::value_objects::ChunkSize;
 //!
 //! // Create from bytes
 //! let chunk = ChunkSize::new(1024 * 1024).unwrap(); // 1MB
@@ -74,7 +74,7 @@
 //! ### Chunk Size Validation
 //!
 //! ```
-//! use pipeline_domain::value_objects::ChunkSize;
+//! use adaptive_pipeline_domain::value_objects::ChunkSize;
 //!
 //! // Valid chunk sizes
 //! let valid = ChunkSize::new(64 * 1024).unwrap(); // 64KB - valid
@@ -97,7 +97,7 @@
 //! ### Chunk Size Arithmetic
 //!
 //! ```
-//! use pipeline_domain::value_objects::ChunkSize;
+//! use adaptive_pipeline_domain::value_objects::ChunkSize;
 //!
 //! let chunk = ChunkSize::from_mb(2).unwrap(); // 2MB chunk
 //!

@@ -259,7 +259,7 @@ let cpu_token_count = (available_cores - 1).max(1);
 <p><strong>Custom Configuration:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig};
+</span>use adaptive_pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig};
 
 // Initialize with custom CPU token count
 let config = ResourceConfig {
@@ -273,7 +273,7 @@ init_resource_manager(config)?;
 <p><strong>Acquire CPU token before CPU-intensive work:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::runtime::RESOURCE_MANAGER;
+</span>use adaptive_pipeline::infrastructure::runtime::RESOURCE_MANAGER;
 
 async fn process_chunk(chunk: FileChunk) -&gt; Result&lt;FileChunk, PipelineError&gt; {
     // 1. Acquire global CPU token (waits if system is saturated)
@@ -317,7 +317,7 @@ When Task 2 completes → Task 9 acquires the released token
 <h3 id="monitoring-cpu-saturation"><a class="header" href="#monitoring-cpu-saturation">Monitoring CPU Saturation</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+</span>use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 
 // Check CPU saturation percentage
 let saturation = CONCURRENCY_METRICS.cpu_saturation_percent();
@@ -439,7 +439,7 @@ if io_saturation &gt; 80.0 {
 <p><strong>Atomic counter</strong> (<code>AtomicUsize</code>) tracks allocated memory:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::runtime::RESOURCE_MANAGER;
+</span>use adaptive_pipeline::infrastructure::runtime::RESOURCE_MANAGER;
 
 // Track memory allocation
 let chunk_size = 1024 * 1024;  // 1 MB
@@ -488,7 +488,7 @@ init_resource_manager(config)?;
 <h3 id="monitoring-memory-usage"><a class="header" href="#monitoring-memory-usage">Monitoring Memory Usage</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+</span>use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 
 // Check current memory usage
 let used_bytes = RESOURCE_MANAGER.memory_used();
@@ -519,7 +519,7 @@ if utilization &gt; 80.0 {
 <h3 id="cpu-metrics"><a class="header" href="#cpu-metrics">CPU Metrics</a></h3>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+</span>use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 
 // Instant metrics (gauges)
 let cpu_available = CONCURRENCY_METRICS.cpu_tokens_available();
@@ -610,7 +610,7 @@ println!("Queue wait: P50={} ms, P95={} ms, P99={} ms",
 <span class="boring">}</span></code></pre></pre>
 <h3 id="initialization-pattern"><a class="header" href="#initialization-pattern">Initialization Pattern</a></h3>
 <p><strong>In <code>main()</code>, before any operations:</strong></p>
-<pre><pre class="playground"><code class="language-rust">use pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig, StorageType};
+<pre><pre class="playground"><code class="language-rust">use adaptive_pipeline::infrastructure::runtime::{init_resource_manager, ResourceConfig, StorageType};
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;()&gt; {

@@ -31,7 +31,7 @@
 //! ## Usage Examples
 //!
 //! ```rust,ignore
-//! use pipeline::application::use_cases::CompareFilesUseCase;
+//! use adaptive_pipeline::application::use_cases::CompareFilesUseCase;
 //!
 //! let use_case = CompareFilesUseCase::new();
 //!

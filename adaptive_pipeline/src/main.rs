@@ -706,7 +706,7 @@ async fn restore_file_from_adapipe_v2(
     );
     stage_services.insert(
         "debug".to_string(),
-        Arc::new(DebugService::new(Arc::new(MetricsService::new().unwrap())))
+        Arc::new(DebugService::new(Arc::new(MetricsService::new()?)))
             as Arc<dyn adaptive_pipeline_domain::services::StageService>,
     );
 
@@ -1343,7 +1343,7 @@ async fn stream_restore_with_validation(
     );
     stage_services.insert(
         "debug".to_string(),
-        Arc::new(DebugService::new(Arc::new(MetricsService::new().unwrap())))
+        Arc::new(DebugService::new(Arc::new(MetricsService::new()?)))
             as Arc<dyn adaptive_pipeline_domain::services::StageService>,
     );
 

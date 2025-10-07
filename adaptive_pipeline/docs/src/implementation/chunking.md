@@ -140,7 +140,7 @@ ChunkSize::DEFAULT   // 1 MB
 ### Creating Chunk Sizes
 
 ```rust
-use pipeline_domain::ChunkSize;
+use adaptive_pipeline_domain::ChunkSize;
 
 // From bytes
 let chunk = ChunkSize::new(1024 * 1024)?;  // 1 MB
@@ -584,7 +584,7 @@ for (size, duration) in results {
 ### Example 1: Basic Chunking
 
 ```rust
-use pipeline_domain::{ChunkSize, FileChunk};
+use adaptive_pipeline_domain::{ChunkSize, FileChunk};
 use std::path::Path;
 
 #[tokio::main]

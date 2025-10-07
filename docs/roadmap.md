@@ -70,7 +70,7 @@ debug!("Using channel depth: {}", channel_depth);
 - `bootstrap/src/cli.rs` - Added to ValidatedCli struct
 - `pipeline/src/application/use_cases/process_file.rs` - Added to ProcessFileConfig
 - `pipeline/src/main.rs` - Passed from CLI to config
-- `pipeline-domain/src/services/pipeline_service.rs` - Added to trait
+- `adaptive_pipeline_domain/src/services/pipeline_service.rs` - Added to trait
 - `pipeline/src/application/services/pipeline.rs` - Implemented functionality
 
 **Actual Effort**: ~1 hour
@@ -90,7 +90,7 @@ debug!("Using channel depth: {}", channel_depth);
 - Comprehensive error messages
 
 **Files to Create/Modify**:
-- `pipeline-domain/src/services/permission_service.rs`
+- `adaptive_pipeline_domain/src/services/permission_service.rs`
 - `pipeline/src/application/use_cases/restore_file.rs`
 
 **Estimated Effort**: 3-4 hours
@@ -102,7 +102,7 @@ debug!("Using channel depth: {}", channel_depth);
 ### Medium Priority
 
 #### 4. Security Context Integration
-**Location**: `pipeline-domain/src/aggregates/pipeline_aggregate.rs`
+**Location**: `adaptive_pipeline_domain/src/aggregates/pipeline_aggregate.rs`
 **Status**: Placeholder (None)
 **Description**: Wire up actual user tracking from security context
 
@@ -120,8 +120,8 @@ updated_by: None, // TODO: Get from security context
 - Support anonymous mode for testing
 
 **Files to Modify**:
-- `pipeline-domain/src/aggregates/pipeline_aggregate.rs`
-- `pipeline-domain/src/entities/security_context.rs`
+- `adaptive_pipeline_domain/src/aggregates/pipeline_aggregate.rs`
+- `adaptive_pipeline_domain/src/entities/security_context.rs`
 - Database schema migration for user fields
 
 **Estimated Effort**: 4-5 hours
@@ -277,7 +277,7 @@ let metrics = ProcessingMetrics::new(0, 0); // TODO: Implement metrics loading
 ### Low Priority
 
 #### 10. Unified Stage Interface
-**Location**: `pipeline-domain/src/services/checksum_service.rs:176`
+**Location**: `adaptive_pipeline_domain/src/services/checksum_service.rs:176`
 **Status**: TODO
 **Description**: Standardize stage interface across all services
 
@@ -298,7 +298,7 @@ let metrics = ProcessingMetrics::new(0, 0); // TODO: Implement metrics loading
 - DebugService
 
 **Files to Create/Modify**:
-- `pipeline-domain/src/services/stage_service.rs` (already exists, enhance)
+- `adaptive_pipeline_domain/src/services/stage_service.rs` (already exists, enhance)
 - All service implementations
 
 **Estimated Effort**: 10-15 hours (major refactoring)
@@ -306,7 +306,7 @@ let metrics = ProcessingMetrics::new(0, 0); // TODO: Implement metrics loading
 ---
 
 #### 11. Move Repository Traits to Domain Layer
-**Location**: `pipeline-domain/src/entities/pipeline.rs:845`
+**Location**: `adaptive_pipeline_domain/src/entities/pipeline.rs:845`
 **Status**: Architectural Debt
 **Description**: Repository traits should be in domain/repositories, not entities
 
@@ -316,15 +316,15 @@ let metrics = ProcessingMetrics::new(0, 0); // TODO: Implement metrics loading
 ```
 
 **Requirements**:
-- Create `pipeline-domain/src/repositories/` module
+- Create `adaptive_pipeline_domain/src/repositories/` module
 - Move all repository trait definitions
 - Update imports across codebase
 - Follow DDD layering principles
 - No breaking changes to external API
 
 **Files to Create/Modify**:
-- `pipeline-domain/src/repositories/pipeline_repository.rs`
-- `pipeline-domain/src/repositories/mod.rs`
+- `adaptive_pipeline_domain/src/repositories/pipeline_repository.rs`
+- `adaptive_pipeline_domain/src/repositories/mod.rs`
 - Update all implementations and imports
 
 **Estimated Effort**: 3-4 hours
@@ -359,7 +359,7 @@ let metrics = ProcessingMetrics::new(0, 0); // TODO: Implement metrics loading
 
 **Files to Modify**:
 - `pipeline/src/infrastructure/services/binary_format.rs`
-- `pipeline-domain/src/value_objects/binary_file_format.rs`
+- `adaptive_pipeline_domain/src/value_objects/binary_file_format.rs`
 
 **Estimated Effort**: 6-8 hours
 

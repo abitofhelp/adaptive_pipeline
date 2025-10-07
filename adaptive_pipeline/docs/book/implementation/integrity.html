@@ -195,7 +195,7 @@
 <p><strong>Industry-standard cryptographic hash function</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::value_objects::Algorithm;
+</span>use adaptive_pipeline_domain::value_objects::Algorithm;
 
 let algorithm = Algorithm::sha256();
 <span class="boring">}</span></code></pre></pre>
@@ -267,10 +267,10 @@ let algorithm = Algorithm::sha256();
 <p>The domain layer defines the checksum service interface:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::services::ChecksumService;
-use pipeline_domain::entities::ProcessingContext;
-use pipeline_domain::value_objects::FileChunk;
-use pipeline_domain::PipelineError;
+</span>use adaptive_pipeline_domain::services::ChecksumService;
+use adaptive_pipeline_domain::entities::ProcessingContext;
+use adaptive_pipeline_domain::value_objects::FileChunk;
+use adaptive_pipeline_domain::PipelineError;
 
 /// Domain service for integrity verification
 pub trait ChecksumService: Send + Sync {
@@ -294,7 +294,7 @@ pub trait ChecksumService: Send + Sync {
 <p>The infrastructure layer provides concrete implementations:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::services::{ChecksumService, ChecksumProcessor};
+</span>use adaptive_pipeline_domain::services::{ChecksumService, ChecksumProcessor};
 
 /// Concrete checksum processor using SHA-256
 pub struct ChecksumProcessor {
@@ -402,7 +402,7 @@ impl ChecksumProcessor {
 <p>The checksum service implements the <code>ChunkProcessor</code> trait for integration with the pipeline:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::services::file_processor_service::ChunkProcessor;
+</span>use adaptive_pipeline_domain::services::file_processor_service::ChunkProcessor;
 
 impl ChunkProcessor for ChecksumProcessor {
     /// Process chunk with checksum calculation/verification
@@ -546,8 +546,8 @@ pub fn optimal_hash_algorithm() -&gt; Algorithm {
 <p>Configure integrity stages in your pipeline:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::entities::PipelineStage;
-use pipeline_domain::value_objects::{Algorithm, StageType};
+</span>use adaptive_pipeline_domain::entities::PipelineStage;
+use adaptive_pipeline_domain::value_objects::{Algorithm, StageType};
 
 // Input integrity verification
 let input_stage = PipelineStage::new(
@@ -647,7 +647,7 @@ let verifying_processor = ChecksumProcessor::new("SHA256".to_string(), true);
 <p>Calculate SHA-256 checksums for data:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::services::ChecksumProcessor;
+</span>use adaptive_pipeline_domain::services::ChecksumProcessor;
 
 fn calculate_file_checksum(data: &amp;[u8]) -&gt; Result&lt;String, PipelineError&gt; {
     let processor = ChecksumProcessor::sha256_processor(false);
@@ -665,7 +665,7 @@ println!("SHA-256: {}", checksum);
 <p>Verify data hasn't been tampered with:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::value_objects::FileChunk;
+</span>use adaptive_pipeline_domain::value_objects::FileChunk;
 
 fn verify_chunk_integrity(chunk: &amp;FileChunk) -&gt; Result&lt;bool, PipelineError&gt; {
     let processor = ChecksumProcessor::sha256_processor(true);
@@ -692,7 +692,7 @@ if verify_chunk_integrity(&amp;chunk)? {
 <p>Integrate checksums into processing pipeline:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use pipeline_domain::entities::{Pipeline, PipelineStage};
+</span>use adaptive_pipeline_domain::entities::{Pipeline, PipelineStage};
 
 fn create_verified_pipeline() -&gt; Result&lt;Pipeline, PipelineError&gt; {
     let stages = vec![

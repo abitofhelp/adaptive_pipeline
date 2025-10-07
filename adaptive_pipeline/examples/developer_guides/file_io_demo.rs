@@ -74,8 +74,8 @@
 //! - Configuration management
 
 use std::path::Path;
-use pipeline::infrastructure::services::TokioFileIO;
-use pipeline_domain::services::file_io_service::{
+use adaptive_pipeline::infrastructure::services::TokioFileIO;
+use adaptive_pipeline_domain::services::file_io_service::{
     FileIOService, ReadOptions, WriteOptions, FileIOConfig
 };
 

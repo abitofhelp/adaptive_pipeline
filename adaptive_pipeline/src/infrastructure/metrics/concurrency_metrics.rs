@@ -26,7 +26,7 @@
 //! ## Usage
 //!
 //! ```rust,ignore
-//! use pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
+//! use adaptive_pipeline::infrastructure::metrics::CONCURRENCY_METRICS;
 //!
 //! // Record resource acquisition
 //! CONCURRENCY_METRICS.record_cpu_wait(wait_duration);

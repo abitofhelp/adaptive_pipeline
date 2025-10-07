@@ -23,7 +23,7 @@
 //!
 //! ```rust,ignore
 //! use std::sync::Arc;
-//! use pipeline::infrastructure::adapters::AsyncChecksumAdapter;
+//! use adaptive_pipeline::infrastructure::adapters::AsyncChecksumAdapter;
 //! use adaptive_pipeline_domain::services::checksum_service::ChecksumProcessor;
 //!
 //! // Create sync implementation

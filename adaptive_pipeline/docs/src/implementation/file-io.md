@@ -191,7 +191,7 @@ pub struct FileChunk {
 ### Creating Chunks
 
 ```rust
-use pipeline_domain::FileChunk;
+use adaptive_pipeline_domain::FileChunk;
 
 // Basic chunk creation
 let data = vec![1, 2, 3, 4, 5];
@@ -265,7 +265,7 @@ let output: FilePath<OutputPath> = FilePath::new("./output.dat")?;
 ### Path Validation
 
 ```rust
-use pipeline_domain::value_objects::{FilePath, InputPath};
+use adaptive_pipeline_domain::value_objects::{FilePath, InputPath};
 
 // Create and validate path
 let path = FilePath::<InputPath>::new("/path/to/file.dat")?;
@@ -315,7 +315,7 @@ ChunkSize::DEFAULT   // 1 MB
 ### Creating Chunk Sizes
 
 ```rust
-use pipeline_domain::ChunkSize;
+use adaptive_pipeline_domain::ChunkSize;
 
 // From bytes
 let size = ChunkSize::new(1024 * 1024)?;  // 1 MB
@@ -423,7 +423,7 @@ File reading uses streaming and chunking for memory-efficient processing.
 ### Reading Small Files
 
 ```rust
-use pipeline_domain::FileIOService;
+use adaptive_pipeline_domain::FileIOService;
 
 // Read entire file into chunks
 let service: Arc<dyn FileIOService> = /* ... */;
@@ -593,7 +593,7 @@ The file I/O system handles various error conditions.
 ### Common Errors
 
 ```rust
-use pipeline_domain::PipelineError;
+use adaptive_pipeline_domain::PipelineError;
 
 match service.read_file_chunks(path, chunk_size).await {
     Ok(chunks) => { /* success */ },
@@ -735,7 +735,7 @@ while let Some(chunk) = read_chunk(&mut reader).await? {
 ### Example 1: Basic File Processing
 
 ```rust
-use pipeline_domain::{FileIOService, ChunkSize};
+use adaptive_pipeline_domain::{FileIOService, ChunkSize};
 use std::path::Path;
 
 #[tokio::main]
