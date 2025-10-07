@@ -17,7 +17,9 @@ use adaptive_pipeline::infrastructure::adapters::file_io::TokioFileIO;
 use adaptive_pipeline_domain::entities::security_context::{SecurityContext, SecurityLevel};
 use adaptive_pipeline_domain::entities::ProcessingContext;
 use adaptive_pipeline_domain::services::checksum_service::{ChecksumProcessor, ChecksumService};
-use adaptive_pipeline_domain::services::compression_service::{CompressionAlgorithm, CompressionConfig, CompressionService};
+use adaptive_pipeline_domain::services::compression_service::{
+    CompressionAlgorithm, CompressionConfig, CompressionService,
+};
 use adaptive_pipeline_domain::services::encryption_service::{
     EncryptionAlgorithm, EncryptionConfig, EncryptionService, KeyMaterial,
 };

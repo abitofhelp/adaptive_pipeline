@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Adaptive Pipeline RS
+// Adaptive Pipeline
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -48,14 +48,12 @@ impl UnixPlatform {
         for line in meminfo.lines() {
             if let Some(value) = line.strip_prefix("MemTotal:") {
                 total = value
-                    .trim()
                     .split_whitespace()
                     .next()
                     .and_then(|s| s.parse::<u64>().ok())
                     .map(|kb| kb * 1024); // Convert KB to bytes
             } else if let Some(value) = line.strip_prefix("MemAvailable:") {
                 available = value
-                    .trim()
                     .split_whitespace()
                     .next()
                     .and_then(|s| s.parse::<u64>().ok())
@@ -87,6 +85,7 @@ impl UnixPlatform {
             // Get total memory
             let mut total: u64 = 0;
             let mut size = mem::size_of::<u64>();
+            #[rustfmt::skip]
             let name = c"hw.memsize".as_ptr();
 
             if libc::sysctlbyname(
@@ -106,6 +105,7 @@ impl UnixPlatform {
             // Note: This is an approximation. For exact VM stats, would need mach APIs
             let mut available: u64 = 0;
             let mut avail_size = mem::size_of::<u64>();
+            #[rustfmt::skip]
             let avail_name = c"vm.page_free_count".as_ptr();
 
             if libc::sysctlbyname(

@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Adaptive Pipeline RS
+// Adaptive Pipeline
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -81,7 +81,9 @@ pub struct PipelineData {
 ///
 /// ```
 /// use adaptive_pipeline_domain::entities::pipeline::Pipeline;
-/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{
+///     PipelineStage, StageConfiguration, StageType,
+/// };
 /// use std::collections::HashMap;
 ///
 /// // Create user-defined stages
@@ -114,7 +116,9 @@ pub struct PipelineData {
 ///
 /// ```
 /// use adaptive_pipeline_domain::entities::pipeline::Pipeline;
-/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{
+///     PipelineStage, StageConfiguration, StageType,
+/// };
 /// use std::collections::HashMap;
 ///
 /// let stage = PipelineStage::new(
@@ -143,7 +147,9 @@ pub struct PipelineData {
 ///
 /// ```
 /// use adaptive_pipeline_domain::entities::pipeline::Pipeline;
-/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{
+///     PipelineStage, StageConfiguration, StageType,
+/// };
 ///
 /// let initial_stage = PipelineStage::new(
 ///     "compress".to_string(),
@@ -295,7 +301,9 @@ impl Pipeline {
     ///
     /// ```
     /// use adaptive_pipeline_domain::entities::pipeline::Pipeline;
-    /// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+    /// use adaptive_pipeline_domain::entities::pipeline_stage::{
+    ///     PipelineStage, StageConfiguration, StageType,
+    /// };
     ///
     /// let compression = PipelineStage::new(
     ///     "compress".to_string(),

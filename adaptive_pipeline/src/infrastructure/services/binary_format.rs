@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Adaptive Pipeline RS
+// Adaptive Pipeline
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -207,7 +207,7 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
         // For buffered writer, this would need interior mutability (Mutex<Vec>)
         // but it's only used for tests with write_chunk(), so we return an error here
         Err(PipelineError::processing_failed(
-            "BufferedBinaryWriter doesn't support concurrent writes - use StreamingBinaryWriter"
+            "BufferedBinaryWriter doesn't support concurrent writes - use StreamingBinaryWriter",
         ))
     }
 

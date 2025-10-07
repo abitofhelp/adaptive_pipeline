@@ -334,4 +334,3 @@ async fn test_e2e_binary_format_large_file() {
 
     println!("✅ E2E large file test passed");
 }
-

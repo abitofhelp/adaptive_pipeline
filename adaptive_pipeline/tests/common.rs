@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Adaptive Pipeline RS
+// Adaptive Pipeline
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -11,8 +11,8 @@
 
 /// Get the path to the compiled pipeline binary
 ///
-/// This helper tries the CARGO_BIN_EXE environment variable first (set by cargo test),
-/// then falls back to constructing the path from CARGO_MANIFEST_DIR.
+/// This helper tries the CARGO_BIN_EXE environment variable first (set by cargo
+/// test), then falls back to constructing the path from CARGO_MANIFEST_DIR.
 ///
 /// # Returns
 ///

@@ -22,7 +22,7 @@ CLIPPY_STRICT := -- \
 	-D clippy::todo \
 	-D clippy::unimplemented
 
-RUSTFMT_ARGS := --edition 2021
+RUSTFMT_ARGS :=
 
 # Environment Variables
 export ADAPIPE_SQLITE_PATH := scripts/test_data/pipeline.db

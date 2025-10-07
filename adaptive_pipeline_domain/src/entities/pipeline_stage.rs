@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Adaptive Pipeline RS
+// Adaptive Pipeline
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -287,7 +287,9 @@ impl Default for StageConfiguration {
 /// ### Creating a Compression Stage
 ///
 /// ```
-/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{
+///     PipelineStage, StageConfiguration, StageType,
+/// };
 /// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();
@@ -306,7 +308,9 @@ impl Default for StageConfiguration {
 /// ### Creating an Encryption Stage
 ///
 /// ```
-/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{
+///     PipelineStage, StageConfiguration, StageType,
+/// };
 /// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();
@@ -323,7 +327,9 @@ impl Default for StageConfiguration {
 /// ### Modifying Stage Configuration
 ///
 /// ```
-/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{
+///     PipelineStage, StageConfiguration, StageType,
+/// };
 /// use std::collections::HashMap;
 ///
 /// let config = StageConfiguration::default();
@@ -342,7 +348,9 @@ impl Default for StageConfiguration {
 /// ### Stage Compatibility Checking
 ///
 /// ```
-/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{
+///     PipelineStage, StageConfiguration, StageType,
+/// };
 ///
 /// let compression = PipelineStage::new(
 ///     "compression".to_string(),
@@ -367,7 +375,9 @@ impl Default for StageConfiguration {
 /// ### Enabling and Disabling Stages
 ///
 /// ```
-/// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+/// use adaptive_pipeline_domain::entities::pipeline_stage::{
+///     PipelineStage, StageConfiguration, StageType,
+/// };
 ///
 /// let mut stage = PipelineStage::new(
 ///     "checksum".to_string(),
@@ -459,7 +469,9 @@ impl PipelineStage {
     /// # Examples
     ///
     /// ```
-    /// use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+    /// use adaptive_pipeline_domain::entities::pipeline_stage::{
+    ///     PipelineStage, StageConfiguration, StageType,
+    /// };
     /// use std::collections::HashMap;
     ///
     /// // Create a stage successfully

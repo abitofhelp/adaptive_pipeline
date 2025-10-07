@@ -24,7 +24,7 @@ This Software Requirements Specification (SRS) defines the functional and non-fu
 
 ### 1.2 Scope
 
-**System Name:** Adaptive Pipeline RS
+**System Name:** Adaptive Pipeline
 
 **System Purpose:** Provide a configurable, extensible pipeline for processing files through multiple stages including compression, encryption, integrity verification, and custom transformations.
 
