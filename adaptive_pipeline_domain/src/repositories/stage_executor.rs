@@ -106,7 +106,7 @@
 //     // ... implement other methods ...
 // }
 // ```
-//
+// 
 // ## Error Handling
 //
 // Stage executors should handle various error conditions:
@@ -132,7 +132,7 @@
 // - Measure throughput and latency
 // - Alert on error rates and failures
 
-use crate::{ FileChunk, PipelineError, PipelineStage, ProcessingContext };
+use crate::{FileChunk, PipelineError, PipelineStage, ProcessingContext};
 use async_trait::async_trait;
 
 /// Interface for executing pipeline stages on file chunks
@@ -159,7 +159,7 @@ pub trait StageExecutor: Send + Sync {
         &self,
         stage: &PipelineStage,
         chunk: FileChunk,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError>;
 
     /// Executes a stage on multiple chunks in parallel
@@ -167,7 +167,7 @@ pub trait StageExecutor: Send + Sync {
         &self,
         stage: &PipelineStage,
         chunks: Vec<FileChunk>,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<Vec<FileChunk>, PipelineError>;
 
     /// Validates if a stage can be executed
@@ -180,37 +180,29 @@ pub trait StageExecutor: Send + Sync {
     async fn estimate_processing_time(
         &self,
         stage: &PipelineStage,
-        data_size: u64
+        data_size: u64,
     ) -> Result<std::time::Duration, PipelineError>;
 
     /// Gets resource requirements for a stage
     async fn get_resource_requirements(
         &self,
         stage: &PipelineStage,
-        data_size: u64
+        data_size: u64,
     ) -> Result<ResourceRequirements, PipelineError>;
 
     /// Prepares a stage for execution (initialization)
-    async fn prepare_stage(
-        &self,
-        stage: &PipelineStage,
-        context: &ProcessingContext
-    ) -> Result<(), PipelineError>;
+    async fn prepare_stage(&self, stage: &PipelineStage, context: &ProcessingContext) -> Result<(), PipelineError>;
 
     /// Cleans up after stage execution
-    async fn cleanup_stage(
-        &self,
-        stage: &PipelineStage,
-        context: &ProcessingContext
-    ) -> Result<(), PipelineError>;
+    async fn cleanup_stage(&self, stage: &PipelineStage, context: &ProcessingContext) -> Result<(), PipelineError>;
 
     /// Validates stage configuration
     async fn validate_configuration(&self, stage: &PipelineStage) -> Result<(), PipelineError>;
 
     /// Validates that stages are ordered correctly based on their positions.
     ///
-    /// Ensures that PreBinary stages come before PostBinary stages in the pipeline.
-    /// Stages with position Any can appear anywhere.
+    /// Ensures that PreBinary stages come before PostBinary stages in the
+    /// pipeline. Stages with position Any can appear anywhere.
     ///
     /// # Arguments
     ///
@@ -219,7 +211,8 @@ pub trait StageExecutor: Send + Sync {
     /// # Returns
     ///
     /// * `Ok(())` - Stages are properly ordered
-    /// * `Err(PipelineError)` - Stages are misordered or position cannot be determined
+    /// * `Err(PipelineError)` - Stages are misordered or position cannot be
+    ///   determined
     ///
     /// # Examples
     ///
@@ -300,9 +293,7 @@ impl ResourceRequirements {
             self.gpu_memory_bytes = Some(((gpu_memory as f64) * factor) as u64);
         }
 
-        self.estimated_duration = std::time::Duration::from_secs_f64(
-            self.estimated_duration.as_secs_f64() * factor
-        );
+        self.estimated_duration = std::time::Duration::from_secs_f64(self.estimated_duration.as_secs_f64() * factor);
     }
 
     /// Merges with another resource requirement (takes maximum)
@@ -311,9 +302,7 @@ impl ResourceRequirements {
         self.cpu_cores = self.cpu_cores.max(other.cpu_cores);
         self.disk_space_bytes = self.disk_space_bytes.max(other.disk_space_bytes);
 
-        self.network_bandwidth_bps = match
-            (self.network_bandwidth_bps, other.network_bandwidth_bps)
-        {
+        self.network_bandwidth_bps = match (self.network_bandwidth_bps, other.network_bandwidth_bps) {
             (Some(a), Some(b)) => Some(a.max(b)),
             (Some(a), None) => Some(a),
             (None, Some(b)) => Some(b),

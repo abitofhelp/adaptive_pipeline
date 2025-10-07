@@ -76,7 +76,10 @@ async fn test_e2e_list_pipelines_use_case() {
     assert!(stdout.contains("test-list-1"), "Pipeline 1 not listed");
     assert!(stdout.contains("test-list-2"), "Pipeline 2 not listed");
     assert!(stdout.contains("test-list-3"), "Pipeline 3 not listed");
-    assert!(stdout.contains("Found 3 pipeline(s)") || stdout.contains("3"), "Count not shown");
+    assert!(
+        stdout.contains("Found 3 pipeline(s)") || stdout.contains("3"),
+        "Count not shown"
+    );
 }
 
 /// Tests ShowPipelineUseCase via CLI
@@ -88,7 +91,13 @@ async fn test_e2e_show_pipeline_use_case() {
     // Create a pipeline with multiple stages
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "test-show-uc", "--stages", "brotli,aes256gcm,sha256"])
+        .args(&[
+            "create",
+            "--name",
+            "test-show-uc",
+            "--stages",
+            "brotli,aes256gcm,sha256",
+        ])
         .output()
         .expect("Failed to create pipeline");
 
@@ -146,7 +155,10 @@ async fn test_e2e_delete_pipeline_use_case() {
         .expect("Failed to list pipelines");
 
     let stdout = String::from_utf8_lossy(&list_output.stdout);
-    assert!(!stdout.contains("test-delete-uc"), "Pipeline still exists after deletion");
+    assert!(
+        !stdout.contains("test-delete-uc"),
+        "Pipeline still exists after deletion"
+    );
 }
 
 /// Tests ProcessFileUseCase via CLI
@@ -253,10 +265,7 @@ missing_closing_bracket = "oops"
         .output()
         .expect("Failed to run validate command");
 
-    assert!(
-        !output.status.success(),
-        "Validate should fail for invalid config"
-    );
+    assert!(!output.status.success(), "Validate should fail for invalid config");
 }
 
 /// Tests ValidateFileUseCase via CLI
@@ -430,7 +439,8 @@ async fn test_e2e_compare_files_modified_use_case() {
     );
 }
 
-/// Tests BenchmarkSystemUseCase via CLI (smoke test only - full benchmark takes too long)
+/// Tests BenchmarkSystemUseCase via CLI (smoke test only - full benchmark takes
+/// too long)
 #[tokio::test]
 async fn test_e2e_benchmark_system_use_case_smoke() {
     let temp_dir = TempDir::new().unwrap();

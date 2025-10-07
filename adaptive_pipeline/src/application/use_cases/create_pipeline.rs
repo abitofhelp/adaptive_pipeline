@@ -18,7 +18,8 @@
 //! - **Pipeline Configuration**: Define processing stages and algorithms
 //! - **Name Validation**: Ensure pipeline names follow conventions
 //! - **Stage Parsing**: Parse comma-separated stage specifications
-//! - **Algorithm Selection**: Support multiple compression/encryption algorithms
+//! - **Algorithm Selection**: Support multiple compression/encryption
+//!   algorithms
 //! - **Persistence**: Save pipeline configuration to repository
 //! - **Custom Stages**: Support for user-defined transformation stages
 //!
@@ -74,11 +75,7 @@ use tracing::info;
 
 use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
 use adaptive_pipeline_domain::entities::pipeline::Pipeline;
-use adaptive_pipeline_domain::entities::pipeline_stage::{
-    PipelineStage,
-    StageConfiguration,
-    StageType,
-};
+use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 
 /// Use case for creating new processing pipelines.
 ///
@@ -140,8 +137,10 @@ impl CreatePipelineUseCase {
     ///
     /// * `name` - Pipeline name (will be normalized to kebab-case)
     /// * `stages` - Comma-separated list of stage specifications
-    ///   - Examples: "brotli", "brotli,aes256gcm", "compression,encryption,checksum"
-    /// * `output` - Optional file path for pipeline configuration export (not yet implemented)
+    ///   - Examples: "brotli", "brotli,aes256gcm",
+    ///     "compression,encryption,checksum"
+    /// * `output` - Optional file path for pipeline configuration export (not
+    ///   yet implemented)
     ///
     /// ## Stage Specifications
     ///
@@ -188,12 +187,7 @@ impl CreatePipelineUseCase {
     ///     None,
     /// ).await?;
     /// ```
-    pub async fn execute(
-        &self,
-        name: String,
-        stages: String,
-        output: Option<PathBuf>
-    ) -> Result<()> {
+    pub async fn execute(&self, name: String, stages: String, output: Option<PathBuf>) -> Result<()> {
         info!("Creating pipeline: {}", name);
         info!("Stages: {}", stages);
 
@@ -210,15 +204,11 @@ impl CreatePipelineUseCase {
                 "compression" => (StageType::Compression, "brotli".to_string()),
                 "encryption" => (StageType::Encryption, "aes256gcm".to_string()),
                 "integrity" | "checksum" => (StageType::Checksum, "sha256".to_string()),
-                custom_name if custom_name.contains("checksum") => {
-                    (StageType::Checksum, "sha256".to_string())
-                }
+                custom_name if custom_name.contains("checksum") => (StageType::Checksum, "sha256".to_string()),
                 "passthrough" => (StageType::PassThrough, "passthrough".to_string()),
 
                 // Compression algorithms
-                "brotli" | "gzip" | "zstd" | "lz4" => {
-                    (StageType::Compression, stage_name.trim().to_string())
-                }
+                "brotli" | "gzip" | "zstd" | "lz4" => (StageType::Compression, stage_name.trim().to_string()),
 
                 // Encryption algorithms
                 "aes256gcm" | "aes128gcm" | "chacha20poly1305" => {
@@ -226,16 +216,11 @@ impl CreatePipelineUseCase {
                 }
 
                 // Transform stages (production stages)
-                "base64" | "pii_masking" | "tee" | "debug" => {
-                    (StageType::Transform, stage_name.trim().to_string())
-                }
+                "base64" | "pii_masking" | "tee" | "debug" => (StageType::Transform, stage_name.trim().to_string()),
 
                 // Handle compression:algorithm syntax
                 custom_name if custom_name.starts_with("compression:") => {
-                    let algorithm = custom_name
-                        .strip_prefix("compression:")
-                        .unwrap_or("brotli")
-                        .to_string();
+                    let algorithm = custom_name.strip_prefix("compression:").unwrap_or("brotli").to_string();
                     (StageType::Compression, algorithm)
                 }
 
@@ -270,12 +255,7 @@ impl CreatePipelineUseCase {
                 ..Default::default()
             };
 
-            let stage = PipelineStage::new(
-                stage_name.trim().to_string(),
-                stage_type,
-                config,
-                index as u32
-            )?;
+            let stage = PipelineStage::new(stage_name.trim().to_string(), stage_type, config, index as u32)?;
 
             pipeline_stages.push(stage);
         }
@@ -285,10 +265,15 @@ impl CreatePipelineUseCase {
 
         // Save pipeline to repository
         self.pipeline_repository
-            .save(&pipeline).await
+            .save(&pipeline)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to save pipeline: {}", e))?;
 
-        info!("Pipeline '{}' created successfully with ID: {}", pipeline.name(), pipeline.id());
+        info!(
+            "Pipeline '{}' created successfully with ID: {}",
+            pipeline.name(),
+            pipeline.id()
+        );
         info!("Pipeline saved to database");
 
         if output.is_some() {
@@ -326,44 +311,14 @@ impl CreatePipelineUseCase {
             // Replace common separators with hyphens
             .replace(
                 [
-                    ' ',
-                    '_',
-                    '.',
-                    '/',
-                    '\\',
-                    ':',
-                    ';',
-                    ',',
-                    '|',
-                    '&',
-                    '+',
-                    '=',
-                    '!',
-                    '?',
-                    '*',
-                    '%',
-                    '#',
-                    '@',
-                    '$',
-                    '^',
-                    '(',
-                    ')',
-                    '[',
-                    ']',
-                    '{',
-                    '}',
-                    '<',
-                    '>',
-                    '"',
-                    '\'',
-                    '`',
-                    '~',
+                    ' ', '_', '.', '/', '\\', ':', ';', ',', '|', '&', '+', '=', '!', '?', '*', '%', '#', '@', '$',
+                    '^', '(', ')', '[', ']', '{', '}', '<', '>', '"', '\'', '`', '~',
                 ],
-                "-"
+                "-",
             )
             // Remove any remaining non-alphanumeric, non-hyphen characters
             .chars()
-            .filter(|c| (c.is_ascii_alphanumeric() || *c == '-'))
+            .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
             .collect::<String>()
             // Clean up multiple consecutive hyphens
             .split('-')
@@ -395,7 +350,8 @@ impl CreatePipelineUseCase {
     /// Returns errors for:
     /// - Empty name
     /// - Name less than 4 characters after normalization
-    /// - Reserved names: help, version, list, show, create, delete, update, config
+    /// - Reserved names: help, version, list, show, create, delete, update,
+    ///   config
     ///
     /// ## Example
     ///
@@ -421,30 +377,20 @@ impl CreatePipelineUseCase {
 
         // Reserved names
         let reserved_names = [
-            "help",
-            "version",
-            "list",
-            "show",
-            "create",
-            "delete",
-            "update",
-            "config",
+            "help", "version", "list", "show", "create", "delete", "update", "config",
         ];
         if reserved_names.contains(&normalized.as_str()) {
-            return Err(
-                anyhow::anyhow!(
-                    "Pipeline name '{}' is reserved. Please choose a different name.",
-                    name
-                )
-            );
+            return Err(anyhow::anyhow!(
+                "Pipeline name '{}' is reserved. Please choose a different name.",
+                name
+            ));
         }
 
         // Inform user if name was normalized
         if normalized != name {
             info!(
                 "Pipeline name normalized from '{}' to '{}' (kebab-case standard)",
-                name,
-                normalized
+                name, normalized
             );
         }
 
@@ -458,8 +404,14 @@ mod tests {
 
     #[test]
     fn test_normalize_pipeline_name() {
-        assert_eq!(CreatePipelineUseCase::normalize_pipeline_name("My Pipeline"), "my-pipeline");
-        assert_eq!(CreatePipelineUseCase::normalize_pipeline_name("data_backup"), "data-backup");
+        assert_eq!(
+            CreatePipelineUseCase::normalize_pipeline_name("My Pipeline"),
+            "my-pipeline"
+        );
+        assert_eq!(
+            CreatePipelineUseCase::normalize_pipeline_name("data_backup"),
+            "data-backup"
+        );
         assert_eq!(
             CreatePipelineUseCase::normalize_pipeline_name("Test::Pipeline!"),
             "test-pipeline"

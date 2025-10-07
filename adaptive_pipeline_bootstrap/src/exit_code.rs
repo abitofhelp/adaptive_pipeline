@@ -177,11 +177,7 @@ impl ExitCode {
             ExitCode::UsageError
         } else if error_string.contains("parse") || error_string.contains("format") {
             ExitCode::DataError
-        } else if
-            error_string.contains("io") ||
-            error_string.contains("read") ||
-            error_string.contains("write")
-        {
+        } else if error_string.contains("io") || error_string.contains("read") || error_string.contains("write") {
             ExitCode::IoError
         } else if error_string.contains("config") {
             ExitCode::Config
@@ -287,10 +283,9 @@ pub fn map_error_to_exit_code(error_message: &str) -> ExitCode {
         ExitCode::NoInput // 66 - cannot open input
     } else if error_message.contains("invalid") || error_message.contains("Invalid") {
         ExitCode::DataError // 65 - data format error
-    } else if
-        error_message.contains("I/O") ||
-        error_message.contains("Failed to read") ||
-        error_message.contains("Failed to write")
+    } else if error_message.contains("I/O")
+        || error_message.contains("Failed to read")
+        || error_message.contains("Failed to write")
     {
         ExitCode::IoError // 74 - input/output error
     } else {
@@ -404,7 +399,10 @@ mod tests {
     // Tests for map_error_to_exit_code function
     #[test]
     fn test_map_error_initialization_error() {
-        assert_eq!(map_error_to_exit_code("Failed to initialize resource manager").as_i32(), 70);
+        assert_eq!(
+            map_error_to_exit_code("Failed to initialize resource manager").as_i32(),
+            70
+        );
         assert_eq!(
             map_error_to_exit_code("Error: Failed to initialize database connection").as_i32(),
             70

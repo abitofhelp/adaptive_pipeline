@@ -49,10 +49,10 @@ async fn test_restore_file_command_creation() {
     assert!(!command.validate_permissions);
 }
 
-// Note: FileRestorationApplicationService was removed during architecture refactoring.
-// File restoration is now handled via the restore command in main.rs using
-// restore_file_from_adapipe_v2() function. End-to-end restoration is tested
-// via integration tests that exercise the full command flow.
+// Note: FileRestorationApplicationService was removed during architecture
+// refactoring. File restoration is now handled via the restore command in
+// main.rs using restore_file_from_adapipe_v2() function. End-to-end restoration
+// is tested via integration tests that exercise the full command flow.
 
 /// Integration test verifying application layer structure and architecture
 /// compliance.

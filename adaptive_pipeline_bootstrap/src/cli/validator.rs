@@ -40,7 +40,7 @@
 //! ```
 
 use crate::config::AppConfig;
-use std::path::{ Path, PathBuf };
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 /// Maximum argument count (prevent DOS)
@@ -55,14 +55,14 @@ const MAX_PATH_LENGTH: usize = 4096;
 /// Dangerous patterns that indicate potential attacks
 const DANGEROUS_PATTERNS: &[&str] = &[
     "..", // Path traversal
-    "~", // Home directory
-    "$", // Variable expansion
-    "`", // Command substitution
-    ";", // Command chaining
-    "&", // Background/AND
-    "|", // Pipe
-    ">", // Redirect output
-    "<", // Redirect input
+    "~",  // Home directory
+    "$",  // Variable expansion
+    "`",  // Command substitution
+    ";",  // Command chaining
+    "&",  // Background/AND
+    "|",  // Pipe
+    ">",  // Redirect output
+    "<",  // Redirect input
     "\n", // Newline
     "\r", // Carriage return
     "\0", // Null byte
@@ -94,10 +94,7 @@ pub enum ParseError {
 
     /// Dangerous pattern detected
     #[error("Dangerous pattern detected in argument: {pattern} in {arg}")]
-    DangerousPattern {
-        pattern: String,
-        arg: String,
-    },
+    DangerousPattern { pattern: String, arg: String },
 
     /// Path too long
     #[error("Path exceeds maximum length (max {MAX_PATH_LENGTH})")]
@@ -121,10 +118,7 @@ pub enum ParseError {
 
     /// Invalid argument value
     #[error("Invalid argument value for {arg}: {reason}")]
-    InvalidValue {
-        arg: String,
-        reason: String,
-    },
+    InvalidValue { arg: String, reason: String },
 }
 
 /// Secure argument parser
@@ -174,9 +168,9 @@ impl SecureArgParser {
     pub fn validate_argument(arg: &str) -> Result<(), ParseError> {
         // Length check
         if arg.len() > MAX_ARG_LENGTH {
-            return Err(
-                ParseError::ArgumentTooLong(arg.chars().take(50).collect::<String>() + "...")
-            );
+            return Err(ParseError::ArgumentTooLong(
+                arg.chars().take(50).collect::<String>() + "...",
+            ));
         }
 
         // Dangerous pattern check
@@ -210,17 +204,12 @@ impl SecureArgParser {
     /// Returns `ParseError` if path fails validation
     pub fn validate_path(path: &str) -> Result<PathBuf, ParseError> {
         // Basic validation
-        Self::validate_argument(path).map_err(|e| {
-            match e {
-                ParseError::ArgumentTooLong(_) =>
-                    ParseError::InvalidPath(format!("Path too long: {}", path)),
-                ParseError::DangerousPattern { pattern, .. } => {
-                    ParseError::InvalidPath(
-                        format!("Path contains dangerous pattern '{}': {}", pattern, path)
-                    )
-                }
-                other => other,
+        Self::validate_argument(path).map_err(|e| match e {
+            ParseError::ArgumentTooLong(_) => ParseError::InvalidPath(format!("Path too long: {}", path)),
+            ParseError::DangerousPattern { pattern, .. } => {
+                ParseError::InvalidPath(format!("Path contains dangerous pattern '{}': {}", pattern, path))
             }
+            other => other,
         })?;
 
         // Path object creation
@@ -259,13 +248,9 @@ impl SecureArgParser {
     }
 
     /// Validate a number argument
-    pub fn validate_number<T>(
-        arg_name: &str,
-        value: &str,
-        min: Option<T>,
-        max: Option<T>
-    ) -> Result<T, ParseError>
-        where T: std::str::FromStr + PartialOrd + std::fmt::Display
+    pub fn validate_number<T>(arg_name: &str, value: &str, min: Option<T>, max: Option<T>) -> Result<T, ParseError>
+    where
+        T: std::str::FromStr + PartialOrd + std::fmt::Display,
     {
         // Basic validation
         Self::validate_argument(value)?;
@@ -316,12 +301,10 @@ mod tests {
         #[test]
         fn rejects_too_long_arguments() {
             let long_arg = "a".repeat(MAX_ARG_LENGTH + 1);
-            assert!(
-                matches!(
-                    SecureArgParser::validate_argument(&long_arg),
-                    Err(ParseError::ArgumentTooLong(_))
-                )
-            );
+            assert!(matches!(
+                SecureArgParser::validate_argument(&long_arg),
+                Err(ParseError::ArgumentTooLong(_))
+            ));
         }
 
         #[test]
@@ -336,7 +319,7 @@ mod tests {
                 "file|pipe",
                 "file>output",
                 "file<input",
-                "file\nwith\nnewlines"
+                "file\nwith\nnewlines",
             ];
 
             for arg in dangerous {
@@ -369,12 +352,7 @@ mod tests {
 
         #[test]
         fn enforces_range_constraints() {
-            let result = SecureArgParser::validate_number::<u32>(
-                "threads",
-                "100",
-                Some(1),
-                Some(16)
-            );
+            let result = SecureArgParser::validate_number::<u32>("threads", "100", Some(1), Some(16));
             assert!(matches!(result, Err(ParseError::InvalidValue { .. })));
 
             let result = SecureArgParser::validate_number::<u32>("threads", "0", Some(1), Some(16));

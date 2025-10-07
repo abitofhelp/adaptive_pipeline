@@ -14,17 +14,7 @@
 //! low overhead. See mdBook for detailed metric catalog and integration guide.
 
 use byte_unit::Byte;
-use prometheus::{
-    Gauge,
-    GaugeVec,
-    Histogram,
-    HistogramOpts,
-    IntCounter,
-    IntCounterVec,
-    IntGauge,
-    Opts,
-    Registry,
-};
+use prometheus::{Gauge, GaugeVec, Histogram, HistogramOpts, IntCounter, IntCounterVec, IntGauge, Opts, Registry};
 use std::sync::Arc;
 use tracing::debug;
 
@@ -86,192 +76,129 @@ impl MetricsService {
 
         // Create pipeline execution counters
         let pipelines_processed_total = IntCounter::with_opts(
-            Opts::new("pipeline_processed_total", "Total number of pipelines processed").namespace(
-                "adaptive_pipeline"
-            )
-        ).map_err(|e| {
-            PipelineError::metrics_error(
-                format!("Failed to create pipelines_processed_total metric: {}", e)
-            )
+            Opts::new("pipeline_processed_total", "Total number of pipelines processed").namespace("adaptive_pipeline"),
+        )
+        .map_err(|e| {
+            PipelineError::metrics_error(format!("Failed to create pipelines_processed_total metric: {}", e))
         })?;
 
         let pipeline_processing_duration = Histogram::with_opts(
             HistogramOpts::new(
                 "pipeline_processing_duration_seconds",
-                "Time spent processing pipelines"
+                "Time spent processing pipelines",
             )
-                .namespace("adaptive_pipeline")
-                .buckets(vec![0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 300.0])
-        ).map_err(|e| {
-            PipelineError::metrics_error(
-                format!("Failed to create pipeline_processing_duration metric: {}", e)
-            )
+            .namespace("adaptive_pipeline")
+            .buckets(vec![0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 300.0]),
+        )
+        .map_err(|e| {
+            PipelineError::metrics_error(format!("Failed to create pipeline_processing_duration metric: {}", e))
         })?;
 
         let pipeline_bytes_processed_total = IntCounter::with_opts(
-            Opts::new(
-                "pipeline_bytes_processed_total",
-                "Total bytes processed by pipelines"
-            ).namespace("adaptive_pipeline")
-        ).map_err(|e| {
-            PipelineError::metrics_error(
-                format!("Failed to create pipeline_bytes_processed_total metric: {}", e)
-            )
+            Opts::new("pipeline_bytes_processed_total", "Total bytes processed by pipelines")
+                .namespace("adaptive_pipeline"),
+        )
+        .map_err(|e| {
+            PipelineError::metrics_error(format!("Failed to create pipeline_bytes_processed_total metric: {}", e))
         })?;
 
         let pipeline_chunks_processed_total = IntCounter::with_opts(
-            Opts::new(
-                "pipeline_chunks_processed_total",
-                "Total chunks processed by pipelines"
-            ).namespace("adaptive_pipeline")
-        ).map_err(|e| {
-            PipelineError::metrics_error(
-                format!("Failed to create pipeline_chunks_processed_total metric: {}", e)
-            )
+            Opts::new("pipeline_chunks_processed_total", "Total chunks processed by pipelines")
+                .namespace("adaptive_pipeline"),
+        )
+        .map_err(|e| {
+            PipelineError::metrics_error(format!(
+                "Failed to create pipeline_chunks_processed_total metric: {}",
+                e
+            ))
         })?;
 
         let pipeline_errors_total = IntCounter::with_opts(
-            Opts::new("pipeline_errors_total", "Total pipeline processing errors").namespace(
-                "adaptive_pipeline"
-            )
-        ).map_err(|e|
-            PipelineError::metrics_error(
-                format!("Failed to create pipeline_errors_total metric: {}", e)
-            )
-        )?;
+            Opts::new("pipeline_errors_total", "Total pipeline processing errors").namespace("adaptive_pipeline"),
+        )
+        .map_err(|e| PipelineError::metrics_error(format!("Failed to create pipeline_errors_total metric: {}", e)))?;
 
         let pipeline_warnings_total = IntCounter::with_opts(
-            Opts::new("pipeline_warnings_total", "Total pipeline processing warnings").namespace(
-                "adaptive_pipeline"
-            )
-        ).map_err(|e|
-            PipelineError::metrics_error(
-                format!("Failed to create pipeline_warnings_total metric: {}", e)
-            )
-        )?;
+            Opts::new("pipeline_warnings_total", "Total pipeline processing warnings").namespace("adaptive_pipeline"),
+        )
+        .map_err(|e| PipelineError::metrics_error(format!("Failed to create pipeline_warnings_total metric: {}", e)))?;
 
         // Create performance gauges
         let throughput_mbps = Gauge::with_opts(
-            Opts::new("pipeline_throughput_mbps", "Current pipeline throughput in MB/s").namespace(
-                "adaptive_pipeline"
-            )
-        ).map_err(|e|
-            PipelineError::metrics_error(format!("Failed to create throughput_mbps metric: {}", e))
-        )?;
+            Opts::new("pipeline_throughput_mbps", "Current pipeline throughput in MB/s").namespace("adaptive_pipeline"),
+        )
+        .map_err(|e| PipelineError::metrics_error(format!("Failed to create throughput_mbps metric: {}", e)))?;
 
         let compression_ratio = Gauge::with_opts(
-            Opts::new("pipeline_compression_ratio", "Current compression ratio achieved").namespace(
-                "adaptive_pipeline"
-            )
-        ).map_err(|e|
-            PipelineError::metrics_error(
-                format!("Failed to create compression_ratio metric: {}", e)
-            )
-        )?;
+            Opts::new("pipeline_compression_ratio", "Current compression ratio achieved")
+                .namespace("adaptive_pipeline"),
+        )
+        .map_err(|e| PipelineError::metrics_error(format!("Failed to create compression_ratio metric: {}", e)))?;
 
         // Create system gauges
         let active_pipelines = IntGauge::with_opts(
-            Opts::new("pipeline_active_count", "Number of currently active pipelines").namespace(
-                "adaptive_pipeline"
-            )
-        ).map_err(|e|
-            PipelineError::metrics_error(format!("Failed to create active_pipelines metric: {}", e))
-        )?;
+            Opts::new("pipeline_active_count", "Number of currently active pipelines").namespace("adaptive_pipeline"),
+        )
+        .map_err(|e| PipelineError::metrics_error(format!("Failed to create active_pipelines metric: {}", e)))?;
 
         // Create debug stage metrics (with labels for stage identification)
         let debug_stage_bytes = GaugeVec::new(
-            Opts::new("debug_stage_bytes", "Bytes processed by debug stage per chunk").namespace(
-                "adaptive_pipeline"
-            ),
-            &["label", "chunk_id"]
-        ).map_err(|e|
-            PipelineError::metrics_error(
-                format!("Failed to create debug_stage_bytes metric: {}", e)
-            )
-        )?;
+            Opts::new("debug_stage_bytes", "Bytes processed by debug stage per chunk").namespace("adaptive_pipeline"),
+            &["label", "chunk_id"],
+        )
+        .map_err(|e| PipelineError::metrics_error(format!("Failed to create debug_stage_bytes metric: {}", e)))?;
 
         let debug_stage_chunks_total = IntCounterVec::new(
-            Opts::new(
-                "debug_stage_chunks_total",
-                "Total chunks processed by debug stage"
-            ).namespace("adaptive_pipeline"),
-            &["label"]
-        ).map_err(|e| {
-            PipelineError::metrics_error(
-                format!("Failed to create debug_stage_chunks_total metric: {}", e)
-            )
+            Opts::new("debug_stage_chunks_total", "Total chunks processed by debug stage")
+                .namespace("adaptive_pipeline"),
+            &["label"],
+        )
+        .map_err(|e| {
+            PipelineError::metrics_error(format!("Failed to create debug_stage_chunks_total metric: {}", e))
         })?;
 
         // Register all metrics
         registry
             .register(Box::new(pipelines_processed_total.clone()))
             .map_err(|e| {
-                PipelineError::metrics_error(
-                    format!("Failed to register pipelines_processed_total: {}", e)
-                )
+                PipelineError::metrics_error(format!("Failed to register pipelines_processed_total: {}", e))
             })?;
         registry
             .register(Box::new(pipeline_processing_duration.clone()))
             .map_err(|e| {
-                PipelineError::metrics_error(
-                    format!("Failed to register pipeline_processing_duration: {}", e)
-                )
+                PipelineError::metrics_error(format!("Failed to register pipeline_processing_duration: {}", e))
             })?;
         registry
             .register(Box::new(pipeline_bytes_processed_total.clone()))
             .map_err(|e| {
-                PipelineError::metrics_error(
-                    format!("Failed to register pipeline_bytes_processed_total: {}", e)
-                )
+                PipelineError::metrics_error(format!("Failed to register pipeline_bytes_processed_total: {}", e))
             })?;
         registry
             .register(Box::new(pipeline_chunks_processed_total.clone()))
             .map_err(|e| {
-                PipelineError::metrics_error(
-                    format!("Failed to register pipeline_chunks_processed_total: {}", e)
-                )
+                PipelineError::metrics_error(format!("Failed to register pipeline_chunks_processed_total: {}", e))
             })?;
         registry
             .register(Box::new(pipeline_errors_total.clone()))
-            .map_err(|e|
-                PipelineError::metrics_error(
-                    format!("Failed to register pipeline_errors_total: {}", e)
-                )
-            )?;
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register pipeline_errors_total: {}", e)))?;
         registry
             .register(Box::new(pipeline_warnings_total.clone()))
-            .map_err(|e|
-                PipelineError::metrics_error(
-                    format!("Failed to register pipeline_warnings_total: {}", e)
-                )
-            )?;
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register pipeline_warnings_total: {}", e)))?;
         registry
             .register(Box::new(throughput_mbps.clone()))
-            .map_err(|e|
-                PipelineError::metrics_error(format!("Failed to register throughput_mbps: {}", e))
-            )?;
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register throughput_mbps: {}", e)))?;
         registry
             .register(Box::new(compression_ratio.clone()))
-            .map_err(|e|
-                PipelineError::metrics_error(format!("Failed to register compression_ratio: {}", e))
-            )?;
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register compression_ratio: {}", e)))?;
         registry
             .register(Box::new(active_pipelines.clone()))
-            .map_err(|e|
-                PipelineError::metrics_error(format!("Failed to register active_pipelines: {}", e))
-            )?;
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register active_pipelines: {}", e)))?;
         registry
             .register(Box::new(debug_stage_bytes.clone()))
-            .map_err(|e|
-                PipelineError::metrics_error(format!("Failed to register debug_stage_bytes: {}", e))
-            )?;
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register debug_stage_bytes: {}", e)))?;
         registry
             .register(Box::new(debug_stage_chunks_total.clone()))
-            .map_err(|e|
-                PipelineError::metrics_error(
-                    format!("Failed to register debug_stage_chunks_total: {}", e)
-                )
-            )?;
+            .map_err(|e| PipelineError::metrics_error(format!("Failed to register debug_stage_chunks_total: {}", e)))?;
 
         debug!("MetricsService initialized with Prometheus registry");
 
@@ -379,8 +306,13 @@ impl MetricsService {
 
     /// Record bytes processed by a debug stage for a specific chunk
     pub fn record_debug_stage_bytes(&self, label: &str, chunk_id: u64, bytes: u64) {
-        self.debug_stage_bytes.with_label_values(&[label, &chunk_id.to_string()]).set(bytes as f64);
-        debug!("Recorded debug stage bytes: label={}, chunk={}, bytes={}", label, chunk_id, bytes);
+        self.debug_stage_bytes
+            .with_label_values(&[label, &chunk_id.to_string()])
+            .set(bytes as f64);
+        debug!(
+            "Recorded debug stage bytes: label={}, chunk={}, bytes={}",
+            label, chunk_id, bytes
+        );
     }
 
     /// Increment chunks processed counter for a specific debug stage

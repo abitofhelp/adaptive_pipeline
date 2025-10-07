@@ -50,9 +50,9 @@
 //! - Custom metadata and annotations
 
 use crate::services::datetime_serde;
-use crate::value_objects::{ ChunkSize, ProcessingContextId, WorkerCount };
-use crate::{ ProcessingMetrics, SecurityContext };
-use serde::{ Deserialize, Serialize };
+use crate::value_objects::{ChunkSize, ProcessingContextId, WorkerCount};
+use crate::{ProcessingMetrics, SecurityContext};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -171,12 +171,7 @@ impl ProcessingContext {
     /// A new `ProcessingContext` with initialized state
     ///
     /// # Examples
-    pub fn new(
-        input_path: PathBuf,
-        output_path: PathBuf,
-        file_size: u64,
-        security_context: SecurityContext
-    ) -> Self {
+    pub fn new(input_path: PathBuf, output_path: PathBuf, file_size: u64, security_context: SecurityContext) -> Self {
         let now = chrono::Utc::now();
 
         ProcessingContext {

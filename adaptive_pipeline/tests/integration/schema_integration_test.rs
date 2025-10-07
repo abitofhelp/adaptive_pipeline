@@ -21,12 +21,14 @@ async fn test_schema_creates_database_automatically() {
     drop(temp); // Remove file so we can test creation
 
     // Schema module should create database and run migrations
-    let pool = schema::initialize_database(&format!("sqlite://{}", db_path)).await.unwrap();
+    let pool = schema::initialize_database(&format!("sqlite://{}", db_path))
+        .await
+        .unwrap();
 
     // Verify database is usable
-    let count: i64 = sqlx
-        ::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
-        .fetch_one(&pool).await
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+        .fetch_one(&pool)
+        .await
         .unwrap();
 
     assert!(count > 0, "Database should have tables after initialization");
@@ -41,9 +43,9 @@ async fn test_schema_with_in_memory_database() {
     let pool = schema::initialize_database("sqlite::memory:").await.unwrap();
 
     // Verify pipelines table exists
-    let result: i64 = sqlx
-        ::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='pipelines'")
-        .fetch_one(&pool).await
+    let result: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='pipelines'")
+        .fetch_one(&pool)
+        .await
         .unwrap();
 
     assert_eq!(result, 1, "Pipelines table should exist");
@@ -56,22 +58,23 @@ async fn test_schema_migrations_run_automatically() {
     let db_path = temp.path().to_str().unwrap().to_string();
     drop(temp); // Remove file so we can test creation
 
-    let pool = schema::initialize_database(&format!("sqlite://{}", db_path)).await.unwrap();
+    let pool = schema::initialize_database(&format!("sqlite://{}", db_path))
+        .await
+        .unwrap();
 
     // Verify _sqlx_migrations table exists (proves migrations ran)
-    let result: i64 = sqlx
-        ::query_scalar(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='_sqlx_migrations'"
-        )
-        .fetch_one(&pool).await
-        .unwrap();
+    let result: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='_sqlx_migrations'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
 
     assert_eq!(result, 1, "Migrations table should exist");
 
     // Verify at least one migration was applied
-    let migration_count: i64 = sqlx
-        ::query_scalar("SELECT COUNT(*) FROM _sqlx_migrations")
-        .fetch_one(&pool).await
+    let migration_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _sqlx_migrations")
+        .fetch_one(&pool)
+        .await
         .unwrap();
 
     assert!(migration_count > 0, "At least one migration should be recorded");

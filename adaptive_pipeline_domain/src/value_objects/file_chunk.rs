@@ -134,10 +134,10 @@
 //! - **Caching**: Intelligent caching of frequently accessed chunks
 
 use crate::services::datetime_serde;
-use crate::{ ChunkSize, PipelineError };
+use crate::{ChunkSize, PipelineError};
 use hex;
-use serde::{ Deserialize, Serialize };
-use sha2::{ Digest, Sha256 };
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 /// Represents an immutable chunk of file data for processing
@@ -227,12 +227,7 @@ impl FileChunk {
     /// - Chunk size is automatically validated against system limits
     /// - Checksum is initially None - use `with_calculated_checksum()` to add
     /// - This is a Value Object - create new instances for "changes"
-    pub fn new(
-        sequence_number: u64,
-        offset: u64,
-        data: Vec<u8>,
-        is_final: bool
-    ) -> Result<Self, PipelineError> {
+    pub fn new(sequence_number: u64, offset: u64, data: Vec<u8>, is_final: bool) -> Result<Self, PipelineError> {
         if data.is_empty() {
             return Err(PipelineError::InvalidChunk("Chunk data cannot be empty".to_string()));
         }
@@ -262,7 +257,7 @@ impl FileChunk {
         offset: u64,
         data: Vec<u8>,
         checksum: String,
-        is_final: bool
+        is_final: bool,
     ) -> Result<Self, PipelineError> {
         let chunk = Self::new(sequence_number, offset, data, is_final)?;
         Ok(chunk.with_checksum(checksum))
@@ -393,9 +388,8 @@ impl FileChunk {
             id: self.id,
             sequence_number: self.sequence_number,
             offset: self.offset,
-            size: ChunkSize::new(0).unwrap_or_else(|_| ChunkSize::default())
-            /* Empty chunk - ChunkSize(0) should
-             * never fail, but handle it safely */,
+            size: ChunkSize::new(0).unwrap_or_else(|_| ChunkSize::default()), /* Empty chunk - ChunkSize(0) should
+                                                                               * never fail, but handle it safely */
             data: Vec::new(),
             checksum: None, // Clear checksum
             is_final: self.is_final,
@@ -442,7 +436,9 @@ impl FileChunk {
             let calculated_checksum = hex::encode(digest);
             Ok(calculated_checksum == *stored_checksum)
         } else {
-            Err(PipelineError::InvalidChunk("No checksum available for verification".to_string()))
+            Err(PipelineError::InvalidChunk(
+                "No checksum available for verification".to_string(),
+            ))
         }
     }
 

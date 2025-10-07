@@ -145,8 +145,10 @@ impl ListPipelinesUseCase {
         info!("Listing available pipelines:");
 
         // Query all pipelines from repository
-        let pipelines = self.pipeline_repository
-            .list_all().await
+        let pipelines = self
+            .pipeline_repository
+            .list_all()
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to query pipelines: {}", e))?;
 
         // Handle empty result set with helpful message

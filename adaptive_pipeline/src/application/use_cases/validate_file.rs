@@ -7,8 +7,9 @@
 
 //! # Validate .adapipe File Use Case
 //!
-//! This module implements the use case for validating `.adapipe` binary format files.
-//! It provides both quick format validation and comprehensive streaming validation.
+//! This module implements the use case for validating `.adapipe` binary format
+//! files. It provides both quick format validation and comprehensive streaming
+//! validation.
 //!
 //! ## Overview
 //!
@@ -17,8 +18,10 @@
 //! - **Format Validation**: Verify .adapipe binary format structure
 //! - **Metadata Reading**: Extract and display file metadata
 //! - **Integrity Checks**: Validate checksums and data integrity
-//! - **Full Streaming Validation**: Optional comprehensive validation with decompression/decryption
-//! - **Detailed Reporting**: Clear display of file properties and validation results
+//! - **Full Streaming Validation**: Optional comprehensive validation with
+//!   decompression/decryption
+//! - **Detailed Reporting**: Clear display of file properties and validation
+//!   results
 //!
 //! ## Validation Levels
 //!
@@ -53,7 +56,7 @@ use byte_unit::Byte;
 use std::path::PathBuf;
 use tracing::info;
 
-use crate::infrastructure::services::{ BinaryFormatService, AdapipeFormat };
+use crate::infrastructure::services::{AdapipeFormat, BinaryFormatService};
 
 /// Use case for validating .adapipe binary format files.
 ///
@@ -88,7 +91,8 @@ impl ValidateFileUseCase {
     /// ## Parameters
     ///
     /// * `file_path` - Path to .adapipe file to validate
-    /// * `full_validation` - If true, perform comprehensive streaming validation
+    /// * `full_validation` - If true, perform comprehensive streaming
+    ///   validation
     ///
     /// ## Validation Steps
     ///
@@ -176,7 +180,8 @@ impl ValidateFileUseCase {
         // Step 1: Basic format validation
         println!("🔍 Validating .adapipe file format...");
         let validation_result = binary_format_service
-            .validate_file(&file_path).await
+            .validate_file(&file_path)
+            .await
             .map_err(|e| anyhow::anyhow!("Format validation failed: {}", e))?;
 
         if !validation_result.is_valid {
@@ -192,7 +197,8 @@ impl ValidateFileUseCase {
         // Step 2: Read and display metadata
         println!("\n📋 Reading file metadata...");
         let metadata = binary_format_service
-            .read_metadata(&file_path).await
+            .read_metadata(&file_path)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to read metadata: {}", e))?;
 
         println!("   Original filename: {}", metadata.original_filename);
@@ -213,7 +219,10 @@ impl ValidateFileUseCase {
         );
         println!("   Chunk count: {}", metadata.chunk_count);
         println!("   Pipeline ID: {}", metadata.pipeline_id);
-        println!("   Processed at: {}", metadata.processed_at.format("%Y-%m-%d %H:%M:%S UTC"));
+        println!(
+            "   Processed at: {}",
+            metadata.processed_at.format("%Y-%m-%d %H:%M:%S UTC")
+        );
 
         // Display compression info
         if metadata.is_compressed() {
@@ -225,7 +234,10 @@ impl ValidateFileUseCase {
 
         // Display encryption info
         if metadata.is_encrypted() {
-            println!("   🔒 Encryption: {}", metadata.encryption_algorithm().unwrap_or("unknown"));
+            println!(
+                "   🔒 Encryption: {}",
+                metadata.encryption_algorithm().unwrap_or("unknown")
+            );
         }
 
         // Display processing steps
@@ -248,9 +260,7 @@ impl ValidateFileUseCase {
             println!("   ⚠️  Full streaming validation not yet implemented");
             println!("   (Restoration service refactoring in progress)");
         } else {
-            println!(
-                "\n💡 Use --full flag for complete streaming validation (decrypt/decompress/verify)"
-            );
+            println!("\n💡 Use --full flag for complete streaming validation (decrypt/decompress/verify)");
         }
 
         println!("\n✅ .adapipe file validation completed successfully!");
@@ -286,7 +296,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_missing_file() {
         let use_case = ValidateFileUseCase::new();
-        let result = use_case.execute(PathBuf::from("/nonexistent/file.adapipe"), false).await;
+        let result = use_case
+            .execute(PathBuf::from("/nonexistent/file.adapipe"), false)
+            .await;
         assert!(result.is_err());
     }
 }

@@ -146,10 +146,10 @@
 
 use adaptive_pipeline_domain::error::PipelineError;
 use adaptive_pipeline_domain::services::datetime_serde;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::time::{ Duration, Instant };
+use std::time::{Duration, Instant};
 
 /// Generic trait for operation results that can be built fluently
 ///
@@ -209,7 +209,10 @@ pub trait OperationResult: Clone + Debug + Send + Sync + 'static {
 
 /// Generic result builder for fluent API construction
 #[derive(Debug, Clone)]
-pub struct GenericResultBuilder<T> where T: OperationResult {
+pub struct GenericResultBuilder<T>
+where
+    T: OperationResult,
+{
     input: Option<T::Input>,
     output: Option<T::Output>,
     metrics: T::Metrics,
@@ -221,7 +224,10 @@ pub struct GenericResultBuilder<T> where T: OperationResult {
     success: bool,
 }
 
-impl<T> GenericResultBuilder<T> where T: OperationResult {
+impl<T> GenericResultBuilder<T>
+where
+    T: OperationResult,
+{
     /// Creates a new result builder
     pub fn new() -> Self {
         Self {
@@ -335,13 +341,13 @@ impl<T> GenericResultBuilder<T> where T: OperationResult {
             return Err(error);
         }
 
-        let input = self.input.ok_or_else(||
-            PipelineError::InternalError("Input is required to build result".to_string())
-        )?;
+        let input = self
+            .input
+            .ok_or_else(|| PipelineError::InternalError("Input is required to build result".to_string()))?;
 
-        let output = self.output.ok_or_else(||
-            PipelineError::InternalError("Output is required to build result".to_string())
-        )?;
+        let output = self
+            .output
+            .ok_or_else(|| PipelineError::InternalError("Output is required to build result".to_string()))?;
 
         let result = T::new(input, output).with_metrics(self.metrics);
         Ok(result)
@@ -369,7 +375,10 @@ impl<T> GenericResultBuilder<T> where T: OperationResult {
     }
 }
 
-impl<T> Default for GenericResultBuilder<T> where T: OperationResult {
+impl<T> Default for GenericResultBuilder<T>
+where
+    T: OperationResult,
+{
     fn default() -> Self {
         Self::new()
     }
@@ -386,10 +395,11 @@ macro_rules! result_builder {
 /// Generic processing result that implements OperationResult
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenericProcessingResult<I, O, M>
-    where
-        I: Clone + Debug + Send + Sync + 'static,
-        O: Clone + Debug + Send + Sync + 'static,
-        M: Clone + Debug + Default + Send + Sync + 'static {
+where
+    I: Clone + Debug + Send + Sync + 'static,
+    O: Clone + Debug + Send + Sync + 'static,
+    M: Clone + Debug + Default + Send + Sync + 'static,
+{
     pub input: I,
     pub output: O,
     pub metrics: M,
@@ -403,12 +413,11 @@ pub struct GenericProcessingResult<I, O, M>
     pub metadata: HashMap<String, String>,
 }
 
-impl<I, O, M> OperationResult
-    for GenericProcessingResult<I, O, M>
-    where
-        I: Clone + Debug + Send + Sync + 'static,
-        O: Clone + Debug + Send + Sync + 'static,
-        M: Clone + Debug + Default + Send + Sync + 'static
+impl<I, O, M> OperationResult for GenericProcessingResult<I, O, M>
+where
+    I: Clone + Debug + Send + Sync + 'static,
+    O: Clone + Debug + Send + Sync + 'static,
+    M: Clone + Debug + Default + Send + Sync + 'static,
 {
     type Input = I;
     type Output = O;
@@ -554,8 +563,7 @@ mod tests {
     /// - Fluent chaining works properly
     #[test]
     fn test_fluent_api() {
-        let result = GenericResultBuilder::<TestResult>
-            ::new()
+        let result = GenericResultBuilder::<TestResult>::new()
             .with_input("test input".to_string())
             .with_output("test output".to_string())
             .with_metadata("key1".to_string(), "value1".to_string())
@@ -606,8 +614,7 @@ mod tests {
     /// - Error handling works as expected
     #[test]
     fn test_error_handling() {
-        let result = GenericResultBuilder::<TestResult>
-            ::new()
+        let result = GenericResultBuilder::<TestResult>::new()
             .with_input("test input".to_string())
             .with_error(PipelineError::InternalError("Test error".to_string()))
             .build();
@@ -654,8 +661,7 @@ mod tests {
         metadata.insert("key1".to_string(), "value1".to_string());
         metadata.insert("key2".to_string(), "value2".to_string());
 
-        let builder = GenericResultBuilder::<TestResult>
-            ::new()
+        let builder = GenericResultBuilder::<TestResult>::new()
             .with_metadata_map(metadata)
             .with_warnings(vec!["warning1".to_string(), "warning2".to_string()]);
 

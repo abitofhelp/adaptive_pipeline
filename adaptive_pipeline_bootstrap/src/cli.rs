@@ -34,8 +34,8 @@
 pub mod parser;
 pub mod validator;
 
-pub use parser::{ parse_cli, Cli, Commands };
-pub use validator::{ ParseError, SecureArgParser };
+pub use parser::{parse_cli, Cli, Commands};
+pub use validator::{ParseError, SecureArgParser};
 
 use std::path::PathBuf;
 
@@ -172,7 +172,13 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
 
     // Validate command-specific arguments
     let command = match cli.command {
-        Commands::Process { input, output, pipeline, chunk_size_mb, workers } => {
+        Commands::Process {
+            input,
+            output,
+            pipeline,
+            chunk_size_mb,
+            workers,
+        } => {
             // Validate input file exists
             let validated_input = SecureArgParser::validate_path(&input.to_string_lossy())?;
 
@@ -229,7 +235,11 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
             SecureArgParser::validate_argument(&pipeline)?;
             ValidatedCommand::Delete { pipeline, force }
         }
-        Commands::Benchmark { file, size_mb, iterations } => {
+        Commands::Benchmark {
+            file,
+            size_mb,
+            iterations,
+        } => {
             let validated_file = if let Some(ref path) = file {
                 Some(SecureArgParser::validate_path(&path.to_string_lossy())?)
             } else {
@@ -269,7 +279,12 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
                 full,
             }
         }
-        Commands::Restore { input, output_dir, mkdir, overwrite } => {
+        Commands::Restore {
+            input,
+            output_dir,
+            mkdir,
+            overwrite,
+        } => {
             let validated_input = SecureArgParser::validate_path(&input.to_string_lossy())?;
 
             let validated_output_dir = if let Some(ref path) = output_dir {
@@ -287,7 +302,11 @@ fn validate_cli(cli: Cli) -> Result<ValidatedCli, ParseError> {
                 overwrite,
             }
         }
-        Commands::Compare { original, adapipe, detailed } => {
+        Commands::Compare {
+            original,
+            adapipe,
+            detailed,
+        } => {
             let validated_original = SecureArgParser::validate_path(&original.to_string_lossy())?;
             let validated_adapipe = SecureArgParser::validate_path(&adapipe.to_string_lossy())?;
             ValidatedCommand::Compare {

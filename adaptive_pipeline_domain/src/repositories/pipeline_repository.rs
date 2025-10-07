@@ -112,7 +112,7 @@
 // Result<bool, String> { Ok(true) } #   fn list_archived(&self) ->
 // Result<Vec<String>, String> { Ok(vec![]) } }
 // ```
-//
+// 
 // ### Integration Testing
 // Test with real database implementations:
 // - Verify data persistence across application restarts
@@ -170,11 +170,7 @@ pub trait PipelineRepository: Send + Sync {
     async fn find_all(&self) -> Result<Vec<Pipeline>, PipelineError>;
 
     /// Lists pipelines with pagination
-    async fn list_paginated(
-        &self,
-        offset: usize,
-        limit: usize
-    ) -> Result<Vec<Pipeline>, PipelineError>;
+    async fn list_paginated(&self, offset: usize, limit: usize) -> Result<Vec<Pipeline>, PipelineError>;
 
     /// Updates a pipeline
     async fn update(&self, pipeline: &Pipeline) -> Result<(), PipelineError>;

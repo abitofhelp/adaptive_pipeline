@@ -7,26 +7,26 @@
 
 //! # Binary Format Service Implementation
 //!
-//! Services for reading and writing the Adaptive Pipeline binary format (.adapipe).
-//! Provides streaming I/O, integrity verification with SHA-256 checksums, metadata
-//! preservation, and format versioning. Structure: \[CHUNK_DATA\]\[JSON_HEADER\]
-//! \[HEADER_LENGTH\]\[FORMAT_VERSION\]\[MAGIC_BYTES\]. See mdBook for detailed format
-//! specification.
+//! Services for reading and writing the Adaptive Pipeline binary format
+//! (.adapipe). Provides streaming I/O, integrity verification with SHA-256
+//! checksums, metadata preservation, and format versioning. Structure:
+//! \[CHUNK_DATA\]\[JSON_HEADER\] \[HEADER_LENGTH\]\[FORMAT_VERSION\]\
+//! [MAGIC_BYTES\]. See mdBook for detailed format specification.
 
 use async_trait::async_trait;
 
-use adaptive_pipeline_domain::value_objects::{ ChunkFormat, FileHeader };
+use adaptive_pipeline_domain::value_objects::{ChunkFormat, FileHeader};
 use adaptive_pipeline_domain::PipelineError;
-use sha2::{ Digest, Sha256 };
+use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::io::SeekFrom;
-use std::path::{ Path, PathBuf };
-use std::sync::atomic::{ AtomicBool, AtomicU64, Ordering };
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
-use tokio::fs::{ self as fs };
-use tokio::io::{ AsyncReadExt, AsyncSeekExt, AsyncWriteExt };
+use tokio::fs::{self as fs};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::Mutex;
-use tracing::{ debug, warn };
+use tracing::{debug, warn};
 
 /// Service for writing and reading Adaptive Pipeline processed files (.adapipe
 /// format)
@@ -55,14 +55,11 @@ pub trait BinaryFormatService: Send + Sync {
     async fn create_writer(
         &self,
         output_path: &Path,
-        header: FileHeader
+        header: FileHeader,
     ) -> Result<Box<dyn BinaryFormatWriter>, PipelineError>;
 
     /// Creates a new .adapipe format reader for streaming processed input
-    async fn create_reader(
-        &self,
-        input_path: &Path
-    ) -> Result<Box<dyn BinaryFormatReader>, PipelineError>;
+    async fn create_reader(&self, input_path: &Path) -> Result<Box<dyn BinaryFormatReader>, PipelineError>;
 
     /// Validates an .adapipe processed file without full restoration
     async fn validate_file(&self, file_path: &Path) -> Result<ValidationResult, PipelineError>;
@@ -83,11 +80,7 @@ pub trait BinaryFormatWriter: Send + Sync {
     ///
     /// Changed from `&mut self` to `&self` for thread-safe concurrent access.
     /// Multiple workers can now call this simultaneously without mutex!
-    async fn write_chunk_at_position(
-        &self,
-        chunk: ChunkFormat,
-        sequence_number: u64
-    ) -> Result<(), PipelineError>;
+    async fn write_chunk_at_position(&self, chunk: ChunkFormat, sequence_number: u64) -> Result<(), PipelineError>;
 
     /// Finalizes the .adapipe file by writing the footer with complete metadata
     ///
@@ -145,17 +138,14 @@ impl BinaryFormatService for AdapipeFormat {
     async fn create_writer(
         &self,
         output_path: &Path,
-        header: FileHeader
+        header: FileHeader,
     ) -> Result<Box<dyn BinaryFormatWriter>, PipelineError> {
         // Create a streaming writer that supports concurrent writes
         let writer = StreamingBinaryWriter::new(output_path, header).await?;
         Ok(Box::new(writer))
     }
 
-    async fn create_reader(
-        &self,
-        input_path: &Path
-    ) -> Result<Box<dyn BinaryFormatReader>, PipelineError> {
+    async fn create_reader(&self, input_path: &Path) -> Result<Box<dyn BinaryFormatReader>, PipelineError> {
         let reader = StreamingBinaryReader::new(input_path).await?;
         Ok(Box::new(reader))
     }
@@ -165,8 +155,8 @@ impl BinaryFormatService for AdapipeFormat {
         let header = reader.read_header()?;
         let integrity_verified = reader.validate_integrity().await?;
 
-        let file_metadata = fs
-            ::metadata(file_path).await
+        let file_metadata = fs::metadata(file_path)
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
 
         Ok(ValidationResult {
@@ -213,16 +203,10 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
         Ok(())
     }
 
-    async fn write_chunk_at_position(
-        &self,
-        chunk: ChunkFormat,
-        _sequence_number: u64
-    ) -> Result<(), PipelineError> {
+    async fn write_chunk_at_position(&self, chunk: ChunkFormat, _sequence_number: u64) -> Result<(), PipelineError> {
         // For buffered writer, this would need interior mutability (Mutex<Vec>)
         // but it's only used for tests with write_chunk(), so we can panic here
-        unimplemented!(
-            "BufferedBinaryWriter doesn't support concurrent writes - use StreamingBinaryWriter"
-        )
+        unimplemented!("BufferedBinaryWriter doesn't support concurrent writes - use StreamingBinaryWriter")
     }
 
     async fn finalize(&self, mut final_header: FileHeader) -> Result<u64, PipelineError> {
@@ -231,12 +215,12 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
         // This implementation writes all buffered chunks to file
 
         // Create the output file
-        let mut file = tokio::fs::OpenOptions
-            ::new()
+        let mut file = tokio::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
-            .open(&self.output_path).await
+            .open(&self.output_path)
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
 
         // Write all buffered chunks
@@ -245,7 +229,9 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
 
         for chunk in &self.chunks {
             let (chunk_bytes, chunk_size) = chunk.to_bytes_with_size();
-            file.write_all(&chunk_bytes).await.map_err(|e| PipelineError::IoError(e.to_string()))?;
+            file.write_all(&chunk_bytes)
+                .await
+                .map_err(|e| PipelineError::IoError(e.to_string()))?;
             hasher.update(&chunk_bytes);
             total_bytes += chunk_size;
         }
@@ -257,7 +243,9 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
 
         // Write footer
         let footer_bytes = final_header.to_footer_bytes()?;
-        file.write_all(&footer_bytes).await.map_err(|e| PipelineError::IoError(e.to_string()))?;
+        file.write_all(&footer_bytes)
+            .await
+            .map_err(|e| PipelineError::IoError(e.to_string()))?;
 
         file.flush().await.map_err(|e| PipelineError::IoError(e.to_string()))?;
 
@@ -265,10 +253,7 @@ impl BinaryFormatWriter for BufferedBinaryWriter {
     }
 
     fn bytes_written(&self) -> u64 {
-        self.chunks
-            .iter()
-            .map(|c| (c.payload.len() as u64) + 16)
-            .sum()
+        self.chunks.iter().map(|c| (c.payload.len() as u64) + 16).sum()
     }
 
     fn chunks_written(&self) -> u32 {
@@ -321,8 +306,7 @@ impl StreamingBinaryWriter {
     async fn new(output_path: &Path, header: FileHeader) -> Result<Self, PipelineError> {
         // Create sync file handle (std::fs::File, not tokio::fs::File)
         // Educational: We need sync file for platform-specific write_at() operations
-        let file = std::fs::OpenOptions
-            ::new()
+        let file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .read(true) // Needed for some platform operations
@@ -355,9 +339,7 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
         // Use async write_chunk_at_position internally
         // We use futures::executor::block_on instead of tokio's block_on
         // because it works both inside and outside of a tokio runtime
-        futures::executor::block_on(async {
-            self.write_chunk_at_position(chunk, sequence_number).await
-        })
+        futures::executor::block_on(async { self.write_chunk_at_position(chunk, sequence_number).await })
     }
 
     /// Writes a processed chunk at a specific position for concurrent
@@ -433,11 +415,7 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
     ///
     /// Both are **single atomic syscalls** that write to a specific position
     /// without moving the file pointer or requiring a mutex.
-    async fn write_chunk_at_position(
-        &self,
-        chunk: ChunkFormat,
-        sequence_number: u64
-    ) -> Result<(), PipelineError> {
+    async fn write_chunk_at_position(&self, chunk: ChunkFormat, sequence_number: u64) -> Result<(), PipelineError> {
         // STEP 1: Validate chunk format
         chunk.validate()?;
 
@@ -460,50 +438,36 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
         let file_clone = self.file.clone();
         let chunk_bytes_clone = chunk_bytes.clone();
 
-        tokio::task
-            ::spawn_blocking(move || {
-                // Platform-specific position-based write
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::FileExt;
-                    // Atomic pwrite() syscall - writes at position without seeking
-                    file_clone
-                        .write_all_at(&chunk_bytes_clone, file_position)
-                        .map_err(|e| {
-                            PipelineError::IoError(
-                                format!(
-                                    "Failed to write chunk at position {}: {}",
-                                    file_position,
-                                    e
-                                )
-                            )
-                        })
-                }
+        tokio::task::spawn_blocking(move || {
+            // Platform-specific position-based write
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::FileExt;
+                // Atomic pwrite() syscall - writes at position without seeking
+                file_clone.write_all_at(&chunk_bytes_clone, file_position).map_err(|e| {
+                    PipelineError::IoError(format!("Failed to write chunk at position {}: {}", file_position, e))
+                })
+            }
 
-                #[cfg(windows)]
-                {
-                    use std::os::windows::fs::FileExt;
-                    // Atomic WriteFile() with OVERLAPPED - writes at position
-                    file_clone
-                        .seek_write(&chunk_bytes_clone, file_position)
-                        .map(|_| ())
-                        .map_err(|e| {
-                            PipelineError::IoError(
-                                format!(
-                                    "Failed to write chunk at position {}: {}",
-                                    file_position,
-                                    e
-                                )
-                            )
-                        })
-                }
+            #[cfg(windows)]
+            {
+                use std::os::windows::fs::FileExt;
+                // Atomic WriteFile() with OVERLAPPED - writes at position
+                file_clone
+                    .seek_write(&chunk_bytes_clone, file_position)
+                    .map(|_| ())
+                    .map_err(|e| {
+                        PipelineError::IoError(format!("Failed to write chunk at position {}: {}", file_position, e))
+                    })
+            }
 
-                #[cfg(not(any(unix, windows)))]
-                {
-                    compile_error!("Platform not supported for position-based writes")
-                }
-            }).await
-            .map_err(|e| PipelineError::IoError(format!("Task join error: {}", e)))??;
+            #[cfg(not(any(unix, windows)))]
+            {
+                compile_error!("Platform not supported for position-based writes")
+            }
+        })
+        .await
+        .map_err(|e| PipelineError::IoError(format!("Task join error: {}", e)))??;
 
         // STEP 5: Update incremental checksum (mutex needed - shared mutable state)
         {
@@ -544,46 +508,43 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
 
         // Use spawn_blocking for sync file operations
         let file = self.file.clone();
-        tokio::task
-            ::spawn_blocking(move || {
-                use std::io::Write;
+        tokio::task::spawn_blocking(move || {
+            use std::io::Write;
 
-                // Get mutable reference to file for write
-                let file_ref = &*file;
+            // Get mutable reference to file for write
+            let file_ref = &*file;
 
-                // Get current file size for append position
-                let current_pos = file_ref
-                    .metadata()
-                    .map(|m| m.len())
-                    .unwrap_or(0);
+            // Get current file size for append position
+            let current_pos = file_ref.metadata().map(|m| m.len()).unwrap_or(0);
 
-                // Write footer using platform-specific positional write
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::FileExt;
-                    file_ref
-                        .write_all_at(&footer_bytes, current_pos)
-                        .map_err(|e| PipelineError::IoError(e.to_string()))?;
-                }
+            // Write footer using platform-specific positional write
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::FileExt;
+                file_ref
+                    .write_all_at(&footer_bytes, current_pos)
+                    .map_err(|e| PipelineError::IoError(e.to_string()))?;
+            }
 
-                #[cfg(windows)]
-                {
-                    use std::io::Seek;
-                    use std::io::SeekFrom;
-                    // Note: On Windows, seek+write is not atomic, but sufficient for single-writer scenario
-                    let mut file_mut = file_ref;
-                    file_mut
-                        .seek(SeekFrom::Start(current_pos))
-                        .map_err(|e| PipelineError::IoError(e.to_string()))?;
-                    file_mut
-                        .write_all(&footer_bytes)
-                        .map_err(|e| PipelineError::IoError(e.to_string()))?;
-                }
+            #[cfg(windows)]
+            {
+                use std::io::{Seek, SeekFrom};
+                // Note: On Windows, seek+write is not atomic, but sufficient for single-writer
+                // scenario
+                let mut file_mut = file_ref;
+                file_mut
+                    .seek(SeekFrom::Start(current_pos))
+                    .map_err(|e| PipelineError::IoError(e.to_string()))?;
+                file_mut
+                    .write_all(&footer_bytes)
+                    .map_err(|e| PipelineError::IoError(e.to_string()))?;
+            }
 
-                // Sync to disk for durability
-                file_ref.sync_all().map_err(|e| PipelineError::IoError(e.to_string()))
-            }).await
-            .map_err(|e| PipelineError::IoError(format!("Task join error: {}", e)))??;
+            // Sync to disk for durability
+            file_ref.sync_all().map_err(|e| PipelineError::IoError(e.to_string()))
+        })
+        .await
+        .map_err(|e| PipelineError::IoError(format!("Task join error: {}", e)))??;
 
         let total_bytes = self.bytes_written.load(Ordering::Relaxed) + footer_size;
 
@@ -611,18 +572,18 @@ pub struct StreamingBinaryReader {
 
 impl StreamingBinaryReader {
     async fn new(input_path: &Path) -> Result<Self, PipelineError> {
-        let mut file = tokio::fs::File
-            ::open(input_path).await
+        let mut file = tokio::fs::File::open(input_path)
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
 
-        let metadata = std::fs
-            ::metadata(input_path)
-            .map_err(|e| PipelineError::IoError(e.to_string()))?;
+        let metadata = std::fs::metadata(input_path).map_err(|e| PipelineError::IoError(e.to_string()))?;
         let file_size = metadata.len();
 
         // Read the header from the file footer
         let mut file_data = Vec::new();
-        file.read_to_end(&mut file_data).await.map_err(|e| PipelineError::IoError(e.to_string()))?;
+        file.read_to_end(&mut file_data)
+            .await
+            .map_err(|e| PipelineError::IoError(e.to_string()))?;
 
         let (header, footer_size) = FileHeader::from_footer_bytes(&file_data)?;
 
@@ -630,11 +591,11 @@ impl StreamingBinaryReader {
         let chunks_start_offset = 0;
 
         // Reopen file and seek to start of chunks
-        let mut file = tokio::fs::File
-            ::open(input_path).await
+        let mut file = tokio::fs::File::open(input_path)
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
-        file
-            .seek(SeekFrom::Start(chunks_start_offset)).await
+        file.seek(SeekFrom::Start(chunks_start_offset))
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
 
         Ok(Self {
@@ -658,7 +619,8 @@ impl BinaryFormatReader for StreamingBinaryReader {
 
     async fn read_next_chunk(&mut self) -> Result<Option<ChunkFormat>, PipelineError> {
         // Check if we've read all chunks
-        let header = self.header
+        let header = self
+            .header
             .as_ref()
             .ok_or_else(|| PipelineError::ValidationError("Header not loaded".to_string()))?;
 
@@ -682,17 +644,14 @@ impl BinaryFormatReader for StreamingBinaryReader {
         // Parse nonce and data length
         let mut nonce = [0u8; 12];
         nonce.copy_from_slice(&chunk_header[0..12]);
-        let data_length = u32::from_le_bytes([
-            chunk_header[12],
-            chunk_header[13],
-            chunk_header[14],
-            chunk_header[15],
-        ]) as usize;
+        let data_length =
+            u32::from_le_bytes([chunk_header[12], chunk_header[13], chunk_header[14], chunk_header[15]]) as usize;
 
         // Read encrypted data
         let mut encrypted_data = vec![0u8; data_length];
         self.file
-            .read_exact(&mut encrypted_data).await
+            .read_exact(&mut encrypted_data)
+            .await
             .map_err(|e| PipelineError::IoError(format!("Failed to read chunk data: {}", e)))?;
 
         // Create chunk format
@@ -710,7 +669,8 @@ impl BinaryFormatReader for StreamingBinaryReader {
 
         if chunk_index == 0 {
             self.file
-                .seek(SeekFrom::Start(self.chunks_start_offset)).await
+                .seek(SeekFrom::Start(self.chunks_start_offset))
+                .await
                 .map_err(|e| PipelineError::IoError(e.to_string()))?;
             self.current_chunk_index = 0;
             return Ok(());
@@ -718,7 +678,8 @@ impl BinaryFormatReader for StreamingBinaryReader {
 
         // Reset to beginning and skip chunks
         self.file
-            .seek(SeekFrom::Start(self.chunks_start_offset)).await
+            .seek(SeekFrom::Start(self.chunks_start_offset))
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
         self.current_chunk_index = 0;
 
@@ -734,7 +695,8 @@ impl BinaryFormatReader for StreamingBinaryReader {
 
     async fn validate_integrity(&mut self) -> Result<bool, PipelineError> {
         // Ensure we have header
-        let header = self.header
+        let header = self
+            .header
             .as_ref()
             .ok_or_else(|| PipelineError::ValidationError("Header not loaded".to_string()))?;
 
@@ -751,13 +713,15 @@ impl BinaryFormatReader for StreamingBinaryReader {
 
         // Seek to beginning of file
         self.file
-            .seek(SeekFrom::Start(0)).await
+            .seek(SeekFrom::Start(0))
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
 
         // Read only the chunk data (not the footer)
         let mut chunk_data = vec![0u8; chunk_data_size as usize];
         self.file
-            .read_exact(&mut chunk_data).await
+            .read_exact(&mut chunk_data)
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
 
         // Calculate SHA256 checksum of chunk data
@@ -771,7 +735,8 @@ impl BinaryFormatReader for StreamingBinaryReader {
 
         // Reset file position to continue reading chunks if needed
         self.file
-            .seek(SeekFrom::Start(self.chunks_start_offset)).await
+            .seek(SeekFrom::Start(self.chunks_start_offset))
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
         self.current_chunk_index = 0;
 
@@ -788,8 +753,8 @@ impl Default for AdapipeFormat {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use adaptive_pipeline_domain::value_objects::{ ChunkFormat, FileHeader, ProcessingStepType };
-    use tempfile::{ NamedTempFile, TempDir };
+    use adaptive_pipeline_domain::value_objects::{ChunkFormat, FileHeader, ProcessingStepType};
+    use tempfile::{NamedTempFile, TempDir};
     use tokio::fs;
 
     #[tokio::test]
@@ -802,12 +767,12 @@ mod tests {
         let header = FileHeader::new(
             "test_file.txt".to_string(),
             1024,
-            "original_checksum_abc123".to_string()
+            "original_checksum_abc123".to_string(),
         )
-            .add_compression_step("brotli", 6)
-            .add_encryption_step("aes256gcm", "argon2", 32, 12)
-            .with_chunk_info(1024, 2)
-            .with_pipeline_id("test-pipeline".to_string());
+        .add_compression_step("brotli", 6)
+        .add_encryption_step("aes256gcm", "argon2", 32, 12)
+        .with_chunk_info(1024, 2)
+        .with_pipeline_id("test-pipeline".to_string());
 
         // Create test chunks
         let chunk1 = ChunkFormat::new([1u8; 12], vec![0xde, 0xad, 0xbe, 0xef]);
@@ -865,11 +830,11 @@ mod tests {
         let header = FileHeader::new(
             "validation_test.txt".to_string(),
             2048,
-            "original_checksum_xyz789".to_string()
+            "original_checksum_xyz789".to_string(),
         )
-            .add_compression_step("zstd", 3)
-            .with_chunk_info(1024, 1)
-            .with_pipeline_id("validation-pipeline".to_string());
+        .add_compression_step("zstd", 3)
+        .with_chunk_info(1024, 1)
+        .with_pipeline_id("validation-pipeline".to_string());
 
         // Create test chunk
         let chunk = ChunkFormat::new([5u8; 12], vec![0x12, 0x34, 0x56, 0x78]);
@@ -900,12 +865,12 @@ mod tests {
         let header = FileHeader::new(
             "metadata_test.txt".to_string(),
             4096,
-            "checksum_metadata_test".to_string()
+            "checksum_metadata_test".to_string(),
         )
-            .add_encryption_step("chacha20poly1305", "pbkdf2", 32, 12)
-            .with_chunk_info(2048, 2)
-            .with_pipeline_id("metadata-pipeline".to_string())
-            .with_metadata("custom_key".to_string(), "custom_value".to_string());
+        .add_encryption_step("chacha20poly1305", "pbkdf2", 32, 12)
+        .with_chunk_info(2048, 2)
+        .with_pipeline_id("metadata-pipeline".to_string())
+        .with_metadata("custom_key".to_string(), "custom_value".to_string());
 
         // Create and write chunks
         let chunk1 = ChunkFormat::new([7u8; 12], vec![0xaa, 0xbb, 0xcc, 0xdd]);
@@ -937,11 +902,8 @@ mod tests {
         let test_file_path = temp_dir.path().join("test_seek.adapipe");
 
         // Create test header
-        let header = FileHeader::new(
-            "seek_test.txt".to_string(),
-            3072,
-            "checksum_seek_test".to_string()
-        ).with_chunk_info(1024, 3);
+        let header = FileHeader::new("seek_test.txt".to_string(), 3072, "checksum_seek_test".to_string())
+            .with_chunk_info(1024, 3);
 
         // Create test chunks with distinct data
         let chunk1 = ChunkFormat::new([1u8; 12], vec![0x01, 0x02, 0x03, 0x04]);
@@ -984,7 +946,8 @@ mod tests {
 // Transactional Binary Writer
 // ============================================================================
 
-/// Transactional binary writer providing ACID guarantees for concurrent chunk operations.
+/// Transactional binary writer providing ACID guarantees for concurrent chunk
+/// operations.
 ///
 /// The `TransactionalBinaryWriter` manages the complex process of writing
 /// multiple data chunks to a file while maintaining transactional integrity. It
@@ -1008,7 +971,8 @@ mod tests {
 ///
 /// ### Durability
 /// Once committed, the written data survives system crashes and power failures.
-/// Data is properly flushed to disk before the transaction is considered complete.
+/// Data is properly flushed to disk before the transaction is considered
+/// complete.
 ///
 /// ## Core Capabilities
 ///
@@ -1064,19 +1028,14 @@ impl TransactionalBinaryWriter {
     ///
     /// # Returns
     /// * `Result<Self, PipelineError>` - New writer or error
-    pub async fn new(
-        output_path: PathBuf,
-        expected_chunk_count: u64
-    ) -> Result<Self, PipelineError> {
+    pub async fn new(output_path: PathBuf, expected_chunk_count: u64) -> Result<Self, PipelineError> {
         // Create temporary file path with .adapipe.tmp extension
         let temp_path = output_path.with_extension("adapipe.tmp");
 
         // Create temporary file for writing
-        let temp_file = tokio::fs::File
-            ::create(&temp_path).await
-            .map_err(|e|
-                PipelineError::io_error(format!("Failed to create temporary file: {}", e))
-            )?;
+        let temp_file = tokio::fs::File::create(&temp_path)
+            .await
+            .map_err(|e| PipelineError::io_error(format!("Failed to create temporary file: {}", e)))?;
 
         Ok(Self {
             temp_file: Arc::new(Mutex::new(temp_file)),
@@ -1100,10 +1059,9 @@ impl TransactionalBinaryWriter {
         {
             let file_guard = self.temp_file.lock().await;
             file_guard
-                .sync_data().await
-                .map_err(|e|
-                    PipelineError::io_error(format!("Failed to sync data for checkpoint: {}", e))
-                )?;
+                .sync_data()
+                .await
+                .map_err(|e| PipelineError::io_error(format!("Failed to sync data for checkpoint: {}", e)))?;
         }
 
         // Update last checkpoint counter
@@ -1112,8 +1070,7 @@ impl TransactionalBinaryWriter {
 
         debug!(
             "Created checkpoint: {} chunks completed out of {} expected",
-            current_chunks,
-            self.expected_chunk_count
+            current_chunks, self.expected_chunk_count
         );
 
         Ok(())
@@ -1131,40 +1088,30 @@ impl TransactionalBinaryWriter {
         // Validate that all expected chunks have been written
         let completed_count = self.completed_chunks.lock().await.len() as u64;
         if completed_count != self.expected_chunk_count {
-            return Err(
-                PipelineError::ValidationError(
-                    format!(
-                        "Incomplete transaction: {} chunks written, {} expected",
-                        completed_count,
-                        self.expected_chunk_count
-                    )
-                )
-            );
+            return Err(PipelineError::ValidationError(format!(
+                "Incomplete transaction: {} chunks written, {} expected",
+                completed_count, self.expected_chunk_count
+            )));
         }
 
         // Flush all data to disk before commit
         {
             let file_guard = self.temp_file.lock().await;
             file_guard
-                .sync_all().await
-                .map_err(|e|
-                    PipelineError::io_error(format!("Failed to sync file before commit: {}", e))
-                )?;
+                .sync_all()
+                .await
+                .map_err(|e| PipelineError::io_error(format!("Failed to sync file before commit: {}", e)))?;
         }
 
         // Atomically move temporary file to final location
-        tokio::fs
-            ::rename(&self.temp_path, &self.final_path).await
-            .map_err(|e|
-                PipelineError::io_error(format!("Failed to commit transaction (rename): {}", e))
-            )?;
+        tokio::fs::rename(&self.temp_path, &self.final_path)
+            .await
+            .map_err(|e| PipelineError::io_error(format!("Failed to commit transaction (rename): {}", e)))?;
 
         let bytes_written = self.bytes_written.load(Ordering::Relaxed);
         debug!(
             "Transaction committed successfully: {} chunks, {} bytes written to {:?}",
-            completed_count,
-            bytes_written,
-            self.final_path
+            completed_count, bytes_written, self.final_path
         );
 
         Ok(())
@@ -1177,17 +1124,16 @@ impl TransactionalBinaryWriter {
     pub async fn rollback(self) -> Result<(), PipelineError> {
         // Remove temporary file if it exists
         if self.temp_path.exists() {
-            tokio::fs
-                ::remove_file(&self.temp_path).await
-                .map_err(|e| {
-                    PipelineError::io_error(
-                        format!("Failed to remove temporary file during rollback: {}", e)
-                    )
-                })?;
+            tokio::fs::remove_file(&self.temp_path).await.map_err(|e| {
+                PipelineError::io_error(format!("Failed to remove temporary file during rollback: {}", e))
+            })?;
         }
 
         let completed_count = self.completed_chunks.lock().await.len();
-        warn!("Transaction rolled back: {} chunks were written before rollback", completed_count);
+        warn!(
+            "Transaction rolled back: {} chunks were written before rollback",
+            completed_count
+        );
 
         Ok(())
     }
@@ -1195,7 +1141,8 @@ impl TransactionalBinaryWriter {
     /// Returns the current progress of the transaction.
     ///
     /// # Returns
-    /// * `(completed_chunks, total_expected, bytes_written)` - Progress information
+    /// * `(completed_chunks, total_expected, bytes_written)` - Progress
+    ///   information
     pub async fn progress(&self) -> (u64, u64, u64) {
         let completed_count = self.completed_chunks.lock().await.len() as u64;
         let bytes_written = self.bytes_written.load(Ordering::Relaxed);
@@ -1238,16 +1185,10 @@ impl BinaryFormatWriter for TransactionalBinaryWriter {
         let sequence_number = self.chunks_written.load(Ordering::Relaxed);
 
         // Block on async write_chunk_at_position
-        futures::executor::block_on(async {
-            self.write_chunk_at_position(chunk, sequence_number).await
-        })
+        futures::executor::block_on(async { self.write_chunk_at_position(chunk, sequence_number).await })
     }
 
-    async fn write_chunk_at_position(
-        &self,
-        chunk: ChunkFormat,
-        sequence_number: u64
-    ) -> Result<(), PipelineError> {
+    async fn write_chunk_at_position(&self, chunk: ChunkFormat, sequence_number: u64) -> Result<(), PipelineError> {
         // Validate chunk before writing
         chunk.validate()?;
 
@@ -1263,21 +1204,14 @@ impl BinaryFormatWriter for TransactionalBinaryWriter {
 
             // Seek to the calculated position
             file_guard
-                .seek(SeekFrom::Start(file_position)).await
-                .map_err(|e|
-                    PipelineError::io_error(
-                        format!("Failed to seek to position {}: {}", file_position, e)
-                    )
-                )?;
+                .seek(SeekFrom::Start(file_position))
+                .await
+                .map_err(|e| PipelineError::io_error(format!("Failed to seek to position {}: {}", file_position, e)))?;
 
             // Write the chunk bytes
-            file_guard
-                .write_all(&chunk_bytes).await
-                .map_err(|e| {
-                    PipelineError::io_error(
-                        format!("Failed to write chunk at position {}: {}", file_position, e)
-                    )
-                })?;
+            file_guard.write_all(&chunk_bytes).await.map_err(|e| {
+                PipelineError::io_error(format!("Failed to write chunk at position {}: {}", file_position, e))
+            })?;
         }
 
         // Update tracking information
@@ -1310,11 +1244,13 @@ impl BinaryFormatWriter for TransactionalBinaryWriter {
         {
             let mut file_guard = self.temp_file.lock().await;
             file_guard
-                .write_all(&footer_bytes).await
+                .write_all(&footer_bytes)
+                .await
                 .map_err(|e| PipelineError::io_error(format!("Failed to write footer: {}", e)))?;
 
             file_guard
-                .flush().await
+                .flush()
+                .await
                 .map_err(|e| PipelineError::io_error(format!("Failed to flush footer: {}", e)))?;
         }
 

@@ -38,11 +38,7 @@
 
 use adaptive_pipeline_domain::entities::ProcessingContext;
 use adaptive_pipeline_domain::services::compression_service::{
-    CompressionAlgorithm,
-    CompressionBenchmark,
-    CompressionConfig,
-    CompressionPriority,
-    CompressionService,
+    CompressionAlgorithm, CompressionBenchmark, CompressionConfig, CompressionPriority, CompressionService,
 };
 use adaptive_pipeline_domain::value_objects::FileChunk;
 use adaptive_pipeline_domain::PipelineError;
@@ -79,7 +75,7 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError> {
         let service = self.inner.clone();
         let config = config.clone();
@@ -88,10 +84,8 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         // In practice, context updates would need to be synchronized or passed back
         let mut context_clone = context.clone();
 
-        tokio::task
-            ::spawn_blocking(move ||
-                service.compress_chunk(chunk, &config, &mut context_clone)
-            ).await
+        tokio::task::spawn_blocking(move || service.compress_chunk(chunk, &config, &mut context_clone))
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
@@ -100,16 +94,14 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError> {
         let service = self.inner.clone();
         let config = config.clone();
         let mut context_clone = context.clone();
 
-        tokio::task
-            ::spawn_blocking(move ||
-                service.decompress_chunk(chunk, &config, &mut context_clone)
-            ).await
+        tokio::task::spawn_blocking(move || service.decompress_chunk(chunk, &config, &mut context_clone))
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
@@ -126,7 +118,7 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         &self,
         chunks: Vec<FileChunk>,
         config: &CompressionConfig,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<Vec<FileChunk>, PipelineError> {
         use crate::infrastructure::config::rayon_config::RAYON_POOLS;
         use rayon::prelude::*;
@@ -136,28 +128,28 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         let context_clone = context.clone();
 
         // Use spawn_blocking to run entire Rayon batch on blocking thread pool
-        tokio::task
-            ::spawn_blocking(move || {
-                // Use CPU-bound pool for compression
-                RAYON_POOLS.cpu_bound_pool().install(|| {
-                    // Parallel compression using Rayon
-                    chunks
-                        .into_par_iter()
-                        .map(|chunk| {
-                            let mut local_context = context_clone.clone();
-                            service.compress_chunk(chunk, &config, &mut local_context)
-                        })
-                        .collect::<Result<Vec<_>, _>>()
-                })
-            }).await
-            .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+        tokio::task::spawn_blocking(move || {
+            // Use CPU-bound pool for compression
+            RAYON_POOLS.cpu_bound_pool().install(|| {
+                // Parallel compression using Rayon
+                chunks
+                    .into_par_iter()
+                    .map(|chunk| {
+                        let mut local_context = context_clone.clone();
+                        service.compress_chunk(chunk, &config, &mut local_context)
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })
+        })
+        .await
+        .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
     /// Estimates compression ratio (sync operation, no need for async)
     pub fn estimate_compression_ratio(
         &self,
         data_sample: &[u8],
-        algorithm: &CompressionAlgorithm
+        algorithm: &CompressionAlgorithm,
     ) -> Result<f64, PipelineError> {
         self.inner.estimate_compression_ratio(data_sample, algorithm)
     }
@@ -167,9 +159,10 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
         &self,
         file_extension: &str,
         data_sample: &[u8],
-        performance_priority: CompressionPriority
+        performance_priority: CompressionPriority,
     ) -> Result<CompressionConfig, PipelineError> {
-        self.inner.get_optimal_config(file_extension, data_sample, performance_priority)
+        self.inner
+            .get_optimal_config(file_extension, data_sample, performance_priority)
     }
 
     /// Validates config (sync operation)
@@ -186,14 +179,14 @@ impl<T: CompressionService + 'static> AsyncCompressionAdapter<T> {
     pub async fn benchmark_algorithm_async(
         &self,
         algorithm: &CompressionAlgorithm,
-        test_data: &[u8]
+        test_data: &[u8],
     ) -> Result<CompressionBenchmark, PipelineError> {
         let service = self.inner.clone();
         let algorithm = algorithm.clone();
         let test_data = test_data.to_vec();
 
-        tokio::task
-            ::spawn_blocking(move || service.benchmark_algorithm(&algorithm, &test_data)).await
+        tokio::task::spawn_blocking(move || service.benchmark_algorithm(&algorithm, &test_data))
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 }
@@ -218,7 +211,7 @@ mod tests {
             &self,
             chunk: FileChunk,
             _config: &CompressionConfig,
-            _context: &mut ProcessingContext
+            _context: &mut ProcessingContext,
         ) -> Result<FileChunk, PipelineError> {
             Ok(chunk) // Fake: just return the same chunk
         }
@@ -227,7 +220,7 @@ mod tests {
             &self,
             chunk: FileChunk,
             _config: &CompressionConfig,
-            _context: &mut ProcessingContext
+            _context: &mut ProcessingContext,
         ) -> Result<FileChunk, PipelineError> {
             Ok(chunk) // Fake: just return the same chunk
         }
@@ -235,7 +228,7 @@ mod tests {
         fn estimate_compression_ratio(
             &self,
             _data_sample: &[u8],
-            _algorithm: &CompressionAlgorithm
+            _algorithm: &CompressionAlgorithm,
         ) -> Result<f64, PipelineError> {
             Ok(0.5) // Fake: 50% compression ratio
         }
@@ -244,7 +237,7 @@ mod tests {
             &self,
             _file_extension: &str,
             _data_sample: &[u8],
-            _performance_priority: CompressionPriority
+            _performance_priority: CompressionPriority,
         ) -> Result<CompressionConfig, PipelineError> {
             Ok(CompressionConfig::default())
         }
@@ -260,7 +253,7 @@ mod tests {
         fn benchmark_algorithm(
             &self,
             _algorithm: &CompressionAlgorithm,
-            _test_data: &[u8]
+            _test_data: &[u8],
         ) -> Result<CompressionBenchmark, PipelineError> {
             Ok(CompressionBenchmark::default())
         }
@@ -271,7 +264,7 @@ mod tests {
             &self,
             chunk: FileChunk,
             config: &adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration,
-            context: &mut ProcessingContext
+            context: &mut ProcessingContext,
         ) -> Result<FileChunk, PipelineError> {
             use adaptive_pipeline_domain::services::FromParameters;
             let compression_config = CompressionConfig::from_parameters(&config.parameters)?;

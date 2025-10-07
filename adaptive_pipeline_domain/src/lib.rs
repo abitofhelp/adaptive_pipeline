@@ -152,14 +152,7 @@ pub mod value_objects;
 
 // Re-export commonly used types for convenient access
 // These exports provide a clean API surface for consumers of the domain layer
-pub use entities::{
-    Pipeline,
-    PipelineStage,
-    ProcessingContext,
-    ProcessingMetrics,
-    SecurityContext,
-    SecurityLevel,
-};
+pub use entities::{Pipeline, PipelineStage, ProcessingContext, ProcessingMetrics, SecurityContext, SecurityLevel};
 pub use error::PipelineError;
 pub use events::*;
-pub use value_objects::{ ChunkSize, FileChunk };
+pub use value_objects::{ChunkSize, FileChunk};

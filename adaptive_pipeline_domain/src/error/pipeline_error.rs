@@ -141,47 +141,68 @@ use thiserror::Error;
 /// ## Error Handling Strategy
 #[derive(Error, Debug, Clone)]
 pub enum PipelineError {
-    #[error("Invalid configuration: {0}")] InvalidConfiguration(String),
+    #[error("Invalid configuration: {0}")]
+    InvalidConfiguration(String),
 
-    #[error("Missing required parameter: {0}")] MissingParameter(String),
+    #[error("Missing required parameter: {0}")]
+    MissingParameter(String),
 
-    #[error("Invalid parameter value: {0}")] InvalidParameter(String),
+    #[error("Invalid parameter value: {0}")]
+    InvalidParameter(String),
 
-    #[error("Incompatible stage: {0}")] IncompatibleStage(String),
+    #[error("Incompatible stage: {0}")]
+    IncompatibleStage(String),
 
-    #[error("Invalid chunk: {0}")] InvalidChunk(String),
+    #[error("Invalid chunk: {0}")]
+    InvalidChunk(String),
 
-    #[error("Processing failed: {0}")] ProcessingFailed(String),
+    #[error("Processing failed: {0}")]
+    ProcessingFailed(String),
 
-    #[error("Compression error: {0}")] CompressionError(String),
+    #[error("Compression error: {0}")]
+    CompressionError(String),
 
-    #[error("Encryption error: {0}")] EncryptionError(String),
+    #[error("Encryption error: {0}")]
+    EncryptionError(String),
 
-    #[error("Integrity check failed: {0}")] IntegrityError(String),
+    #[error("Integrity check failed: {0}")]
+    IntegrityError(String),
 
-    #[error("Security violation: {0}")] SecurityViolation(String),
+    #[error("Security violation: {0}")]
+    SecurityViolation(String),
 
-    #[error("Resource exhausted: {0}")] ResourceExhausted(String),
+    #[error("Resource exhausted: {0}")]
+    ResourceExhausted(String),
 
-    #[error("IO error: {0}")] IoError(String),
+    #[error("IO error: {0}")]
+    IoError(String),
 
-    #[error("Database error: {0}")] DatabaseError(String),
+    #[error("Database error: {0}")]
+    DatabaseError(String),
 
-    #[error("Serialization error: {0}")] SerializationError(String),
+    #[error("Serialization error: {0}")]
+    SerializationError(String),
 
-    #[error("Validation error: {0}")] ValidationError(String),
+    #[error("Validation error: {0}")]
+    ValidationError(String),
 
-    #[error("Plugin error: {0}")] PluginError(String),
+    #[error("Plugin error: {0}")]
+    PluginError(String),
 
-    #[error("Timeout error: {0}")] TimeoutError(String),
+    #[error("Timeout error: {0}")]
+    TimeoutError(String),
 
-    #[error("Cancelled: {0}")] Cancelled(String),
+    #[error("Cancelled: {0}")]
+    Cancelled(String),
 
-    #[error("Pipeline not found: {0}")] PipelineNotFound(String),
+    #[error("Pipeline not found: {0}")]
+    PipelineNotFound(String),
 
-    #[error("Internal error: {0}")] InternalError(String),
+    #[error("Internal error: {0}")]
+    InternalError(String),
 
-    #[error("Metrics error: {0}")] MetricsError(String),
+    #[error("Metrics error: {0}")]
+    MetricsError(String),
 }
 
 impl PipelineError {
@@ -244,9 +265,7 @@ impl PipelineError {
     pub fn is_recoverable(&self) -> bool {
         matches!(
             self,
-            PipelineError::TimeoutError(_) |
-                PipelineError::ResourceExhausted(_) |
-                PipelineError::IoError(_)
+            PipelineError::TimeoutError(_) | PipelineError::ResourceExhausted(_) | PipelineError::IoError(_)
         )
     }
 
@@ -254,9 +273,7 @@ impl PipelineError {
     pub fn is_security_error(&self) -> bool {
         matches!(
             self,
-            PipelineError::SecurityViolation(_) |
-                PipelineError::EncryptionError(_) |
-                PipelineError::IntegrityError(_)
+            PipelineError::SecurityViolation(_) | PipelineError::EncryptionError(_) | PipelineError::IntegrityError(_)
         )
     }
 

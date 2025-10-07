@@ -50,9 +50,9 @@
 //! ).await?;
 //! ```
 
-use anyhow::Result;
 use adaptive_pipeline_domain::value_objects::binary_file_format::FileHeader;
-use sha2::{ Digest, Sha256 };
+use anyhow::Result;
+use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use tracing::info;
 
@@ -176,7 +176,11 @@ impl CompareFilesUseCase {
     ///    💡 Use 'restore' command to restore from .adapipe if needed
     /// ```
     pub async fn execute(&self, original: PathBuf, adapipe: PathBuf, detailed: bool) -> Result<()> {
-        info!("Comparing file against .adapipe: {} vs {}", original.display(), adapipe.display());
+        info!(
+            "Comparing file against .adapipe: {} vs {}",
+            original.display(),
+            adapipe.display()
+        );
 
         // Validate both files exist
         if !original.exists() {
@@ -190,9 +194,8 @@ impl CompareFilesUseCase {
         // Read .adapipe metadata
         println!("🔍 Reading .adapipe file metadata...");
         let file_data = std::fs::read(&adapipe)?;
-        let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data).map_err(|e|
-            anyhow::anyhow!("Failed to read .adapipe metadata: {}", e)
-        )?;
+        let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
+            .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
 
         // Get original file info
         let original_metadata = std::fs::metadata(&original)?;
@@ -255,24 +258,22 @@ impl CompareFilesUseCase {
             }
 
             if metadata.is_encrypted() {
-                println!("   Encryption: {}", metadata.encryption_algorithm().unwrap_or("unknown"));
+                println!(
+                    "   Encryption: {}",
+                    metadata.encryption_algorithm().unwrap_or("unknown")
+                );
             }
 
             let current_modified = original_metadata.modified()?;
             println!(
                 "   Current file modified: {}",
-                chrono::DateTime::<chrono::Utc>
-                    ::from(current_modified)
-                    .format("%Y-%m-%d %H:%M:%S UTC")
+                chrono::DateTime::<chrono::Utc>::from(current_modified).format("%Y-%m-%d %H:%M:%S UTC")
             );
         }
 
         // Summary
         println!("\n🎯 Comparison Summary:");
-        if
-            original_size == metadata.original_size &&
-            current_checksum == metadata.original_checksum
-        {
+        if original_size == metadata.original_size && current_checksum == metadata.original_checksum {
             println!("   ✅ Files are identical - no changes detected");
         } else {
             println!("   ❌ Files differ - changes detected");
@@ -312,11 +313,13 @@ mod tests {
     #[tokio::test]
     async fn test_compare_missing_original() {
         let use_case = CompareFilesUseCase::new();
-        let result = use_case.execute(
-            PathBuf::from("/nonexistent/file.txt"),
-            PathBuf::from("/some/file.adapipe"),
-            false
-        ).await;
+        let result = use_case
+            .execute(
+                PathBuf::from("/nonexistent/file.txt"),
+                PathBuf::from("/some/file.adapipe"),
+                false,
+            )
+            .await;
         assert!(result.is_err());
     }
 
@@ -328,11 +331,9 @@ mod tests {
         std::fs::write(&original, b"test data").unwrap();
 
         let use_case = CompareFilesUseCase::new();
-        let result = use_case.execute(
-            original,
-            PathBuf::from("/nonexistent/file.adapipe"),
-            false
-        ).await;
+        let result = use_case
+            .execute(original, PathBuf::from("/nonexistent/file.adapipe"), false)
+            .await;
         assert!(result.is_err());
     }
 }

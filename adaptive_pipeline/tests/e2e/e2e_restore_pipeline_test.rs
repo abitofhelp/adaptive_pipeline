@@ -13,7 +13,8 @@ use pipeline_domain::value_objects::file_chunk::FileChunk;
 // Import the restore functions from restoration module
 use pipeline::create_restoration_pipeline;
 
-/// Tests complete restore workflow: .adapipe header → restoration pipeline with proper stage ordering.
+/// Tests complete restore workflow: .adapipe header → restoration pipeline with
+/// proper stage ordering.
 #[tokio::test]
 async fn test_e2e_complete_restore_workflow() {
     let _temp_dir = TempDir::new().expect("Failed to create temp dir");

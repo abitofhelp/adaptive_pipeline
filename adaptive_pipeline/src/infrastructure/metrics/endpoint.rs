@@ -104,9 +104,9 @@
 //! - **Monitoring Tools**: Various monitoring and observability tools
 
 use std::sync::Arc;
-use tokio::io::{ AsyncReadExt, AsyncWriteExt };
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
-use tracing::{ debug, error, info };
+use tracing::{debug, error, info};
 
 use crate::infrastructure::config::config_service::ConfigService;
 use crate::infrastructure::metrics::service::MetricsService;
@@ -228,9 +228,9 @@ impl MetricsEndpoint {
     pub async fn start(&self) -> Result<(), PipelineError> {
         let port = ConfigService::get_metrics_port().await;
         let addr = format!("127.0.0.1:{}", port);
-        let listener = TcpListener::bind(&addr).await.map_err(|e|
-            PipelineError::InternalError(format!("Failed to bind metrics endpoint: {}", e))
-        )?;
+        let listener = TcpListener::bind(&addr)
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to bind metrics endpoint: {}", e)))?;
 
         info!("Prometheus metrics endpoint started on http://{}/metrics", addr);
 
@@ -312,7 +312,7 @@ impl MetricsEndpoint {
 /// - Proper connection cleanup
 async fn handle_request(
     stream: &mut tokio::net::TcpStream,
-    metrics_service: Arc<MetricsService>
+    metrics_service: Arc<MetricsService>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut buffer = [0; 1024];
     let n = stream.read(&mut buffer).await?;
@@ -348,8 +348,7 @@ async fn handle_request(
         }
     } else if request.starts_with("GET /health") {
         // Health check endpoint
-        let health_response =
-            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nOK";
+        let health_response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nOK";
 
         stream.write_all(health_response.as_bytes()).await?;
         debug!("Sent health check response");

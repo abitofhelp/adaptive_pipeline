@@ -7,9 +7,9 @@
 
 //! # Validate Pipeline Configuration Use Case
 //!
-//! This module implements the use case for validating pipeline configuration files.
-//! It supports multiple configuration formats (TOML, JSON, YAML) and validates
-//! structure, syntax, and pipeline definitions.
+//! This module implements the use case for validating pipeline configuration
+//! files. It supports multiple configuration formats (TOML, JSON, YAML) and
+//! validates structure, syntax, and pipeline definitions.
 //!
 //! ## Overview
 //!
@@ -104,24 +104,21 @@ impl ValidateConfigUseCase {
 
         // Validate file exists
         if !config_path.exists() {
-            return Err(
-                anyhow::anyhow!("Configuration file does not exist: {}", config_path.display())
-            );
+            return Err(anyhow::anyhow!(
+                "Configuration file does not exist: {}",
+                config_path.display()
+            ));
         }
 
         // Read configuration file
-        let config_content = std::fs
-            ::read_to_string(&config_path)
+        let config_content = std::fs::read_to_string(&config_path)
             .map_err(|e| anyhow::anyhow!("Failed to read configuration file: {}", e))?;
 
         println!("🔍 Validating configuration file: {}", config_path.display());
         println!("   File size: {} bytes", config_content.len());
 
         // Determine file format and validate accordingly
-        let file_extension = config_path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .unwrap_or("");
+        let file_extension = config_path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
 
         match file_extension.to_lowercase().as_str() {
             "toml" => Self::validate_toml_config(&config_content, &config_path)?,
@@ -148,9 +145,7 @@ impl ValidateConfigUseCase {
         println!("   Format: TOML");
 
         // Parse TOML
-        let parsed: toml::Value = toml
-            ::from_str(content)
-            .map_err(|e| anyhow::anyhow!("Invalid TOML syntax: {}", e))?;
+        let parsed: toml::Value = toml::from_str(content).map_err(|e| anyhow::anyhow!("Invalid TOML syntax: {}", e))?;
 
         // Validate pipeline definitions
         if let Some(pipelines) = parsed.get("pipelines") {
@@ -177,9 +172,8 @@ impl ValidateConfigUseCase {
         println!("   Format: JSON");
 
         // Parse JSON
-        let parsed: serde_json::Value = serde_json
-            ::from_str(content)
-            .map_err(|e| anyhow::anyhow!("Invalid JSON syntax: {}", e))?;
+        let parsed: serde_json::Value =
+            serde_json::from_str(content).map_err(|e| anyhow::anyhow!("Invalid JSON syntax: {}", e))?;
 
         // Validate pipeline definitions
         if let Some(pipelines) = parsed.get("pipelines") {
@@ -214,12 +208,10 @@ impl ValidateConfigUseCase {
                 let indent = line.len() - line.trim_start().len();
                 // Basic indentation validation (should be multiple of 2)
                 if indent % 2 != 0 {
-                    return Err(
-                        anyhow::anyhow!(
-                            "Invalid YAML indentation at line {}: should be multiple of 2",
-                            line_num + 1
-                        )
-                    );
+                    return Err(anyhow::anyhow!(
+                        "Invalid YAML indentation at line {}: should be multiple of 2",
+                        line_num + 1
+                    ));
                 }
             }
         }

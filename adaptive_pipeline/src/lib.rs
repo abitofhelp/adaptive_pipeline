@@ -319,15 +319,8 @@ pub mod presentation;
 
 // Re-export domain types for convenient access
 pub use adaptive_pipeline_domain::{
-    ChunkSize,
-    FileChunk,
-    Pipeline,
-    PipelineError,
-    PipelineStage,
-    ProcessingContext,
-    ProcessingMetrics,
-    SecurityContext,
-    SecurityLevel,
+    ChunkSize, FileChunk, Pipeline, PipelineError, PipelineStage, ProcessingContext, ProcessingMetrics,
+    SecurityContext, SecurityLevel,
 };
 
 // Re-export restoration functions for testing

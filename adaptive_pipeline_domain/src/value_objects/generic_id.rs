@@ -209,9 +209,9 @@
 //! - **Performance Optimization**: Further performance optimizations
 //! - **Enhanced Validation**: More sophisticated validation rules
 
-use serde::{ Deserialize, Serialize };
-use std::fmt::{ self, Display };
-use std::hash::{ Hash, Hasher };
+use serde::{Deserialize, Serialize};
+use std::fmt::{self, Display};
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use ulid::Ulid;
 
@@ -238,11 +238,10 @@ pub trait IdCategory {
     fn validate_id(ulid: &Ulid) -> Result<(), PipelineError> {
         // Default implementation - can be overridden
         if *ulid == Ulid::nil() {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("{} ID cannot be nil", Self::category_name())
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "{} ID cannot be nil",
+                Self::category_name()
+            )));
         }
         Ok(())
     }
@@ -285,13 +284,19 @@ pub struct GenericId<T: IdCategory> {
 
 // Custom serialization to use simple string format instead of JSON object
 impl<T: IdCategory> Serialize for GenericId<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
         self.value.to_string().serialize(serializer)
     }
 }
 
 impl<'de, T: IdCategory> Deserialize<'de> for GenericId<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
         let s = String::deserialize(deserializer)?;
         let ulid = Ulid::from_string(&s).map_err(|e| serde::de::Error::custom(e.to_string()))?;
         Ok(Self {
@@ -351,9 +356,8 @@ impl<T: IdCategory> GenericId<T> {
     /// Accepts standard ULID string format (26 characters, base32 encoded)
     /// Example: "01ARZ3NDEKTSV4RRFFQ69G5FAV"
     pub fn from_string(s: &str) -> Result<Self, PipelineError> {
-        let ulid = Ulid::from_str(s).map_err(|e|
-            PipelineError::InvalidConfiguration(format!("Invalid entity ID format: {}", e))
-        )?;
+        let ulid = Ulid::from_str(s)
+            .map_err(|e| PipelineError::InvalidConfiguration(format!("Invalid entity ID format: {}", e)))?;
         Self::from_ulid(ulid)
     }
 
@@ -383,9 +387,7 @@ impl<T: IdCategory> GenericId<T> {
     /// - Audit logs
     pub fn datetime(&self) -> chrono::DateTime<chrono::Utc> {
         let timestamp_ms = self.timestamp_ms();
-        chrono::DateTime
-            ::from_timestamp_millis(timestamp_ms as i64)
-            .unwrap_or_else(chrono::Utc::now)
+        chrono::DateTime::from_timestamp_millis(timestamp_ms as i64).unwrap_or_else(chrono::Utc::now)
     }
 
     /// Converts to lowercase string representation
@@ -495,14 +497,9 @@ pub mod generic_id_utils {
     /// - Testing with controlled timestamps
     /// - Bulk operations with same creation time
     /// - Migration from timestamp-based systems
-    pub fn generate_batch_at_time<T: IdCategory>(
-        count: usize,
-        timestamp_ms: u64
-    ) -> Vec<GenericId<T>> {
+    pub fn generate_batch_at_time<T: IdCategory>(count: usize, timestamp_ms: u64) -> Vec<GenericId<T>> {
         (0..count)
-            .map(|_|
-                GenericId::from_timestamp_ms(timestamp_ms).unwrap_or_else(|_| GenericId::new())
-            )
+            .map(|_| GenericId::from_timestamp_ms(timestamp_ms).unwrap_or_else(|_| GenericId::new()))
             .collect()
     }
 
@@ -517,11 +514,10 @@ pub mod generic_id_utils {
         let mut seen = std::collections::HashSet::new();
         for id in ids {
             if !seen.insert(id.as_ulid()) {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!("Duplicate entity ID found: {}", id)
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Duplicate entity ID found: {}",
+                    id
+                )));
             }
         }
 
@@ -530,14 +526,15 @@ pub mod generic_id_utils {
 
     /// Converts a collection of ULIDs to entity IDs
     pub fn from_ulids<T: IdCategory>(ulids: Vec<Ulid>) -> Result<Vec<GenericId<T>>, PipelineError> {
-        ulids.into_iter().map(GenericId::from_ulid).collect::<Result<Vec<_>, _>>()
+        ulids
+            .into_iter()
+            .map(GenericId::from_ulid)
+            .collect::<Result<Vec<_>, _>>()
     }
 
     /// Converts a collection of entity IDs to ULIDs
     pub fn to_ulids<T: IdCategory>(ids: Vec<GenericId<T>>) -> Vec<Ulid> {
-        ids.into_iter()
-            .map(|id| id.as_ulid())
-            .collect()
+        ids.into_iter().map(|id| id.as_ulid()).collect()
     }
 
     /// Creates a boundary ID for time-range queries
@@ -576,11 +573,9 @@ mod tests {
         fn validate_id(ulid: &Ulid) -> Result<(), PipelineError> {
             // Reject nil ULIDs (all zeros)
             if ulid.0 == 0 {
-                return Err(
-                    PipelineError::ValidationError(
-                        "Nil ULID not allowed for test entities".to_string()
-                    )
-                );
+                return Err(PipelineError::ValidationError(
+                    "Nil ULID not allowed for test entities".to_string(),
+                ));
             }
             Ok(())
         }

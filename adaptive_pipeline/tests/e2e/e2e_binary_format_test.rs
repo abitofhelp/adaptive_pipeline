@@ -7,12 +7,13 @@
 use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
 
-use pipeline::infrastructure::services::{BinaryFormatService, AdapipeFormat, BinaryFormatWriter};
+use pipeline::infrastructure::services::{AdapipeFormat, BinaryFormatService, BinaryFormatWriter};
 use pipeline_domain::value_objects::FileHeader;
 use pipeline_domain::PipelineError;
 
 /// Tests complete .adapipe roundtrip using real pipeline processing via CLI.
-/// This test exercises the full stack: input file → real compression → .adapipe file → metadata validation.
+/// This test exercises the full stack: input file → real compression → .adapipe
+/// file → metadata validation.
 #[tokio::test]
 async fn test_e2e_real_pipeline_roundtrip() {
     use std::process::Command;
@@ -124,7 +125,8 @@ async fn test_e2e_real_pipeline_roundtrip() {
     println!("✅ E2E real pipeline roundtrip test passed");
 }
 
-/// End-to-end test for pass-through files (no compression/encryption) using real pipeline
+/// End-to-end test for pass-through files (no compression/encryption) using
+/// real pipeline
 #[tokio::test]
 async fn test_e2e_binary_format_pass_through() {
     use std::process::Command;
@@ -147,7 +149,8 @@ async fn test_e2e_binary_format_pass_through() {
         .args(&["delete", "--name", "e2e-passthrough", "--force"])
         .output();
 
-    // Step 1: Create a pipeline with only checksum stages (no compression/encryption)
+    // Step 1: Create a pipeline with only checksum stages (no
+    // compression/encryption)
     let create_output = Command::new(pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&["create", "--name", "e2e-passthrough", "--stages", "checksum"])
@@ -237,7 +240,8 @@ async fn test_e2e_binary_format_version_compatibility() {
     }
 }
 
-/// End-to-end test for large file handling with multiple chunks using real pipeline
+/// End-to-end test for large file handling with multiple chunks using real
+/// pipeline
 #[tokio::test]
 async fn test_e2e_binary_format_large_file() {
     use std::process::Command;
@@ -272,7 +276,8 @@ async fn test_e2e_binary_format_large_file() {
         String::from_utf8_lossy(&create_output.stderr)
     );
 
-    // Step 2: Process the large file with small chunk size to create multiple chunks
+    // Step 2: Process the large file with small chunk size to create multiple
+    // chunks
     let process_output = Command::new(pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
         .args(&[
@@ -310,7 +315,8 @@ async fn test_e2e_binary_format_large_file() {
     while let Some(chunk) = reader.read_next_chunk().await.unwrap() {
         chunks_read += 1;
         total_data += chunk.payload.len();
-        // Chunk was successfully read from .adapipe file, no need to validate structure
+        // Chunk was successfully read from .adapipe file, no need to validate
+        // structure
     }
 
     assert_eq!(chunks_read, metadata.chunk_count, "Should read all chunks");

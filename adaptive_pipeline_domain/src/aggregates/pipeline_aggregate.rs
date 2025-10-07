@@ -9,20 +9,9 @@
 
 use crate::entities::pipeline::pipeline_id_to_uuid;
 use crate::events::{
-    PipelineCreatedEvent,
-    PipelineUpdatedEvent,
-    ProcessingCompletedEvent,
-    ProcessingFailedEvent,
-    ProcessingStartedEvent,
+    PipelineCreatedEvent, PipelineUpdatedEvent, ProcessingCompletedEvent, ProcessingFailedEvent, ProcessingStartedEvent,
 };
-use crate::{
-    Pipeline,
-    PipelineError,
-    PipelineEvent,
-    ProcessingContext,
-    ProcessingMetrics,
-    SecurityContext,
-};
+use crate::{Pipeline, PipelineError, PipelineEvent, ProcessingContext, ProcessingMetrics, SecurityContext};
 use std::collections::HashMap;
 use uuid::Uuid;
 ///
@@ -95,7 +84,7 @@ impl PipelineAggregate {
             pipeline_id_to_uuid(pipeline.id()),
             pipeline.name().to_string(),
             pipeline.stages().len(),
-            None // TODO: Get from security context
+            None, // TODO: Get from security context
         );
         aggregate.add_event(PipelineEvent::PipelineCreated(event));
 
@@ -111,20 +100,16 @@ impl PipelineAggregate {
         // Find the first PipelineCreated event to initialize the aggregate
         let created_event = events
             .iter()
-            .find_map(|e| {
-                match e {
-                    PipelineEvent::PipelineCreated(event) => Some(event),
-                    _ => None,
-                }
+            .find_map(|e| match e {
+                PipelineEvent::PipelineCreated(event) => Some(event),
+                _ => None,
             })
-            .ok_or_else(||
-                PipelineError::InvalidConfiguration("No PipelineCreated event found".to_string())
-            )?;
+            .ok_or_else(|| PipelineError::InvalidConfiguration("No PipelineCreated event found".to_string()))?;
 
         // Create initial pipeline (this would normally be reconstructed from events)
         let pipeline = Pipeline::new(
             created_event.pipeline_name.clone(),
-            Vec::new() // Stages would be reconstructed from events
+            Vec::new(), // Stages would be reconstructed from events
         )?;
 
         let mut aggregate = Self {
@@ -169,22 +154,18 @@ impl PipelineAggregate {
         // Track changes
         let mut changes = Vec::new();
         if self.pipeline.name() != updated_pipeline.name() {
-            changes.push(
-                format!(
-                    "Name changed from '{}' to '{}'",
-                    self.pipeline.name(),
-                    updated_pipeline.name()
-                )
-            );
+            changes.push(format!(
+                "Name changed from '{}' to '{}'",
+                self.pipeline.name(),
+                updated_pipeline.name()
+            ));
         }
         if self.pipeline.stages().len() != updated_pipeline.stages().len() {
-            changes.push(
-                format!(
-                    "Stage count changed from {} to {}",
-                    self.pipeline.stages().len(),
-                    updated_pipeline.stages().len()
-                )
-            );
+            changes.push(format!(
+                "Stage count changed from {} to {}",
+                self.pipeline.stages().len(),
+                updated_pipeline.stages().len()
+            ));
         }
 
         self.pipeline = updated_pipeline;
@@ -209,7 +190,7 @@ impl PipelineAggregate {
         input_path: String,
         output_path: String,
         file_size: u64,
-        security_context: SecurityContext
+        security_context: SecurityContext,
     ) -> Result<Uuid, PipelineError> {
         // Validate security context
         security_context.validate()?;
@@ -220,7 +201,7 @@ impl PipelineAggregate {
             input_path.clone().into(),
             output_path.clone().into(),
             file_size,
-            security_context.clone()
+            security_context.clone(),
         );
 
         self.active_processing_contexts.insert(processing_id, context);
@@ -232,7 +213,7 @@ impl PipelineAggregate {
             input_path,
             output_path,
             file_size,
-            security_context
+            security_context,
         );
         self.add_event(PipelineEvent::ProcessingStarted(event));
 
@@ -244,12 +225,12 @@ impl PipelineAggregate {
         &mut self,
         processing_id: Uuid,
         metrics: ProcessingMetrics,
-        output_size: u64
+        output_size: u64,
     ) -> Result<(), PipelineError> {
         if !self.active_processing_contexts.contains_key(&processing_id) {
-            return Err(
-                PipelineError::InvalidConfiguration("Processing context not found".to_string())
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Processing context not found".to_string(),
+            ));
         }
 
         // Remove from active contexts
@@ -260,7 +241,7 @@ impl PipelineAggregate {
             pipeline_id_to_uuid(self.pipeline.id()),
             processing_id,
             metrics,
-            output_size
+            output_size,
         );
         self.add_event(PipelineEvent::ProcessingCompleted(event));
 
@@ -274,12 +255,12 @@ impl PipelineAggregate {
         error_message: String,
         error_code: String,
         stage_name: Option<String>,
-        partial_metrics: Option<ProcessingMetrics>
+        partial_metrics: Option<ProcessingMetrics>,
     ) -> Result<(), PipelineError> {
         if !self.active_processing_contexts.contains_key(&processing_id) {
-            return Err(
-                PipelineError::InvalidConfiguration("Processing context not found".to_string())
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Processing context not found".to_string(),
+            ));
         }
 
         // Remove from active contexts
@@ -316,12 +297,12 @@ impl PipelineAggregate {
     pub fn update_processing_context(
         &mut self,
         processing_id: Uuid,
-        context: ProcessingContext
+        context: ProcessingContext,
     ) -> Result<(), PipelineError> {
         if !self.active_processing_contexts.contains_key(&processing_id) {
-            return Err(
-                PipelineError::InvalidConfiguration("Processing context not found".to_string())
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Processing context not found".to_string(),
+            ));
         }
 
         self.active_processing_contexts.insert(processing_id, context);
@@ -362,7 +343,7 @@ impl PipelineAggregate {
                     event.input_path.clone().into(),
                     event.output_path.clone().into(),
                     event.file_size,
-                    event.security_context.clone()
+                    event.security_context.clone(),
                 );
                 self.active_processing_contexts.insert(event.processing_id, context);
                 self.version += 1;

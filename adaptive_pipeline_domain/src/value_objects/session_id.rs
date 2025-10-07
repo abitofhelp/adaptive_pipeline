@@ -107,12 +107,12 @@
 //! - **JSON**: String representation of ULID for API compatibility
 //! - **Database**: TEXT column with ULID string storage
 
-use chrono::{ DateTime, Utc };
-use serde::{ Deserialize, Serialize };
-use std::fmt::{ self, Display };
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::fmt::{self, Display};
 use ulid::Ulid;
 
-use super::generic_id::{ GenericId, IdCategory };
+use super::generic_id::{GenericId, IdCategory};
 use crate::PipelineError;
 
 /// Session identifier value object for type-safe session management
@@ -183,9 +183,9 @@ impl IdCategory for SessionMarker {
     fn validate_id(ulid: &Ulid) -> Result<(), PipelineError> {
         // Common validation: not nil, reasonable timestamp
         if ulid.0 == 0 {
-            return Err(
-                PipelineError::InvalidConfiguration("Session ID cannot be nil ULID".to_string())
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Session ID cannot be nil ULID".to_string(),
+            ));
         }
 
         // Check if timestamp is reasonable (not more than 1 day in the future)
@@ -194,21 +194,17 @@ impl IdCategory for SessionMarker {
         let one_day_ms = 24 * 60 * 60 * 1000;
 
         if id_timestamp > now + one_day_ms {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "Session ID timestamp is too far in the future".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Session ID timestamp is too far in the future".to_string(),
+            ));
         }
 
         // Session-specific validation: not too old (sessions expire)
         let max_session_age_ms = 30 * 24 * 60 * 60 * 1000; // 30 days
         if now > id_timestamp + max_session_age_ms {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "Session ID is too old (sessions expire after 30 days)".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Session ID is too old (sessions expire after 30 days)".to_string(),
+            ));
         }
 
         Ok(())
@@ -356,11 +352,10 @@ pub mod session_id_utils {
         let mut seen = std::collections::HashSet::new();
         for id in ids {
             if !seen.insert(id.as_ulid()) {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!("Duplicate session ID found: {}", id)
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Duplicate session ID found: {}",
+                    id
+                )));
             }
         }
 
@@ -400,13 +395,19 @@ pub mod session_id_utils {
 
 // Custom serialization to use simple string format
 impl Serialize for SessionId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
         self.0.serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for SessionId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
         let generic_id = GenericId::deserialize(deserializer)?;
         Ok(Self(generic_id))
     }
@@ -580,7 +581,7 @@ mod tests {
 
         let age = old_session.age_minutes();
         assert!((119..=121).contains(&age)); // Approximately 2 hours (120
-        // minutes)
+                                             // minutes)
     }
 
     /// Tests session ID chronological ordering and sorting.

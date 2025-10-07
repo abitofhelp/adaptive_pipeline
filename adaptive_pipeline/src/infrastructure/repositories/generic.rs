@@ -274,12 +274,7 @@ impl<T: RepositoryEntity> Repository<T> for InMemoryRepository<T> {
 
     async fn find_by_name(&self, name: &str) -> Result<Option<T>, PipelineError> {
         let entities = self.entities.read().await;
-        Ok(
-            entities
-                .values()
-                .find(|e| e.name() == Some(name))
-                .cloned()
-        )
+        Ok(entities.values().find(|e| e.name() == Some(name)).cloned())
     }
 
     async fn list_all(&self) -> Result<Vec<T>, PipelineError> {
@@ -306,12 +301,10 @@ impl<T: RepositoryEntity> Repository<T> for InMemoryRepository<T> {
                 e.insert(entity.clone());
                 Ok(())
             }
-            Entry::Vacant(_) =>
-                Err(
-                    PipelineError::PipelineNotFound(
-                        format!("Entity with id {:?} not found", entity.id())
-                    )
-                ),
+            Entry::Vacant(_) => Err(PipelineError::PipelineNotFound(format!(
+                "Entity with id {:?} not found",
+                entity.id()
+            ))),
         }
     }
 

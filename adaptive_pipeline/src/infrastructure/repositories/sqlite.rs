@@ -130,8 +130,8 @@
 //! - **Distributed Tracing**: Integration with tracing systems
 //! - **Logging**: Comprehensive operation logging with structured data
 
-use serde::{ Deserialize, Serialize };
-use sqlx::{ Row, SqlitePool };
+use serde::{Deserialize, Serialize};
+use sqlx::{Row, SqlitePool};
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
@@ -191,9 +191,7 @@ pub trait SqliteEntity: Clone + Send + Sync + 'static + Serialize + for<'de> Des
 
     /// Parses an ID from a string (inverse of id_to_string)
     fn id_from_string(s: &str) -> Result<Self::Id, PipelineError> {
-        serde_json
-            ::from_str(s)
-            .map_err(|e| PipelineError::SerializationError(format!("Failed to parse ID: {}", e)))
+        serde_json::from_str(s).map_err(|e| PipelineError::SerializationError(format!("Failed to parse ID: {}", e)))
     }
 
     /// Converts an ID to string format (static version of id_to_string)
@@ -220,18 +218,18 @@ impl<T: SqliteEntity> SqliteRepository<T> {
 
     /// Creates a new SQLite repository with a database file path
     pub async fn from_file(database_path: &str) -> Result<Self, PipelineError> {
-        let pool = SqlitePool::connect(database_path).await.map_err(|e|
-            PipelineError::InternalError(format!("Failed to connect to database: {}", e))
-        )?;
+        let pool = SqlitePool::connect(database_path)
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to connect to database: {}", e)))?;
 
         Self::new(pool).await
     }
 
     /// Creates an in-memory SQLite database (useful for testing)
     pub async fn in_memory() -> Result<Self, PipelineError> {
-        let pool = SqlitePool::connect(":memory:").await.map_err(|e|
-            PipelineError::InternalError(format!("Failed to create in-memory database: {}", e))
-        )?;
+        let pool = SqlitePool::connect(":memory:")
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to create in-memory database: {}", e)))?;
 
         Self::new(pool).await
     }
@@ -239,9 +237,9 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     /// Ensures the table exists, creating it if necessary
     pub async fn ensure_table_exists(&self) -> Result<(), PipelineError> {
         let schema = T::table_schema();
-        sqlx
-            ::query(schema)
-            .execute(&self.pool).await
+        sqlx::query(schema)
+            .execute(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to create table: {}", e)))?;
 
         Ok(())
@@ -255,11 +253,8 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     /// Saves an entity to the database
     pub async fn save(&self, entity: &T) -> Result<(), PipelineError> {
         let id_str = entity.id_to_string();
-        let data = serde_json
-            ::to_string(entity)
-            .map_err(|e|
-                PipelineError::SerializationError(format!("Failed to serialize entity: {}", e))
-            )?;
+        let data = serde_json::to_string(entity)
+            .map_err(|e| PipelineError::SerializationError(format!("Failed to serialize entity: {}", e)))?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -271,15 +266,15 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        sqlx
-            ::query(&query)
+        sqlx::query(&query)
             .bind(&id_str)
             .bind(entity_name)
             .bind(&data)
             .bind(&now)
             .bind(&now)
             .bind(false)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to save entity: {}", e)))?;
 
         Ok(())
@@ -290,26 +285,18 @@ impl<T: SqliteEntity> SqliteRepository<T> {
         // Use the same ID format as save method
         let id_str = self.id_to_string_format(&id)?;
 
-        let query = format!(
-            "SELECT data FROM {} WHERE id = ? AND archived = false",
-            self.table_name
-        );
+        let query = format!("SELECT data FROM {} WHERE id = ? AND archived = false", self.table_name);
 
-        let row = sqlx
-            ::query(&query)
+        let row = sqlx::query(&query)
             .bind(&id_str)
-            .fetch_optional(&self.pool).await
+            .fetch_optional(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to query entity: {}", e)))?;
 
         if let Some(row) = row {
             let data: String = row.get("data");
-            let entity: T = serde_json
-                ::from_str(&data)
-                .map_err(|e|
-                    PipelineError::SerializationError(
-                        format!("Failed to deserialize entity: {}", e)
-                    )
-                )?;
+            let entity: T = serde_json::from_str(&data)
+                .map_err(|e| PipelineError::SerializationError(format!("Failed to deserialize entity: {}", e)))?;
             Ok(Some(entity))
         } else {
             Ok(None)
@@ -323,23 +310,16 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        let row = sqlx
-            ::query(&query)
+        let row = sqlx::query(&query)
             .bind(name)
-            .fetch_optional(&self.pool).await
-            .map_err(|e|
-                PipelineError::InternalError(format!("Failed to query entity by name: {}", e))
-            )?;
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to query entity by name: {}", e)))?;
 
         if let Some(row) = row {
             let data: String = row.get("data");
-            let entity: T = serde_json
-                ::from_str(&data)
-                .map_err(|e|
-                    PipelineError::SerializationError(
-                        format!("Failed to deserialize entity: {}", e)
-                    )
-                )?;
+            let entity: T = serde_json::from_str(&data)
+                .map_err(|e| PipelineError::SerializationError(format!("Failed to deserialize entity: {}", e)))?;
             Ok(Some(entity))
         } else {
             Ok(None)
@@ -353,21 +333,16 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        let rows = sqlx
-            ::query(&query)
-            .fetch_all(&self.pool).await
+        let rows = sqlx::query(&query)
+            .fetch_all(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to list entities: {}", e)))?;
 
         let mut entities = Vec::new();
         for row in rows {
             let data: String = row.get("data");
-            let entity: T = serde_json
-                ::from_str(&data)
-                .map_err(|e|
-                    PipelineError::SerializationError(
-                        format!("Failed to deserialize entity: {}", e)
-                    )
-                )?;
+            let entity: T = serde_json::from_str(&data)
+                .map_err(|e| PipelineError::SerializationError(format!("Failed to deserialize entity: {}", e)))?;
             entities.push(entity);
         }
 
@@ -375,35 +350,24 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     }
 
     /// Lists entities with pagination
-    pub async fn list_paginated(
-        &self,
-        offset: usize,
-        limit: usize
-    ) -> Result<Vec<T>, PipelineError> {
+    pub async fn list_paginated(&self, offset: usize, limit: usize) -> Result<Vec<T>, PipelineError> {
         let query = format!(
             "SELECT data FROM {} WHERE archived = false ORDER BY created_at LIMIT ? OFFSET ?",
             self.table_name
         );
 
-        let rows = sqlx
-            ::query(&query)
+        let rows = sqlx::query(&query)
             .bind(limit as i64)
             .bind(offset as i64)
-            .fetch_all(&self.pool).await
-            .map_err(|e|
-                PipelineError::InternalError(format!("Failed to list paginated entities: {}", e))
-            )?;
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to list paginated entities: {}", e)))?;
 
         let mut entities = Vec::new();
         for row in rows {
             let data: String = row.get("data");
-            let entity: T = serde_json
-                ::from_str(&data)
-                .map_err(|e|
-                    PipelineError::SerializationError(
-                        format!("Failed to deserialize entity: {}", e)
-                    )
-                )?;
+            let entity: T = serde_json::from_str(&data)
+                .map_err(|e| PipelineError::SerializationError(format!("Failed to deserialize entity: {}", e)))?;
             entities.push(entity);
         }
 
@@ -413,11 +377,8 @@ impl<T: SqliteEntity> SqliteRepository<T> {
     /// Updates an existing entity
     pub async fn update(&self, entity: &T) -> Result<(), PipelineError> {
         let id_str = entity.id_to_string();
-        let data = serde_json
-            ::to_string(entity)
-            .map_err(|e|
-                PipelineError::SerializationError(format!("Failed to serialize entity: {}", e))
-            )?;
+        let data = serde_json::to_string(entity)
+            .map_err(|e| PipelineError::SerializationError(format!("Failed to serialize entity: {}", e)))?;
 
         let name = entity.name().unwrap_or("");
         let now = chrono::Utc::now().to_rfc3339();
@@ -427,13 +388,13 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        let result = sqlx
-            ::query(&query)
+        let result = sqlx::query(&query)
             .bind(name)
             .bind(&data)
             .bind(&now)
             .bind(&id_str)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to update entity: {}", e)))?;
 
         if result.rows_affected() == 0 {
@@ -450,10 +411,10 @@ impl<T: SqliteEntity> SqliteRepository<T> {
 
         let query = format!("DELETE FROM {} WHERE id = ?", self.table_name);
 
-        let result = sqlx
-            ::query(&query)
+        let result = sqlx::query(&query)
             .bind(&id_str)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to delete entity: {}", e)))?;
 
         Ok(result.rows_affected() > 0)
@@ -469,13 +430,11 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        let row = sqlx
-            ::query(&query)
+        let row = sqlx::query(&query)
             .bind(&id_str)
-            .fetch_optional(&self.pool).await
-            .map_err(|e|
-                PipelineError::InternalError(format!("Failed to check entity existence: {}", e))
-            )?;
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to check entity existence: {}", e)))?;
 
         Ok(row.is_some())
     }
@@ -487,9 +446,9 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        let row = sqlx
-            ::query(&query)
-            .fetch_one(&self.pool).await
+        let row = sqlx::query(&query)
+            .fetch_one(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to count entities: {}", e)))?;
 
         let count: i64 = row.get("count");
@@ -507,11 +466,11 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        let result = sqlx
-            ::query(&query)
+        let result = sqlx::query(&query)
             .bind(&now)
             .bind(&id_str)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to archive entity: {}", e)))?;
 
         Ok(result.rows_affected() > 0)
@@ -528,11 +487,11 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        let result = sqlx
-            ::query(&query)
+        let result = sqlx::query(&query)
             .bind(&now)
             .bind(&id_str)
-            .execute(&self.pool).await
+            .execute(&self.pool)
+            .await
             .map_err(|e| PipelineError::InternalError(format!("Failed to restore entity: {}", e)))?;
 
         Ok(result.rows_affected() > 0)
@@ -545,23 +504,16 @@ impl<T: SqliteEntity> SqliteRepository<T> {
             self.table_name
         );
 
-        let rows = sqlx
-            ::query(&query)
-            .fetch_all(&self.pool).await
-            .map_err(|e|
-                PipelineError::InternalError(format!("Failed to list archived entities: {}", e))
-            )?;
+        let rows = sqlx::query(&query)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to list archived entities: {}", e)))?;
 
         let mut entities = Vec::new();
         for row in rows {
             let data: String = row.get("data");
-            let entity: T = serde_json
-                ::from_str(&data)
-                .map_err(|e|
-                    PipelineError::SerializationError(
-                        format!("Failed to deserialize entity: {}", e)
-                    )
-                )?;
+            let entity: T = serde_json::from_str(&data)
+                .map_err(|e| PipelineError::SerializationError(format!("Failed to deserialize entity: {}", e)))?;
             entities.push(entity);
         }
 
@@ -620,6 +572,7 @@ mod tests {
         }
     }
 
-    // Note: Generic repository CRUD operations are tested via SqlitePipelineRepository
-    // integration tests which use the concrete implementation.
+    // Note: Generic repository CRUD operations are tested via
+    // SqlitePipelineRepository integration tests which use the concrete
+    // implementation.
 }

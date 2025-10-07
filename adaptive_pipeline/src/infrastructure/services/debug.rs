@@ -41,16 +41,11 @@
 //! curl http://localhost:9091/metrics | grep debug_stage
 //! ```
 
-use adaptive_pipeline_domain::entities::{
-    ProcessingContext,
-    StageConfiguration,
-    StagePosition,
-    StageType,
-};
-use adaptive_pipeline_domain::services::{ FromParameters, StageService };
+use adaptive_pipeline_domain::entities::{ProcessingContext, StageConfiguration, StagePosition, StageType};
+use adaptive_pipeline_domain::services::{FromParameters, StageService};
 use adaptive_pipeline_domain::value_objects::FileChunk;
 use adaptive_pipeline_domain::PipelineError;
-use sha2::{ Digest, Sha256 };
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -103,7 +98,7 @@ impl StageService for DebugService {
         &self,
         chunk: FileChunk,
         config: &StageConfiguration,
-        _context: &mut ProcessingContext
+        _context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError> {
         let debug_config = DebugConfig::from_parameters(&config.parameters)?;
 
@@ -122,7 +117,8 @@ impl StageService for DebugService {
         );
 
         // Record metrics in Prometheus
-        self.metrics.record_debug_stage_bytes(&debug_config.label, chunk_id, bytes);
+        self.metrics
+            .record_debug_stage_bytes(&debug_config.label, chunk_id, bytes);
         self.metrics.increment_debug_stage_chunks(&debug_config.label);
 
         // Pass through unchanged
@@ -146,7 +142,7 @@ impl StageService for DebugService {
 mod tests {
     use super::*;
     use adaptive_pipeline_domain::entities::security_context::Permission;
-    use adaptive_pipeline_domain::entities::{ Operation, SecurityContext, SecurityLevel };
+    use adaptive_pipeline_domain::entities::{Operation, SecurityContext, SecurityLevel};
 
     fn create_test_metrics() -> Arc<MetricsService> {
         Arc::new(MetricsService::new().unwrap())
@@ -157,16 +153,13 @@ mod tests {
     }
 
     fn create_test_context() -> ProcessingContext {
-        let security_context = SecurityContext::with_permissions(
-            None,
-            vec![Permission::Read, Permission::Write],
-            SecurityLevel::Internal
-        );
+        let security_context =
+            SecurityContext::with_permissions(None, vec![Permission::Read, Permission::Write], SecurityLevel::Internal);
         ProcessingContext::new(
             std::path::PathBuf::from("/tmp/input.txt"),
             std::path::PathBuf::from("/tmp/output.adapipe"),
             1024,
-            security_context
+            security_context,
         )
     }
 
@@ -230,7 +223,10 @@ mod tests {
         let checksum = service.calculate_checksum(test_data);
 
         // Known SHA256 of "Hello, World!"
-        assert_eq!(checksum, "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f");
+        assert_eq!(
+            checksum,
+            "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
+        );
     }
 
     #[test]

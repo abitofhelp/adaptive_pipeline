@@ -169,10 +169,10 @@
 //! - **Configuration Templates**: Template-based configuration generation
 //! - **Remote Configuration**: Support for remote configuration stores
 
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tokio::fs;
-use tracing::{ debug, warn };
+use tracing::{debug, warn};
 
 use adaptive_pipeline_domain::error::PipelineError;
 
@@ -300,36 +300,29 @@ pub struct ConfigService;
 impl ConfigService {
     /// Load observability configuration from file
     pub async fn load_observability_config<P: AsRef<Path>>(
-        config_path: P
+        config_path: P,
     ) -> Result<ObservabilityConfig, PipelineError> {
         let config_path = config_path.as_ref();
 
         if !config_path.exists() {
-            warn!("Observability config file not found at {:?}, using defaults", config_path);
+            warn!(
+                "Observability config file not found at {:?}, using defaults",
+                config_path
+            );
             return Ok(ObservabilityConfig::default());
         }
 
-        let config_content = fs
-            ::read_to_string(config_path).await
-            .map_err(|e| {
-                PipelineError::invalid_config(
-                    format!("Failed to read config file {:?}: {}", config_path, e)
-                )
-            })?;
+        let config_content = fs::read_to_string(config_path).await.map_err(|e| {
+            PipelineError::invalid_config(format!("Failed to read config file {:?}: {}", config_path, e))
+        })?;
 
-        let config: ObservabilityConfig = toml
-            ::from_str(&config_content)
-            .map_err(|e| {
-                PipelineError::invalid_config(
-                    format!("Failed to parse config file {:?}: {}", config_path, e)
-                )
-            })?;
+        let config: ObservabilityConfig = toml::from_str(&config_content).map_err(|e| {
+            PipelineError::invalid_config(format!("Failed to parse config file {:?}: {}", config_path, e))
+        })?;
 
         debug!(
             "Loaded observability config from {:?}: metrics port {}, structured logging {}",
-            config_path,
-            config.metrics.port,
-            config.observability.enable_structured_logging
+            config_path, config.metrics.port, config.observability.enable_structured_logging
         );
 
         Ok(config)
@@ -338,11 +331,8 @@ impl ConfigService {
     /// Load observability config from default location
     pub async fn load_default_observability_config() -> Result<ObservabilityConfig, PipelineError> {
         // Try to find observability.toml in current directory or parent directories
-        let mut current_dir = std::env
-            ::current_dir()
-            .map_err(|e|
-                PipelineError::invalid_config(format!("Failed to get current directory: {}", e))
-            )?;
+        let mut current_dir = std::env::current_dir()
+            .map_err(|e| PipelineError::invalid_config(format!("Failed to get current directory: {}", e)))?;
 
         // Look for observability.toml in current directory and up to 3 parent
         // directories
@@ -375,11 +365,10 @@ impl ConfigService {
     /// Get alert thresholds from configuration
     pub async fn get_alert_thresholds() -> (f64, f64) {
         match Self::load_default_observability_config().await {
-            Ok(config) =>
-                (
-                    config.health_checks.error_rate_threshold_percent,
-                    config.health_checks.throughput_threshold_mbps,
-                ),
+            Ok(config) => (
+                config.health_checks.error_rate_threshold_percent,
+                config.health_checks.throughput_threshold_mbps,
+            ),
             Err(_) => (5.0, 1.0), // fallback defaults
         }
     }
@@ -395,14 +384,13 @@ mod tests {
     async fn test_load_default_config() {
         let config = ConfigService::load_default_observability_config().await.unwrap();
         assert_eq!(config.metrics.port, 9091); // Should find the actual
-        // observability.toml
+                                               // observability.toml
     }
 
     #[tokio::test]
     async fn test_load_config_from_file() {
         let temp_file = NamedTempFile::new().unwrap();
-        let config_content =
-            r#"
+        let config_content = r#"
 [observability]
 enable_structured_logging = true
 enable_performance_tracing = true
@@ -445,7 +433,9 @@ disk_usage_alert_threshold = 95.0
         file.flush().await.unwrap();
         drop(file);
 
-        let config = ConfigService::load_observability_config(temp_file.path()).await.unwrap();
+        let config = ConfigService::load_observability_config(temp_file.path())
+            .await
+            .unwrap();
 
         assert_eq!(config.metrics.port, 8080);
         assert_eq!(config.logging.level, "debug");

@@ -114,7 +114,8 @@ impl ApplicationServicesIntegrationTestFramework {
         Pipeline::new(name.to_string(), stages)
     }
 
-    // Note: FileRestorationApplicationService removed - restoration now handled via use cases
+    // Note: FileRestorationApplicationService removed - restoration now handled via
+    // use cases
 
     /// Measures operation performance and logs execution time.
     fn measure_operation<F, R>(operation: F, operation_name: &str) -> R

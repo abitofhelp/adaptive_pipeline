@@ -177,11 +177,11 @@
 //! - **Custom Dashboards**: User-configurable monitoring dashboards
 //! - **Integration APIs**: APIs for integration with external tools
 
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::time::{ Duration, Instant };
+use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{ debug, info, warn };
+use tracing::{debug, info, warn};
 
 use crate::infrastructure::config::config_service::ConfigService;
 use crate::infrastructure::metrics::MetricsService;
@@ -315,8 +315,7 @@ impl ObservabilityService {
 
     /// Create a new observability service with configuration
     pub async fn new_with_config(metrics_service: Arc<MetricsService>) -> Self {
-        let (error_rate_threshold, throughput_threshold) =
-            ConfigService::get_alert_thresholds().await;
+        let (error_rate_threshold, throughput_threshold) = ConfigService::get_alert_thresholds().await;
 
         Self {
             metrics_service,
@@ -336,7 +335,10 @@ impl ObservabilityService {
         tracker.total_operations += 1;
         tracker.last_update = Instant::now();
 
-        debug!("Started operation: {} (active: {})", operation_name, tracker.active_operations);
+        debug!(
+            "Started operation: {} (active: {})",
+            operation_name, tracker.active_operations
+        );
 
         OperationTracker {
             operation_name: operation_name.to_string(),
@@ -352,7 +354,7 @@ impl ObservabilityService {
         operation_name: &str,
         duration: Duration,
         success: bool,
-        throughput_mbps: f64
+        throughput_mbps: f64,
     ) {
         let mut tracker = self.performance_tracker.write().await;
 
@@ -461,7 +463,8 @@ impl ObservabilityService {
         let success = metrics.error_count() == 0;
         let duration = metrics.processing_duration().unwrap_or(Duration::from_secs(0));
 
-        self.complete_operation("pipeline_processing", duration, success, throughput).await;
+        self.complete_operation("pipeline_processing", duration, success, throughput)
+            .await;
 
         debug!(
             "Recorded processing metrics: {:.2} MB/s throughput, {} errors, {} warnings",
@@ -477,8 +480,7 @@ impl ObservabilityService {
         if tracker.error_rate_percent > self.alert_thresholds.max_error_rate_percent {
             warn!(
                 "🚨 Alert: High error rate {:.1}% (threshold: {:.1}%)",
-                tracker.error_rate_percent,
-                self.alert_thresholds.max_error_rate_percent
+                tracker.error_rate_percent, self.alert_thresholds.max_error_rate_percent
             );
         }
 
@@ -486,8 +488,7 @@ impl ObservabilityService {
         if tracker.average_throughput_mbps < self.alert_thresholds.min_throughput_mbps {
             warn!(
                 "🚨 Alert: Low throughput {:.2} MB/s (threshold: {:.2} MB/s)",
-                tracker.average_throughput_mbps,
-                self.alert_thresholds.min_throughput_mbps
+                tracker.average_throughput_mbps, self.alert_thresholds.min_throughput_mbps
             );
         }
 
@@ -538,12 +539,9 @@ impl OperationTracker {
             0.0
         };
 
-        self.observability_service.complete_operation(
-            &self.operation_name,
-            duration,
-            success,
-            throughput_mbps
-        ).await;
+        self.observability_service
+            .complete_operation(&self.operation_name, duration, success, throughput_mbps)
+            .await;
     }
 
     /// Complete with processing metrics
@@ -563,12 +561,9 @@ impl Drop for OperationTracker {
             let duration = self.start_time.elapsed();
 
             tokio::spawn(async move {
-                observability_service.complete_operation(
-                    &operation_name,
-                    duration,
-                    false,
-                    0.0
-                ).await;
+                observability_service
+                    .complete_operation(&operation_name, duration, false, 0.0)
+                    .await;
             });
         }
     }

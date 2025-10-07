@@ -32,7 +32,7 @@ use anyhow::Result;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::{ info, warn };
+use tracing::{info, warn};
 
 use crate::infrastructure::metrics::MetricsService;
 use adaptive_pipeline_domain::value_objects::chunk_size::ChunkSize;
@@ -71,11 +71,13 @@ impl BenchmarkSystemUseCase {
     /// Executes the benchmark system use case.
     ///
     /// Runs comprehensive benchmarks to test pipeline performance across
-    /// various configurations, comparing adaptive settings against alternatives.
+    /// various configurations, comparing adaptive settings against
+    /// alternatives.
     ///
     /// ## Parameters
     ///
-    /// * `file` - Optional existing file to use (otherwise generates test files)
+    /// * `file` - Optional existing file to use (otherwise generates test
+    ///   files)
     /// * `size_mb` - Specific file size to test (0 = test all default sizes)
     /// * `iterations` - Number of iterations per configuration (default: 3)
     ///
@@ -84,7 +86,8 @@ impl BenchmarkSystemUseCase {
     /// For each file size, tests:
     /// 1. **Adaptive Configuration**: Recommended chunk/worker settings
     /// 2. **Chunk Variations**: Different chunk sizes with adaptive workers
-    /// 3. **Worker Variations**: Different worker counts with adaptive chunk size
+    /// 3. **Worker Variations**: Different worker counts with adaptive chunk
+    ///    size
     ///
     /// ## Output
     ///
@@ -98,12 +101,7 @@ impl BenchmarkSystemUseCase {
     ///
     /// - `Ok(())` - Benchmark completed successfully
     /// - `Err(anyhow::Error)` - Benchmark failed
-    pub async fn execute(
-        &self,
-        file: Option<PathBuf>,
-        size_mb: usize,
-        iterations: usize
-    ) -> Result<()> {
+    pub async fn execute(&self, file: Option<PathBuf>, size_mb: usize, iterations: usize) -> Result<()> {
         info!("Running comprehensive pipeline optimization benchmark");
         info!("Test size: {}MB", size_mb);
         info!("Iterations: {}", iterations);
@@ -122,10 +120,7 @@ impl BenchmarkSystemUseCase {
         let chunk_sizes = vec![1, 2, 4, 8, 16, 32, 64, 128];
 
         // Worker counts to test
-        let available_cores = std::thread
-            ::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(4);
+        let available_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
         let max_workers = (available_cores * 2).min(16);
         let worker_counts: Vec<usize> = (1..=max_workers).collect();
 
@@ -175,17 +170,16 @@ impl BenchmarkSystemUseCase {
 
             // Test adaptive configuration first
             println!("   Testing adaptive configuration...");
-            let adaptive_chunk_mb = ((adaptive_chunk.bytes() as f64) / (1024.0 * 1024.0)).max(
-                1.0
-            ) as usize;
+            let adaptive_chunk_mb = ((adaptive_chunk.bytes() as f64) / (1024.0 * 1024.0)).max(1.0) as usize;
             let adaptive_result = Self::run_benchmark_test(
                 &test_file,
                 test_size_mb,
                 Some(adaptive_chunk_mb),
                 Some(adaptive_workers.count()),
                 iterations,
-                &metrics_service
-            ).await?;
+                &metrics_service,
+            )
+            .await?;
 
             results.push(BenchmarkResult {
                 file_size_mb: test_size_mb,
@@ -211,8 +205,9 @@ impl BenchmarkSystemUseCase {
                     Some(chunk_mb),
                     Some(adaptive_workers.count()),
                     iterations,
-                    &metrics_service
-                ).await?;
+                    &metrics_service,
+                )
+                .await?;
 
                 results.push(BenchmarkResult {
                     file_size_mb: test_size_mb,
@@ -236,8 +231,9 @@ impl BenchmarkSystemUseCase {
                     Some(adaptive_chunk_mb),
                     Some(workers),
                     iterations,
-                    &metrics_service
-                ).await?;
+                    &metrics_service,
+                )
+                .await?;
 
                 results.push(BenchmarkResult {
                     file_size_mb: test_size_mb,
@@ -269,9 +265,9 @@ impl BenchmarkSystemUseCase {
         input_file: &PathBuf,
         output_file: &PathBuf,
         chunk_size_mb: usize,
-        worker_count: usize
+        worker_count: usize,
     ) -> Result<()> {
-        use std::io::{ Read, Write };
+        use std::io::{Read, Write};
         use tokio::task;
 
         let chunk_size_bytes = chunk_size_mb * 1024 * 1024;
@@ -305,10 +301,7 @@ impl BenchmarkSystemUseCase {
                     // Simulate processing work
                     for chunk in &worker_chunks {
                         // Simple processing simulation: XOR each byte
-                        let _processed: Vec<u8> = chunk
-                            .iter()
-                            .map(|&b| b ^ 0x42)
-                            .collect();
+                        let _processed: Vec<u8> = chunk.iter().map(|&b| b ^ 0x42).collect();
                         // Small delay to simulate work
                         tokio::time::sleep(std::time::Duration::from_micros(1)).await;
                     }
@@ -320,7 +313,7 @@ impl BenchmarkSystemUseCase {
 
         // Collect results and write to output
         for handle in handles {
-            let processed_chunks = handle.await.unwrap();
+            let processed_chunks = handle.await.map_err(|e| anyhow::anyhow!("Worker task failed: {}", e))?;
             for chunk in processed_chunks {
                 output.write_all(&chunk)?;
             }
@@ -353,15 +346,13 @@ impl BenchmarkSystemUseCase {
         chunk_size_mb: Option<usize>,
         worker_count: Option<usize>,
         iterations: usize,
-        _metrics_service: &Arc<MetricsService>
+        _metrics_service: &Arc<MetricsService>,
     ) -> Result<TestResult> {
         let mut durations = Vec::new();
         let mut throughputs = Vec::new();
 
         for i in 0..iterations {
-            let output_file = PathBuf::from(
-                format!("benchmark_output_{}_{}.adapipe", std::process::id(), i)
-            );
+            let output_file = PathBuf::from(format!("benchmark_output_{}_{}.adapipe", std::process::id(), i));
 
             let start_time = Instant::now();
 
@@ -369,8 +360,9 @@ impl BenchmarkSystemUseCase {
                 test_file,
                 &output_file,
                 chunk_size_mb.unwrap_or(1),
-                worker_count.unwrap_or(1)
-            ).await;
+                worker_count.unwrap_or(1),
+            )
+            .await;
 
             let duration = start_time.elapsed();
 
@@ -383,8 +375,7 @@ impl BenchmarkSystemUseCase {
                 Ok(_) => {
                     let duration_secs = duration.as_secs_f64();
                     let file_size_bytes = std::fs::metadata(test_file)?.len();
-                    let throughput_mbps =
-                        (file_size_bytes as f64) / (1024.0 * 1024.0) / duration_secs;
+                    let throughput_mbps = (file_size_bytes as f64) / (1024.0 * 1024.0) / duration_secs;
 
                     durations.push(duration_secs);
                     throughputs.push(throughput_mbps);
@@ -412,25 +403,20 @@ impl BenchmarkSystemUseCase {
         let mut report = String::new();
 
         report.push_str("# Pipeline Optimization Benchmark Report\n\n");
-        report.push_str(
-            &format!("Generated: {}\n\n", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"))
-        );
+        report.push_str(&format!(
+            "Generated: {}\n\n",
+            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+        ));
 
         // Group results by file size
-        let mut file_sizes: Vec<usize> = results
-            .iter()
-            .map(|r| r.file_size_mb)
-            .collect();
+        let mut file_sizes: Vec<usize> = results.iter().map(|r| r.file_size_mb).collect();
         file_sizes.sort_unstable();
         file_sizes.dedup();
 
         for file_size in &file_sizes {
             report.push_str(&format!("## File Size: {} MB\n\n", file_size));
 
-            let size_results: Vec<_> = results
-                .iter()
-                .filter(|r| r.file_size_mb == *file_size)
-                .collect();
+            let size_results: Vec<_> = results.iter().filter(|r| r.file_size_mb == *file_size).collect();
 
             // Find best configuration
             let best_result = size_results
@@ -450,46 +436,39 @@ impl BenchmarkSystemUseCase {
             report.push_str("**Adaptive Configuration:**\n");
             report.push_str(&format!("- Chunk Size: {} MB\n", adaptive_result.chunk_size_mb));
             report.push_str(&format!("- Worker Count: {}\n", adaptive_result.worker_count));
-            report.push_str(
-                &format!("- Throughput: {:.2} MB/s\n", adaptive_result.avg_throughput_mbps)
-            );
-            report.push_str(
-                &format!("- Duration: {:.2} seconds\n\n", adaptive_result.avg_duration_secs)
-            );
+            report.push_str(&format!(
+                "- Throughput: {:.2} MB/s\n",
+                adaptive_result.avg_throughput_mbps
+            ));
+            report.push_str(&format!(
+                "- Duration: {:.2} seconds\n\n",
+                adaptive_result.avg_duration_secs
+            ));
 
             report.push_str("**Best Configuration:**\n");
             report.push_str(&format!("- Chunk Size: {} MB\n", best_result.chunk_size_mb));
             report.push_str(&format!("- Worker Count: {}\n", best_result.worker_count));
-            report.push_str(
-                &format!("- Throughput: {:.2} MB/s\n", best_result.avg_throughput_mbps)
-            );
+            report.push_str(&format!("- Throughput: {:.2} MB/s\n", best_result.avg_throughput_mbps));
             report.push_str(&format!("- Duration: {:.2} seconds\n", best_result.avg_duration_secs));
             report.push_str(&format!("- Configuration Type: {}\n\n", best_result.config_type));
 
-            let improvement =
-                ((best_result.avg_throughput_mbps - adaptive_result.avg_throughput_mbps) /
-                    adaptive_result.avg_throughput_mbps) *
-                100.0;
+            let improvement = ((best_result.avg_throughput_mbps - adaptive_result.avg_throughput_mbps)
+                / adaptive_result.avg_throughput_mbps)
+                * 100.0;
 
             if improvement > 0.0 {
-                report.push_str(
-                    &format!(
-                        "**Performance Improvement:** {:.1}% faster than adaptive\n\n",
-                        improvement
-                    )
-                );
+                report.push_str(&format!(
+                    "**Performance Improvement:** {:.1}% faster than adaptive\n\n",
+                    improvement
+                ));
             } else {
                 report.push_str("**Performance:** Adaptive configuration is optimal\n\n");
             }
 
             // Detailed results table
             report.push_str("### Detailed Results\n\n");
-            report.push_str(
-                "| Chunk Size (MB) | Workers | Throughput (MB/s) | Duration (s) | Config Type |\n"
-            );
-            report.push_str(
-                "|-----------------|---------|-------------------|--------------|-------------|\n"
-            );
+            report.push_str("| Chunk Size (MB) | Workers | Throughput (MB/s) | Duration (s) | Config Type |\n");
+            report.push_str("|-----------------|---------|-------------------|--------------|-------------|\n");
 
             let mut sorted_results = size_results.clone();
             sorted_results.sort_by(|a, b| {
@@ -499,16 +478,14 @@ impl BenchmarkSystemUseCase {
             });
 
             for result in sorted_results {
-                report.push_str(
-                    &format!(
-                        "| {} | {} | {:.2} | {:.2} | {} |\n",
-                        result.chunk_size_mb,
-                        result.worker_count,
-                        result.avg_throughput_mbps,
-                        result.avg_duration_secs,
-                        result.config_type
-                    )
-                );
+                report.push_str(&format!(
+                    "| {} | {} | {:.2} | {:.2} | {} |\n",
+                    result.chunk_size_mb,
+                    result.worker_count,
+                    result.avg_throughput_mbps,
+                    result.avg_duration_secs,
+                    result.config_type
+                ));
             }
 
             report.push('\n');
@@ -518,10 +495,7 @@ impl BenchmarkSystemUseCase {
         report.push_str("## Summary Recommendations\n\n");
 
         for file_size in &file_sizes {
-            let size_results: Vec<_> = results
-                .iter()
-                .filter(|r| r.file_size_mb == *file_size)
-                .collect();
+            let size_results: Vec<_> = results.iter().filter(|r| r.file_size_mb == *file_size).collect();
 
             let best_result = size_results
                 .iter()
@@ -532,15 +506,10 @@ impl BenchmarkSystemUseCase {
                 })
                 .ok_or_else(|| anyhow::anyhow!("No benchmark results found"))?;
 
-            report.push_str(
-                &format!(
-                    "- **{} MB files**: {} MB chunks, {} workers ({:.2} MB/s)\n",
-                    file_size,
-                    best_result.chunk_size_mb,
-                    best_result.worker_count,
-                    best_result.avg_throughput_mbps
-                )
-            );
+            report.push_str(&format!(
+                "- **{} MB files**: {} MB chunks, {} workers ({:.2} MB/s)\n",
+                file_size, best_result.chunk_size_mb, best_result.worker_count, best_result.avg_throughput_mbps
+            ));
         }
 
         // Write report to file

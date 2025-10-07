@@ -137,8 +137,8 @@ pub mod signals;
 // pub mod app_runner;
 
 // Re-export commonly used types
-pub use cli::{ parse_and_validate, ValidatedCli, ValidatedCommand };
-pub use exit_code::{ map_error_to_exit_code, result_to_exit_code, ExitCode };
+pub use cli::{parse_and_validate, ValidatedCli, ValidatedCommand};
+pub use exit_code::{map_error_to_exit_code, result_to_exit_code, ExitCode};
 
 /// Bootstrap and parse CLI arguments
 ///

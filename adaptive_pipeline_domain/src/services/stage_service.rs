@@ -17,9 +17,11 @@
 //! stages in the pipeline system. It handles:
 //!
 //! - **Chunk Processing**: Transform file chunks (forward or reverse)
-//! - **Position Declaration**: Specify where stage can execute (PreBinary/PostBinary/Any)
+//! - **Position Declaration**: Specify where stage can execute
+//!   (PreBinary/PostBinary/Any)
 //! - **Reversibility**: Indicate if stage supports bidirectional operations
-//! - **Type Identification**: Declare the stage type for dispatch and validation
+//! - **Type Identification**: Declare the stage type for dispatch and
+//!   validation
 //!
 //! ## Architecture
 //!
@@ -27,13 +29,14 @@
 //!
 //! - **Domain Layer**: Defines the `StageService` trait (this module)
 //! - **Infrastructure Layer**: Implements concrete services
-//! - **Dependency Inversion**: Domain defines interface; infrastructure implements
+//! - **Dependency Inversion**: Domain defines interface; infrastructure
+//!   implements
 //! - **Uniform Interface**: All stages use same method signature
 //!
 //! ## Why One Unified Trait?
 //!
-//! Previous designs had separate traits for each service type (CompressionService,
-//! EncryptionService, etc.). This created complexity:
+//! Previous designs had separate traits for each service type
+//! (CompressionService, EncryptionService, etc.). This created complexity:
 //!
 //! - Different method signatures for similar operations
 //! - Hard to add new stage types
@@ -46,22 +49,27 @@
 //! - ✅ **Simplicity**: Single trait to understand
 //! - ✅ **Extensibility**: Easy to add custom stages
 //! - ✅ **Type Safety**: Rust's trait system enforces contract
-//! - ✅ **Serialization**: Works with HashMap-based config (no generics nightmare)
+//! - ✅ **Serialization**: Works with HashMap-based config (no generics
+//!   nightmare)
 //!
 //! ## The Binary Boundary
 //!
 //! The `StagePosition` concept enforces architectural constraints:
 //!
-//! - **PreBinary**: Stages that need raw/plaintext data (PII masking, text transforms)
-//! - **PostBinary**: Stages operating on compressed/encrypted data (checksums, metrics)
+//! - **PreBinary**: Stages that need raw/plaintext data (PII masking, text
+//!   transforms)
+//! - **PostBinary**: Stages operating on compressed/encrypted data (checksums,
+//!   metrics)
 //! - **Any**: Position-agnostic stages (observability, tee, pass-through)
 //!
-//! Pipeline validation ensures PreBinary stages never execute after compression/encryption,
-//! preventing bugs like "trying to find SSNs in compressed gibberish."
+//! Pipeline validation ensures PreBinary stages never execute after
+//! compression/encryption, preventing bugs like "trying to find SSNs in
+//! compressed gibberish."
 //!
 //! ## Method Parameters - The HashMap Approach
 //!
-//! All stages receive parameters via `StageConfiguration.parameters: HashMap<String, String>`.
+//! All stages receive parameters via `StageConfiguration.parameters:
+//! HashMap<String, String>`.
 //!
 //! **Why HashMap instead of generics?**
 //!
@@ -69,7 +77,8 @@
 //! - ✅ Stored in `.adapipe` binary format
 //! - ✅ Backward compatible with existing files
 //! - ✅ No generic type explosion (`Arc<dyn StageService<T>>` impossible)
-//! - ✅ Services extract typed data when needed (e.g., KeyMaterial from HashMap)
+//! - ✅ Services extract typed data when needed (e.g., KeyMaterial from
+//!   HashMap)
 //!
 //! **Example:**
 //!
@@ -236,7 +245,7 @@
 //! - Follow Domain-Driven Design principles
 //! - Include comprehensive rustdoc documentation
 
-use crate::entities::{ ProcessingContext, StageConfiguration, StagePosition, StageType };
+use crate::entities::{ProcessingContext, StageConfiguration, StagePosition, StageType};
 use crate::value_objects::file_chunk::FileChunk;
 use crate::PipelineError;
 use std::collections::HashMap;
@@ -262,11 +271,13 @@ use std::collections::HashMap;
 /// ## Purpose
 ///
 /// This trait enables type-safe extraction of stage-specific configuration from
-/// the generic `StageConfiguration.parameters: HashMap<String, String>` storage.
-/// It bridges the gap between serializable storage and typed domain objects.
+/// the generic `StageConfiguration.parameters: HashMap<String, String>`
+/// storage. It bridges the gap between serializable storage and typed domain
+/// objects.
 ///
 /// **Key Benefits:**
-/// - **Type Safety**: Convert string-based HashMap to typed config with validation
+/// - **Type Safety**: Convert string-based HashMap to typed config with
+///   validation
 /// - **Reusability**: Common pattern for all service configurations
 /// - **Testability**: Conversion logic is isolated and easily testable
 /// - **Error Handling**: Provides clear errors for missing/invalid parameters
@@ -351,7 +362,8 @@ pub trait FromParameters: Sized {
     ///
     /// # Parameters
     ///
-    /// * `params` - HashMap containing string key-value pairs from `StageConfiguration`
+    /// * `params` - HashMap containing string key-value pairs from
+    ///   `StageConfiguration`
     ///
     /// # Returns
     ///
@@ -377,7 +389,8 @@ pub trait FromParameters: Sized {
 /// ## Thread Safety
 ///
 /// All implementations must be `Send + Sync` to support concurrent processing
-/// across multiple threads and async tasks. This is enforced by the trait bounds.
+/// across multiple threads and async tasks. This is enforced by the trait
+/// bounds.
 ///
 /// ## Synchronous Processing
 ///
@@ -388,7 +401,8 @@ pub trait FromParameters: Sized {
 /// ## Configuration Parameters
 ///
 /// All stage-specific parameters are passed via `StageConfiguration.parameters`
-/// as a `HashMap<String, String>`. Services extract and parse typed data as needed:
+/// as a `HashMap<String, String>`. Services extract and parse typed data as
+/// needed:
 ///
 /// - **Encryption**: Extracts `KeyMaterial` from base64-encoded key
 /// - **Compression**: Extracts compression level, window size, etc.
@@ -415,8 +429,8 @@ pub trait FromParameters: Sized {
 pub trait StageService: Send + Sync {
     /// Process a file chunk according to the operation (Forward or Reverse).
     ///
-    /// This is the core processing method that applies the stage's transformation
-    /// to a chunk of data. Implementations should:
+    /// This is the core processing method that applies the stage's
+    /// transformation to a chunk of data. Implementations should:
     ///
     /// - Check `config.operation` to determine direction (Forward/Reverse)
     /// - Extract any needed parameters from `config.parameters`
@@ -427,7 +441,8 @@ pub trait StageService: Send + Sync {
     /// ## Parameters
     ///
     /// * `chunk` - The input chunk to process
-    /// * `config` - Stage configuration including operation, algorithm, and parameters
+    /// * `config` - Stage configuration including operation, algorithm, and
+    ///   parameters
     /// * `context` - Processing context for metrics and metadata
     ///
     /// ## Returns
@@ -468,7 +483,7 @@ pub trait StageService: Send + Sync {
         &self,
         chunk: FileChunk,
         config: &StageConfiguration,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError>;
 
     /// Returns the position where this stage can execute in the pipeline.
@@ -513,7 +528,8 @@ pub trait StageService: Send + Sync {
     /// ## Reversibility
     ///
     /// - **Reversible (true)**: Supports both Forward and Reverse operations
-    ///   - Examples: Compression/decompression, encryption/decryption, encoding/decoding
+    ///   - Examples: Compression/decompression, encryption/decryption,
+    ///     encoding/decoding
     ///   - Can be included in restoration pipelines
     ///
     /// - **Non-reversible (false)**: Only supports Forward operation
@@ -523,7 +539,8 @@ pub trait StageService: Send + Sync {
     ///
     /// ## Usage
     ///
-    /// - Pipeline validation checks reversibility when creating restoration pipelines
+    /// - Pipeline validation checks reversibility when creating restoration
+    ///   pipelines
     /// - Non-reversible stages should return error for `Operation::Reverse`
     /// - Documentation should clearly state if stage is one-way
     ///
@@ -563,8 +580,9 @@ pub trait StageService: Send + Sync {
     ///
     /// ## Binary Boundary
     ///
-    /// Compression and Encryption types mark the binary transformation boundary.
-    /// After these stages, data is no longer in its original format.
+    /// Compression and Encryption types mark the binary transformation
+    /// boundary. After these stages, data is no longer in its original
+    /// format.
     ///
     /// ## Example
     ///

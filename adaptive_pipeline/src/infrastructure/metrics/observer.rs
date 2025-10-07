@@ -279,7 +279,8 @@ impl MetricsObserver {
 #[async_trait]
 impl ProcessingObserver for MetricsObserver {
     async fn on_processing_started(&self, total_bytes: u64) {
-        self.total_bytes.store(total_bytes, std::sync::atomic::Ordering::Relaxed);
+        self.total_bytes
+            .store(total_bytes, std::sync::atomic::Ordering::Relaxed);
         eprintln!("🚀 MetricsObserver: Processing started with {} bytes", total_bytes);
         debug!("MetricsObserver: Processing started with {} bytes", total_bytes);
     }
@@ -289,22 +290,19 @@ impl ProcessingObserver for MetricsObserver {
         debug!("MetricsObserver: Chunk {} started ({} bytes)", chunk_id, size);
 
         // Store chunk size for completion tracking
-        self.current_chunk_size.store(size as u64, std::sync::atomic::Ordering::Relaxed);
+        self.current_chunk_size
+            .store(size as u64, std::sync::atomic::Ordering::Relaxed);
     }
 
     async fn on_chunk_completed(&self, chunk_id: u64, duration: std::time::Duration) {
         let chunk_size = self.current_chunk_size.load(std::sync::atomic::Ordering::Relaxed);
         eprintln!(
             "📦 MetricsObserver: Chunk {} completed in {:?} ({} bytes)",
-            chunk_id,
-            duration,
-            chunk_size
+            chunk_id, duration, chunk_size
         );
         debug!(
             "MetricsObserver: Chunk {} completed in {:?} ({} bytes)",
-            chunk_id,
-            duration,
-            chunk_size
+            chunk_id, duration, chunk_size
         );
 
         // Update processing duration histogram
@@ -317,35 +315,30 @@ impl ProcessingObserver for MetricsObserver {
         self.metrics_service.add_bytes_processed(chunk_size);
     }
 
-    async fn on_progress_update(
-        &self,
-        bytes_processed: u64,
-        _total_bytes: u64,
-        throughput_mbps: f64
-    ) {
+    async fn on_progress_update(&self, bytes_processed: u64, _total_bytes: u64, throughput_mbps: f64) {
         // Update atomic counter
-        self.processed_bytes.store(bytes_processed, std::sync::atomic::Ordering::Relaxed);
+        self.processed_bytes
+            .store(bytes_processed, std::sync::atomic::Ordering::Relaxed);
 
         // Update real-time throughput
         let calculated_throughput = self.calculate_throughput();
-        self.metrics_service.update_throughput(calculated_throughput.max(throughput_mbps));
+        self.metrics_service
+            .update_throughput(calculated_throughput.max(throughput_mbps));
 
         eprintln!(
             "📊 MetricsObserver: Progress update - {} bytes processed, {:.2} MB/s",
-            bytes_processed,
-            calculated_throughput
+            bytes_processed, calculated_throughput
         );
         debug!(
             "MetricsObserver: Progress update - {} bytes processed, {:.2} MB/s",
-            bytes_processed,
-            calculated_throughput
+            bytes_processed, calculated_throughput
         );
     }
 
     async fn on_processing_completed(
         &self,
         total_duration: std::time::Duration,
-        final_metrics: Option<&ProcessingMetrics>
+        final_metrics: Option<&ProcessingMetrics>,
     ) {
         // Observer is the single source of truth for metrics recording
         if let Some(metrics) = final_metrics {
@@ -370,13 +363,11 @@ impl ProcessingObserver for MetricsObserver {
 
         eprintln!(
             "🏁 MetricsObserver: Processing completed in {:?}, final throughput: {:.2} MB/s",
-            total_duration,
-            final_throughput
+            total_duration, final_throughput
         );
         debug!(
             "MetricsObserver: Processing completed in {:?}, final throughput: {:.2} MB/s",
-            total_duration,
-            final_throughput
+            total_duration, final_throughput
         );
     }
 }

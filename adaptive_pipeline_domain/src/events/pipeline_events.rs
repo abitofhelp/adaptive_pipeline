@@ -126,8 +126,8 @@
 //! - **CQRS**: Separate read and write models with event synchronization
 
 use crate::services::datetime_serde;
-use crate::{ ProcessingMetrics, SecurityContext };
-use serde::{ Deserialize, Serialize };
+use crate::{ProcessingMetrics, SecurityContext};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Domain events for pipeline processing operations
@@ -450,12 +450,7 @@ impl DomainEvent for ProcessingCompletedEvent {
 
 // Factory functions for creating events
 impl PipelineCreatedEvent {
-    pub fn new(
-        pipeline_id: Uuid,
-        pipeline_name: String,
-        stage_count: usize,
-        created_by: Option<String>
-    ) -> Self {
+    pub fn new(pipeline_id: Uuid, pipeline_name: String, stage_count: usize, created_by: Option<String>) -> Self {
         Self {
             event_id: Uuid::new_v4(),
             pipeline_id,
@@ -475,7 +470,7 @@ impl ProcessingStartedEvent {
         input_path: String,
         output_path: String,
         file_size: u64,
-        security_context: SecurityContext
+        security_context: SecurityContext,
     ) -> Self {
         Self {
             event_id: Uuid::new_v4(),
@@ -492,12 +487,7 @@ impl ProcessingStartedEvent {
 }
 
 impl ProcessingCompletedEvent {
-    pub fn new(
-        pipeline_id: Uuid,
-        processing_id: Uuid,
-        metrics: ProcessingMetrics,
-        output_size: u64
-    ) -> Self {
+    pub fn new(pipeline_id: Uuid, processing_id: Uuid, metrics: ProcessingMetrics, output_size: u64) -> Self {
         Self {
             event_id: Uuid::new_v4(),
             pipeline_id,
@@ -515,7 +505,7 @@ impl SecurityViolationEvent {
         pipeline_id: Uuid,
         violation_type: String,
         description: String,
-        severity: SecurityViolationSeverity
+        severity: SecurityViolationSeverity,
     ) -> Self {
         Self {
             event_id: Uuid::new_v4(),

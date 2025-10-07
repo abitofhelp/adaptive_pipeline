@@ -27,7 +27,7 @@
 
 use adaptive_pipeline_domain::PipelineError;
 use tokio::task::JoinHandle;
-use tracing::{ debug, error };
+use tracing::{debug, error};
 
 /// Result type alias for application operations
 pub type AppResult<T> = Result<T, PipelineError>;
@@ -71,7 +71,9 @@ pub type AppResult<T> = Result<T, PipelineError>;
 /// join_supervised(handle).await?;
 /// ```
 pub fn spawn_supervised<F, T>(name: &'static str, fut: F) -> JoinHandle<AppResult<T>>
-    where F: std::future::Future<Output = AppResult<T>> + Send + 'static, T: Send + 'static
+where
+    F: std::future::Future<Output = AppResult<T>> + Send + 'static,
+    T: Send + 'static,
 {
     debug!(task = name, "task starting");
 

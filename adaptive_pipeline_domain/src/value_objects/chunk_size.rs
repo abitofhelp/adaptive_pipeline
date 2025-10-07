@@ -164,7 +164,7 @@
 //!   algorithms
 
 use crate::PipelineError;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
 /// Value object representing a chunk size with validation
 ///
@@ -226,19 +226,19 @@ impl ChunkSize {
     /// # Examples
     pub fn new(bytes: usize) -> Result<Self, PipelineError> {
         if bytes < Self::MIN_SIZE {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("Chunk size {} is below minimum of {} bytes", bytes, Self::MIN_SIZE)
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "Chunk size {} is below minimum of {} bytes",
+                bytes,
+                Self::MIN_SIZE
+            )));
         }
 
         if bytes > Self::MAX_SIZE {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("Chunk size {} exceeds maximum of {} bytes", bytes, Self::MAX_SIZE)
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "Chunk size {} exceeds maximum of {} bytes",
+                bytes,
+                Self::MAX_SIZE
+            )));
         }
 
         Ok(ChunkSize { bytes })
@@ -319,7 +319,7 @@ impl ChunkSize {
     pub fn optimal_for_file_size(file_size: u64) -> Self {
         let optimal_size = match file_size {
             // Small files: use smaller chunks (current algorithm validated)
-            0..=1_048_576 => 64 * 1024, // 64KB for files <= 1MB
+            0..=1_048_576 => 64 * 1024,           // 64KB for files <= 1MB
             1_048_577..=10_485_760 => 256 * 1024, // 256KB for files <= 10MB
 
             // Medium files: Empirically optimized for 16MB chunks
@@ -357,7 +357,7 @@ impl ChunkSize {
     pub fn adjust_for_memory(
         &self,
         available_memory: usize,
-        max_parallel_chunks: usize
+        max_parallel_chunks: usize,
     ) -> Result<Self, PipelineError> {
         let max_chunk_size = available_memory / max_parallel_chunks.max(1);
         let adjusted_size = self.bytes.min(max_chunk_size).max(Self::MIN_SIZE);
@@ -372,46 +372,36 @@ impl ChunkSize {
 
         // Basic range validation
         if user_chunk_size_bytes < Self::MIN_SIZE {
-            return Err(
-                format!(
-                    "Chunk size {} MB is too small. Minimum is {} bytes",
-                    user_chunk_size_mb,
-                    Self::MIN_SIZE
-                )
-            );
+            return Err(format!(
+                "Chunk size {} MB is too small. Minimum is {} bytes",
+                user_chunk_size_mb,
+                Self::MIN_SIZE
+            ));
         }
 
         if user_chunk_size_bytes > Self::MAX_SIZE {
-            return Err(
-                format!(
-                    "Chunk size {} MB exceeds maximum of {} MB",
-                    user_chunk_size_mb,
-                    Self::MAX_SIZE / (1024 * 1024)
-                )
-            );
+            return Err(format!(
+                "Chunk size {} MB exceeds maximum of {} MB",
+                user_chunk_size_mb,
+                Self::MAX_SIZE / (1024 * 1024)
+            ));
         }
 
         // Efficiency warnings for very small files
         if file_size > 0 && user_chunk_size_bytes > (file_size as usize) {
-            return Err(
-                format!(
-                    "Chunk size {} MB is larger than file size ({} bytes). Consider smaller chunk size",
-                    user_chunk_size_mb,
-                    file_size
-                )
-            );
+            return Err(format!(
+                "Chunk size {} MB is larger than file size ({} bytes). Consider smaller chunk size",
+                user_chunk_size_mb, file_size
+            ));
         }
 
         // Warning for very large chunks on small files
         if file_size < 10_485_760 && user_chunk_size_mb > 10 {
             // File < 10MB, chunk > 10MB
-            return Err(
-                format!(
-                    "Chunk size {} MB is excessive for small file ({} bytes). Consider 1-10 MB",
-                    user_chunk_size_mb,
-                    file_size
-                )
-            );
+            return Err(format!(
+                "Chunk size {} MB is excessive for small file ({} bytes). Consider 1-10 MB",
+                user_chunk_size_mb, file_size
+            ));
         }
 
         Ok(user_chunk_size_bytes)
@@ -717,7 +707,7 @@ mod tests {
     #[test]
     fn test_chunk_size_hash_consistency() {
         use std::collections::HashMap;
-        use std::path::{ Path, PathBuf };
+        use std::path::{Path, PathBuf};
 
         let size1 = ChunkSize::from_mb(16).unwrap();
         let size2 = ChunkSize::from_mb(16).unwrap();
@@ -828,11 +818,11 @@ mod tests {
     fn test_chunk_size_performance_characteristics() {
         // Test that optimal chunk size makes sense for different file sizes
         let sizes = vec![
-            1024, // 1KB
-            1024 * 1024, // 1MB
-            10 * 1024 * 1024, // 10MB
-            100 * 1024 * 1024, // 100MB
-            1024 * 1024 * 1024 // 1GB
+            1024,               // 1KB
+            1024 * 1024,        // 1MB
+            10 * 1024 * 1024,   // 10MB
+            100 * 1024 * 1024,  // 100MB
+            1024 * 1024 * 1024, // 1GB
         ];
 
         for file_size in sizes {

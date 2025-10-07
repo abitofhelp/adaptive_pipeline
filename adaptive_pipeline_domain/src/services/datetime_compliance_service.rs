@@ -176,8 +176,8 @@
 ///
 /// This module ensures all datetime values in the system are RFC3339 compliant
 /// as required by the SRS documentation.
-use chrono::{ DateTime, Utc };
-use serde::{ Deserialize, Serialize };
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Test structure to verify RFC3339 compliance
 ///
@@ -221,8 +221,7 @@ impl DateTimeTest {
 
         // Check that the timestamp is in RFC3339 format
         // RFC3339 format: YYYY-MM-DDTHH:MM:SS.sssZ or YYYY-MM-DDTHH:MM:SS.sss+/-HH:MM
-        let rfc3339_regex = regex::Regex
-            ::new(r#"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})"#)
+        let rfc3339_regex = regex::Regex::new(r#"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})"#)
             .map_err(|e| format!("Regex compilation failed: {}", e))?;
 
         if !rfc3339_regex.is_match(&json) {
@@ -230,9 +229,8 @@ impl DateTimeTest {
         }
 
         // Deserialize back to verify round-trip compatibility
-        let _deserialized: DateTimeTest = serde_json
-            ::from_str(&json)
-            .map_err(|e| format!("Deserialization failed: {}", e))?;
+        let _deserialized: DateTimeTest =
+            serde_json::from_str(&json).map_err(|e| format!("Deserialization failed: {}", e))?;
 
         Ok(())
     }
@@ -302,11 +300,7 @@ mod tests {
         // Verify manual RFC3339 conversion
         let rfc3339_string = test_instance.to_rfc3339_string();
         assert!(rfc3339_string.contains('T'));
-        assert!(
-            rfc3339_string.ends_with('Z') ||
-                rfc3339_string.contains('+') ||
-                rfc3339_string.contains('-')
-        );
+        assert!(rfc3339_string.ends_with('Z') || rfc3339_string.contains('+') || rfc3339_string.contains('-'));
     }
 
     /// Tests datetime serialization format compliance and JSON output.

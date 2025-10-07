@@ -170,11 +170,11 @@
 //! - **Fallback**: Can fall back to silent operation if terminal is unavailable
 //! - **Recovery**: Automatically recovers from transient terminal issues
 
-use std::io::{ self, Write };
-use std::sync::atomic::{ AtomicU64, Ordering };
+use std::io::{self, Write};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tokio::time::{ Duration, Instant };
+use tokio::time::{Duration, Instant};
 
 /// Real-time progress indicator for user feedback during pipeline processing.
 ///
@@ -296,12 +296,7 @@ impl ProgressIndicatorService {
     /// * `bytes_processed` - Total bytes processed
     /// * `throughput_mb_s` - Processing throughput in MB/s
     /// * `total_duration` - Total time taken for processing
-    pub async fn show_completion(
-        &self,
-        _bytes_processed: u64,
-        _throughput_mb_s: f64,
-        _total_duration: Duration
-    ) {
+    pub async fn show_completion(&self, _bytes_processed: u64, _throughput_mb_s: f64, _total_duration: Duration) {
         let _terminal_lock = self.terminal_mutex.lock().await;
 
         // Clear the progress line and show final progress with correct total
@@ -392,7 +387,7 @@ fn format_bytes(bytes: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::time::{ sleep, Duration };
+    use tokio::time::{sleep, Duration};
 
     #[tokio::test]
     async fn test_progress_indicator_creation() {

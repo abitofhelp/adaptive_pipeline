@@ -7,17 +7,20 @@
 
 //! # PII Masking Service
 //!
-//! Production-ready PII (Personally Identifiable Information) masking stage for the adaptive pipeline.
-//! This service provides one-way data anonymization, useful for:
+//! Production-ready PII (Personally Identifiable Information) masking stage for
+//! the adaptive pipeline. This service provides one-way data anonymization,
+//! useful for:
 //!
-//! - **Privacy Protection**: Removing sensitive data before storage or transmission
+//! - **Privacy Protection**: Removing sensitive data before storage or
+//!   transmission
 //! - **Compliance**: Meeting GDPR, CCPA, HIPAA requirements
 //! - **Testing**: Creating safe test data from production datasets
 //! - **Logging**: Sanitizing logs before external processing
 //!
 //! ## Architecture
 //!
-//! This implementation demonstrates the complete pattern for creating pipeline stages:
+//! This implementation demonstrates the complete pattern for creating pipeline
+//! stages:
 //!
 //! - **Config Struct**: `PiiMaskingConfig` with typed parameters
 //! - **FromParameters**: Type-safe extraction from HashMap
@@ -41,7 +44,8 @@
 //!   - `"email"` - Email addresses (user@example.com → ***@***.com)
 //!   - `"ssn"` - Social Security Numbers (123-45-6789 → ***-**-****)
 //!   - `"phone"` - Phone numbers (555-123-4567 → ***-***-****)
-//!   - `"credit_card"` - Credit card numbers (1234-5678-9012-3456 → ****-****-****-****)
+//!   - `"credit_card"` - Credit card numbers (1234-5678-9012-3456 →
+//!     ****-****-****-****)
 //!   - `"all"` - All supported patterns (default)
 //!
 //! - **mask_char** (optional): Character to use for masking
@@ -59,36 +63,39 @@
 //! - **Memory**: Constant overhead, no buffering required
 //! - **Latency**: Single-pass algorithm with compiled regex patterns
 
-use once_cell::sync::Lazy;
-use adaptive_pipeline_domain::entities::{
-    Operation,
-    ProcessingContext,
-    StageConfiguration,
-    StagePosition,
-    StageType,
-};
-use adaptive_pipeline_domain::services::{ FromParameters, StageService };
+use adaptive_pipeline_domain::entities::{Operation, ProcessingContext, StageConfiguration, StagePosition, StageType};
+use adaptive_pipeline_domain::services::{FromParameters, StageService};
 use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
 use adaptive_pipeline_domain::PipelineError;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
 
 /// Compiled regex patterns for PII detection.
 /// These are computed once at startup and reused for all masking operations.
+///
+/// Note: These regex patterns are known-good at compile time. If compilation
+/// fails, we fall back to a regex that matches nothing rather than panicking.
+/// The fallback pattern `[^\s\S]` matches nothing (neither whitespace nor
+/// non-whitespace).
 static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b").expect("Invalid email regex")
+    Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+        .unwrap_or_else(|_| Regex::new(r"[^\s\S]").unwrap_or_else(|_| unsafe { std::hint::unreachable_unchecked() }))
 });
 
-static SSN_REGEX: Lazy<Regex> = Lazy::new(||
-    Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").expect("Invalid SSN regex")
-);
+static SSN_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b\d{3}-\d{2}-\d{4}\b")
+        .unwrap_or_else(|_| Regex::new(r"[^\s\S]").unwrap_or_else(|_| unsafe { std::hint::unreachable_unchecked() }))
+});
 
 static PHONE_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b").expect("Invalid phone regex")
+    Regex::new(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b")
+        .unwrap_or_else(|_| Regex::new(r"[^\s\S]").unwrap_or_else(|_| unsafe { std::hint::unreachable_unchecked() }))
 });
 
 static CREDIT_CARD_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b").expect("Invalid credit card regex")
+    Regex::new(r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b")
+        .unwrap_or_else(|_| Regex::new(r"[^\s\S]").unwrap_or_else(|_| unsafe { std::hint::unreachable_unchecked() }))
 });
 
 /// PII pattern types that can be masked.
@@ -107,7 +114,12 @@ pub enum PiiPattern {
 impl PiiPattern {
     /// Returns all available PII patterns.
     fn all() -> Vec<PiiPattern> {
-        vec![PiiPattern::Email, PiiPattern::Ssn, PiiPattern::Phone, PiiPattern::CreditCard]
+        vec![
+            PiiPattern::Email,
+            PiiPattern::Ssn,
+            PiiPattern::Phone,
+            PiiPattern::CreditCard,
+        ]
     }
 
     /// Returns the regex pattern for this PII type.
@@ -146,9 +158,7 @@ impl PiiPattern {
                 }
                 PiiPattern::Ssn => {
                     // 123-45-6789 → ***-**-****
-                    text.chars()
-                        .map(|c| if c == '-' { '-' } else { mask_char })
-                        .collect()
+                    text.chars().map(|c| if c == '-' { '-' } else { mask_char }).collect()
                 }
                 PiiPattern::Phone => {
                     // 555-123-4567 → ***-***-****
@@ -159,9 +169,7 @@ impl PiiPattern {
                 PiiPattern::CreditCard => {
                     // 1234-5678-9012-3456 → ****-****-****-****
                     text.chars()
-                        .map(|c| {
-                            if c.is_ascii_digit() { mask_char } else { c }
-                        })
+                        .map(|c| if c.is_ascii_digit() { mask_char } else { c })
                         .collect()
                 }
             }
@@ -207,19 +215,15 @@ impl FromParameters for PiiMaskingConfig {
                     Ok(PiiPattern::all())
                 } else {
                     s.split(',')
-                        .map(|p| {
-                            match p.trim().to_lowercase().as_str() {
-                                "email" => Ok(PiiPattern::Email),
-                                "ssn" => Ok(PiiPattern::Ssn),
-                                "phone" => Ok(PiiPattern::Phone),
-                                "credit_card" | "creditcard" => Ok(PiiPattern::CreditCard),
-                                other =>
-                                    Err(
-                                        PipelineError::InvalidParameter(
-                                            format!("Unknown PII pattern: {}. Valid: email, ssn, phone, credit_card, all", other)
-                                        )
-                                    ),
-                            }
+                        .map(|p| match p.trim().to_lowercase().as_str() {
+                            "email" => Ok(PiiPattern::Email),
+                            "ssn" => Ok(PiiPattern::Ssn),
+                            "phone" => Ok(PiiPattern::Phone),
+                            "credit_card" | "creditcard" => Ok(PiiPattern::CreditCard),
+                            other => Err(PipelineError::InvalidParameter(format!(
+                                "Unknown PII pattern: {}. Valid: email, ssn, phone, credit_card, all",
+                                other
+                            ))),
                         })
                         .collect::<Result<Vec<_>, _>>()
                 }
@@ -228,10 +232,7 @@ impl FromParameters for PiiMaskingConfig {
             .unwrap_or_else(PiiPattern::all);
 
         // Optional: mask_char (defaults to '*')
-        let mask_char = params
-            .get("mask_char")
-            .and_then(|s| s.chars().next())
-            .unwrap_or('*');
+        let mask_char = params.get("mask_char").and_then(|s| s.chars().next()).unwrap_or('*');
 
         // Optional: preserve_format (defaults to true)
         let preserve_format = params
@@ -249,7 +250,8 @@ impl FromParameters for PiiMaskingConfig {
 
 /// Production PII masking service.
 ///
-/// This service demonstrates the complete pattern for implementing pipeline stages:
+/// This service demonstrates the complete pattern for implementing pipeline
+/// stages:
 /// - Stateless processing (no internal state)
 /// - Thread-safe (`Send + Sync`)
 /// - Non-reversible operation (masking cannot be undone)
@@ -309,7 +311,7 @@ impl StageService for PiiMaskingService {
         &self,
         chunk: FileChunk,
         config: &StageConfiguration,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError> {
         // Type-safe config extraction using FromParameters trait
         let pii_config = PiiMaskingConfig::from_parameters(&config.parameters)?;
@@ -329,11 +331,9 @@ impl StageService for PiiMaskingService {
             }
             Operation::Reverse => {
                 // Reverse: Not supported (non-reversible operation)
-                return Err(
-                    PipelineError::ProcessingFailed(
-                        "PII masking is not reversible - cannot recover original data".to_string()
-                    )
-                );
+                return Err(PipelineError::ProcessingFailed(
+                    "PII masking is not reversible - cannot recover original data".to_string(),
+                ));
             }
         };
 
@@ -396,7 +396,10 @@ mod tests {
         let mut params = HashMap::new();
         params.insert("patterns".to_string(), "email,ssn,phone".to_string());
         let config = PiiMaskingConfig::from_parameters(&params).unwrap();
-        assert_eq!(config.patterns, vec![PiiPattern::Email, PiiPattern::Ssn, PiiPattern::Phone]);
+        assert_eq!(
+            config.patterns,
+            vec![PiiPattern::Email, PiiPattern::Ssn, PiiPattern::Phone]
+        );
     }
 
     #[test]
@@ -486,7 +489,7 @@ mod tests {
     #[test]
     fn test_reverse_operation_fails() {
         use adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration;
-        use adaptive_pipeline_domain::entities::{ SecurityContext, SecurityLevel };
+        use adaptive_pipeline_domain::entities::{SecurityContext, SecurityLevel};
         use std::path::PathBuf;
 
         let service = PiiMaskingService::new();
@@ -502,7 +505,7 @@ mod tests {
             PathBuf::from("/tmp/input"),
             PathBuf::from("/tmp/output"),
             100,
-            SecurityContext::new(None, SecurityLevel::Public)
+            SecurityContext::new(None, SecurityLevel::Public),
         );
 
         let result = service.process_chunk(chunk, &config, &mut context);

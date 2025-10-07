@@ -177,13 +177,13 @@
 //! - **Machine Learning**: ML-based optimization and prediction
 
 use crate::entities::security_context::SecurityLevel;
-use crate::entities::{ Pipeline, ProcessingContext, SecurityContext };
+use crate::entities::{Pipeline, ProcessingContext, SecurityContext};
 use crate::repositories::stage_executor::ResourceRequirements;
 use crate::services::datetime_serde;
-use crate::value_objects::{ FileChunk, PipelineId };
-use crate::{ PipelineError, ProcessingMetrics };
+use crate::value_objects::{FileChunk, PipelineId};
+use crate::{PipelineError, ProcessingMetrics};
 use async_trait::async_trait;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -218,12 +218,7 @@ pub trait ProcessingObserver: Send + Sync {
     async fn on_chunk_completed(&self, chunk_id: u64, duration: std::time::Duration) {}
 
     /// Called periodically with progress updates
-    async fn on_progress_update(
-        &self,
-        _bytes_processed: u64,
-        _total_bytes: u64,
-        _throughput_mbps: f64
-    ) {}
+    async fn on_progress_update(&self, _bytes_processed: u64, _total_bytes: u64, _throughput_mbps: f64) {}
 
     /// Called when processing starts
     async fn on_processing_started(&self, total_bytes: u64) {}
@@ -232,8 +227,59 @@ pub trait ProcessingObserver: Send + Sync {
     async fn on_processing_completed(
         &self,
         total_duration: std::time::Duration,
-        final_metrics: Option<&ProcessingMetrics>
-    ) {}
+        final_metrics: Option<&ProcessingMetrics>,
+    ) {
+    }
+}
+
+/// Configuration for processing a file through a pipeline
+///
+/// Groups related parameters to avoid excessive function arguments.
+/// This context is passed to `PipelineService::process_file`.
+#[derive(Clone)]
+pub struct ProcessFileContext {
+    /// Pipeline identifier
+    pub pipeline_id: PipelineId,
+    /// Security context for processing
+    pub security_context: SecurityContext,
+    /// Optional override for number of worker threads
+    pub user_worker_override: Option<usize>,
+    /// Optional override for channel depth
+    pub channel_depth_override: Option<usize>,
+    /// Optional observer for progress tracking
+    pub observer: Option<Arc<dyn ProcessingObserver>>,
+}
+
+impl ProcessFileContext {
+    /// Creates a new process file context with the given pipeline ID and
+    /// security context
+    pub fn new(pipeline_id: PipelineId, security_context: SecurityContext) -> Self {
+        Self {
+            pipeline_id,
+            security_context,
+            user_worker_override: None,
+            channel_depth_override: None,
+            observer: None,
+        }
+    }
+
+    /// Sets the worker count override
+    pub fn with_workers(mut self, workers: usize) -> Self {
+        self.user_worker_override = Some(workers);
+        self
+    }
+
+    /// Sets the channel depth override
+    pub fn with_channel_depth(mut self, depth: usize) -> Self {
+        self.channel_depth_override = Some(depth);
+        self
+    }
+
+    /// Sets the progress observer
+    pub fn with_observer(mut self, observer: Arc<dyn ProcessingObserver>) -> Self {
+        self.observer = Some(observer);
+        self
+    }
 }
 
 /// Domain service for pipeline operations
@@ -242,13 +288,9 @@ pub trait PipelineService: Send + Sync {
     /// Process a file through the pipeline
     async fn process_file(
         &self,
-        pipeline_id: PipelineId,
         input_path: &Path,
         output_path: &Path,
-        security_context: SecurityContext,
-        user_worker_override: Option<usize>,
-        channel_depth_override: Option<usize>,
-        observer: Option<Arc<dyn ProcessingObserver>>
+        context: ProcessFileContext,
     ) -> Result<ProcessingMetrics, PipelineError>;
 
     /// Processes file chunks through a pipeline
@@ -256,7 +298,7 @@ pub trait PipelineService: Send + Sync {
         &self,
         pipeline: &Pipeline,
         chunks: Vec<FileChunk>,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<Vec<FileChunk>, PipelineError>;
 
     /// Validates a pipeline configuration
@@ -266,28 +308,28 @@ pub trait PipelineService: Send + Sync {
     async fn estimate_processing_time(
         &self,
         pipeline: &Pipeline,
-        file_size: u64
+        file_size: u64,
     ) -> Result<std::time::Duration, PipelineError>;
 
     /// Gets resource requirements for a pipeline
     async fn get_resource_requirements(
         &self,
         pipeline: &Pipeline,
-        file_size: u64
+        file_size: u64,
     ) -> Result<ResourceRequirements, PipelineError>;
 
     /// Creates an optimized pipeline for a file type
     async fn create_optimized_pipeline(
         &self,
         file_path: &Path,
-        requirements: PipelineRequirements
+        requirements: PipelineRequirements,
     ) -> Result<Pipeline, PipelineError>;
 
     /// Monitors pipeline execution
     async fn monitor_execution(
         &self,
         pipeline_id: PipelineId,
-        context: &ProcessingContext
+        context: &ProcessingContext,
     ) -> Result<ExecutionStatus, PipelineError>;
 
     /// Pauses pipeline execution
@@ -303,7 +345,7 @@ pub trait PipelineService: Send + Sync {
     async fn get_execution_history(
         &self,
         pipeline_id: PipelineId,
-        limit: Option<usize>
+        limit: Option<usize>,
     ) -> Result<Vec<ExecutionRecord>, PipelineError>;
 }
 

@@ -25,12 +25,12 @@
 //! - **Key Management**: Secure key storage and retrieval
 //! - **Audit Logging**: Security event tracking and compliance
 
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
 use crate::services::datetime_serde;
 use crate::value_objects::EncryptionBenchmark;
-use crate::{ FileChunk, PipelineError, ProcessingContext, SecurityContext };
-use zeroize::{ Zeroize, ZeroizeOnDrop };
+use crate::{FileChunk, PipelineError, ProcessingContext, SecurityContext};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 // NOTE: Domain traits are synchronous. Async execution is an infrastructure
 // concern. Infrastructure can provide async adapters that wrap sync
@@ -265,12 +265,7 @@ impl KeyMaterial {
         self.key.is_empty()
     }
 
-    pub fn new(
-        key: Vec<u8>,
-        nonce: Vec<u8>,
-        salt: Vec<u8>,
-        algorithm: EncryptionAlgorithm
-    ) -> Self {
+    pub fn new(key: Vec<u8>, nonce: Vec<u8>, salt: Vec<u8>, algorithm: EncryptionAlgorithm) -> Self {
         Self {
             key,
             nonce,
@@ -320,7 +315,7 @@ pub trait EncryptionService: super::stage_service::StageService {
         chunk: FileChunk,
         config: &EncryptionConfig,
         key_material: &KeyMaterial,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError>;
 
     /// Decrypts a file chunk using the specified configuration and key material
@@ -334,7 +329,7 @@ pub trait EncryptionService: super::stage_service::StageService {
         chunk: FileChunk,
         config: &EncryptionConfig,
         key_material: &KeyMaterial,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError>;
 
     /// Derives key material from password using the specified KDF
@@ -347,7 +342,7 @@ pub trait EncryptionService: super::stage_service::StageService {
         &self,
         password: &str,
         config: &EncryptionConfig,
-        security_context: &SecurityContext
+        security_context: &SecurityContext,
     ) -> Result<KeyMaterial, PipelineError>;
 
     /// Generates random key material for encryption operations
@@ -360,7 +355,7 @@ pub trait EncryptionService: super::stage_service::StageService {
     fn generate_key_material(
         &self,
         config: &EncryptionConfig,
-        security_context: &SecurityContext
+        security_context: &SecurityContext,
     ) -> Result<KeyMaterial, PipelineError>;
 
     /// Validates encryption configuration parameters
@@ -383,7 +378,7 @@ pub trait EncryptionService: super::stage_service::StageService {
     fn benchmark_algorithm(
         &self,
         algorithm: &EncryptionAlgorithm,
-        test_data: &[u8]
+        test_data: &[u8],
     ) -> Result<EncryptionBenchmark, PipelineError>;
 
     /// Securely wipes key material from memory
@@ -401,7 +396,7 @@ pub trait EncryptionService: super::stage_service::StageService {
         &self,
         key_material: &KeyMaterial,
         key_id: &str,
-        security_context: &SecurityContext
+        security_context: &SecurityContext,
     ) -> Result<(), PipelineError>;
 
     /// Retrieves key material securely (e.g., from HSM)
@@ -413,7 +408,7 @@ pub trait EncryptionService: super::stage_service::StageService {
     fn retrieve_key_material(
         &self,
         key_id: &str,
-        security_context: &SecurityContext
+        security_context: &SecurityContext,
     ) -> Result<KeyMaterial, PipelineError>;
 
     /// Rotates encryption keys to new configuration
@@ -428,7 +423,7 @@ pub trait EncryptionService: super::stage_service::StageService {
         &self,
         old_key_id: &str,
         new_config: &EncryptionConfig,
-        security_context: &SecurityContext
+        security_context: &SecurityContext,
     ) -> Result<String, PipelineError>;
 }
 
@@ -437,9 +432,9 @@ impl Default for EncryptionConfig {
         Self {
             algorithm: EncryptionAlgorithm::Aes256Gcm,
             key_derivation: KeyDerivationFunction::Argon2,
-            key_size: 32, // 256 bits
+            key_size: 32,   // 256 bits
             nonce_size: 12, // 96 bits for GCM
-            salt_size: 16, // 128 bits
+            salt_size: 16,  // 128 bits
             iterations: 100_000,
             memory_cost: Some(65536), // 64MB for Argon2
             parallel_cost: Some(1),
@@ -500,8 +495,8 @@ impl EncryptionConfig {
             key_derivation: KeyDerivationFunction::Argon2,
             key_size: 32,
             nonce_size: 12,
-            salt_size: 32, // Larger salt
-            iterations: 1_000_000, // More iterations
+            salt_size: 32,              // Larger salt
+            iterations: 1_000_000,      // More iterations
             memory_cost: Some(1048576), // 1GB for Argon2
             parallel_cost: Some(4),
             associated_data: None,
@@ -516,7 +511,7 @@ impl EncryptionConfig {
             key_size: 32,
             nonce_size: 12,
             salt_size: 16,
-            iterations: 10_000, // Fewer iterations
+            iterations: 10_000,      // Fewer iterations
             memory_cost: Some(8192), // 8MB for Argon2
             parallel_cost: Some(1),
             associated_data: None,
@@ -532,7 +527,8 @@ impl EncryptionConfig {
 /// ## Expected Parameters
 ///
 /// - **algorithm** (required): Encryption algorithm name
-///   - Valid values: "aes256gcm", "aes128gcm", "chacha20poly1305", "xchacha20poly1305"
+///   - Valid values: "aes256gcm", "aes128gcm", "chacha20poly1305",
+///     "xchacha20poly1305"
 ///   - Example: `"algorithm" => "aes256gcm"`
 ///
 /// - **key_size** (optional): Key size in bytes
@@ -546,8 +542,8 @@ impl EncryptionConfig {
 /// ## Usage Example
 ///
 /// ```rust
-/// use std::collections::HashMap;
 /// use pipeline_domain::services::{EncryptionConfig, FromParameters};
+/// use std::collections::HashMap;
 ///
 /// let mut params = HashMap::new();
 /// params.insert("algorithm".to_string(), "aes256gcm".to_string());
@@ -555,9 +551,7 @@ impl EncryptionConfig {
 /// let config = EncryptionConfig::from_parameters(&params).unwrap();
 /// ```
 impl super::stage_service::FromParameters for EncryptionConfig {
-    fn from_parameters(
-        params: &std::collections::HashMap<String, String>
-    ) -> Result<Self, PipelineError> {
+    fn from_parameters(params: &std::collections::HashMap<String, String>) -> Result<Self, PipelineError> {
         // Required: algorithm
         let algorithm_str = params
             .get("algorithm")
@@ -568,19 +562,15 @@ impl super::stage_service::FromParameters for EncryptionConfig {
             "aes128gcm" | "aes-128-gcm" => EncryptionAlgorithm::Aes128Gcm,
             "chacha20poly1305" | "chacha20-poly1305" => EncryptionAlgorithm::ChaCha20Poly1305,
             other => {
-                return Err(
-                    PipelineError::InvalidParameter(
-                        format!("Unknown encryption algorithm: {}", other)
-                    )
-                );
+                return Err(PipelineError::InvalidParameter(format!(
+                    "Unknown encryption algorithm: {}",
+                    other
+                )));
             }
         };
 
         // Optional parameters with defaults
-        let key_size = params
-            .get("key_size")
-            .and_then(|s| s.parse::<u32>().ok())
-            .unwrap_or(32);
+        let key_size = params.get("key_size").and_then(|s| s.parse::<u32>().ok()).unwrap_or(32);
 
         let iterations = params
             .get("iterations")
@@ -610,7 +600,11 @@ impl KeyMaterial {
 
     /// Checks if key material is expired
     pub fn is_expired(&self) -> bool {
-        if let Some(expires_at) = self.expires_at { chrono::Utc::now() > expires_at } else { false }
+        if let Some(expires_at) = self.expires_at {
+            chrono::Utc::now() > expires_at
+        } else {
+            false
+        }
     }
 
     /// Securely clears key material

@@ -101,7 +101,7 @@
 use crate::entities::ProcessingContext;
 use crate::value_objects::FileChunk;
 use crate::PipelineError;
-use sha2::{ Digest, Sha256 };
+use sha2::{Digest, Sha256};
 
 // NOTE: Domain traits are synchronous. Async execution is an infrastructure
 // concern. Infrastructure can provide async adapters that wrap sync
@@ -190,7 +190,7 @@ pub trait ChecksumService: Send + Sync {
         &self,
         chunk: FileChunk,
         context: &mut ProcessingContext,
-        stage_name: &str
+        stage_name: &str,
     ) -> Result<FileChunk, PipelineError>;
 
     /// Get the final checksum value
@@ -324,10 +324,7 @@ impl ChecksumProcessor {
     /// # Note
     /// This is a sync method that uses Rayon. For async contexts, wrap in
     /// `tokio::task::spawn_blocking`.
-    pub fn process_chunks_parallel(
-        &self,
-        chunks: &[FileChunk]
-    ) -> Result<Vec<FileChunk>, PipelineError> {
+    pub fn process_chunks_parallel(&self, chunks: &[FileChunk]) -> Result<Vec<FileChunk>, PipelineError> {
         use crate::services::file_processor_service::ChunkProcessor;
         use rayon::prelude::*;
 
@@ -343,7 +340,7 @@ impl ChecksumService for ChecksumProcessor {
         &self,
         chunk: FileChunk,
         _context: &mut ProcessingContext,
-        stage_name: &str
+        stage_name: &str,
     ) -> Result<FileChunk, PipelineError> {
         // Get or create the hasher for this stage
         let _hasher_key = format!("{}_hasher", stage_name);
@@ -381,14 +378,10 @@ impl ChunkProcessor for ChecksumProcessor {
         if self.verify_existing && chunk.checksum().is_some() {
             let is_valid = chunk.verify_integrity()?;
             if !is_valid {
-                return Err(
-                    PipelineError::IntegrityError(
-                        format!(
-                            "Checksum verification failed for chunk {}",
-                            chunk.sequence_number()
-                        )
-                    )
-                );
+                return Err(PipelineError::IntegrityError(format!(
+                    "Checksum verification failed for chunk {}",
+                    chunk.sequence_number()
+                )));
             }
         }
 

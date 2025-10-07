@@ -7,15 +7,16 @@
 
 //! # Show Pipeline Use Case
 //!
-//! This module implements the use case for displaying detailed information about
-//! a specific pipeline. It retrieves complete pipeline metadata including stages,
-//! configuration, and processing metrics.
+//! This module implements the use case for displaying detailed information
+//! about a specific pipeline. It retrieves complete pipeline metadata including
+//! stages, configuration, and processing metrics.
 //!
 //! ## Overview
 //!
 //! The Show Pipeline use case provides:
 //!
-//! - **Detailed Pipeline Information**: Display all metadata for a specific pipeline
+//! - **Detailed Pipeline Information**: Display all metadata for a specific
+//!   pipeline
 //! - **Stage Breakdown**: Show configuration for each processing stage
 //! - **Metrics Display**: Present processing statistics and performance metrics
 //! - **Configuration View**: Display pipeline-level configuration parameters
@@ -55,9 +56,9 @@ use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineReposito
 
 /// Use case for displaying detailed pipeline information.
 ///
-/// This use case retrieves a specific pipeline by name and displays its complete
-/// metadata, including stages, configuration, and processing metrics. It provides
-/// comprehensive visibility into pipeline structure and behavior.
+/// This use case retrieves a specific pipeline by name and displays its
+/// complete metadata, including stages, configuration, and processing metrics.
+/// It provides comprehensive visibility into pipeline structure and behavior.
 ///
 /// ## Responsibilities
 ///
@@ -100,8 +101,9 @@ impl ShowPipelineUseCase {
 
     /// Executes the show pipeline use case.
     ///
-    /// Retrieves a specific pipeline by name and displays its complete metadata,
-    /// including all stages, configuration parameters, and processing metrics.
+    /// Retrieves a specific pipeline by name and displays its complete
+    /// metadata, including all stages, configuration parameters, and
+    /// processing metrics.
     ///
     /// ## Parameters
     ///
@@ -172,8 +174,10 @@ impl ShowPipelineUseCase {
         info!("Showing pipeline details: {}", pipeline_name);
 
         // Find pipeline by name (user-friendly lookup)
-        let pipeline = self.pipeline_repository
-            .find_by_name(&pipeline_name).await
+        let pipeline = self
+            .pipeline_repository
+            .find_by_name(&pipeline_name)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
             .ok_or_else(|| anyhow::anyhow!("Pipeline not found: {}", pipeline_name))?;
 

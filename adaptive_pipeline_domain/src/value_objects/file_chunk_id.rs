@@ -184,11 +184,11 @@
 //! - **JSON**: Direct string representation for API compatibility
 //! - **Database**: TEXT column with ULID string storage
 
-use serde::{ Deserialize, Serialize };
-use std::fmt::{ self, Display };
+use serde::{Deserialize, Serialize};
+use std::fmt::{self, Display};
 use ulid::Ulid;
 
-use super::generic_id::{ GenericId, IdCategory };
+use super::generic_id::{GenericId, IdCategory};
 use crate::PipelineError;
 
 /// File chunk identifier value object for type-safe chunk management
@@ -247,9 +247,9 @@ impl IdCategory for FileChunkMarker {
     fn validate_id(ulid: &Ulid) -> Result<(), PipelineError> {
         // Common validation: not nil, reasonable timestamp
         if ulid.0 == 0 {
-            return Err(
-                PipelineError::InvalidConfiguration("File Chunk ID cannot be nil ULID".to_string())
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "File Chunk ID cannot be nil ULID".to_string(),
+            ));
         }
 
         // Check if timestamp is reasonable (not more than 1 day in the future)
@@ -258,11 +258,9 @@ impl IdCategory for FileChunkMarker {
         let one_day_ms = 24 * 60 * 60 * 1000;
 
         if id_timestamp > now + one_day_ms {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "File Chunk ID timestamp is too far in the future".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "File Chunk ID timestamp is too far in the future".to_string(),
+            ));
         }
 
         Ok(())
@@ -378,13 +376,19 @@ impl AsRef<Ulid> for FileChunkId {
 
 // Custom serialization to use simple string format
 impl Serialize for FileChunkId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
         self.0.serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for FileChunkId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
         let generic_id = GenericId::deserialize(deserializer)?;
         Ok(Self(generic_id))
     }

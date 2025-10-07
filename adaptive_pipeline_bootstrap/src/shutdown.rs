@@ -51,7 +51,7 @@
 //! }
 //! ```
 
-use std::sync::atomic::{ AtomicBool, Ordering };
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Notify;
@@ -178,10 +178,10 @@ impl ShutdownCoordinator {
     /// 2. Cancel all tokens
     /// 3. Start grace period timer
     pub fn initiate_shutdown(&self) {
-        if
-            self.shutdown_initiated
-                .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-                .is_ok()
+        if self
+            .shutdown_initiated
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .is_ok()
         {
             tracing::info!("Initiating graceful shutdown (grace period: {:?})", self.grace_period);
             self.token.cancel();
@@ -354,10 +354,7 @@ mod tests {
         });
 
         // This should complete quickly (not timeout)
-        let result = tokio::time::timeout(
-            Duration::from_millis(200),
-            coordinator.wait_for_shutdown()
-        ).await;
+        let result = tokio::time::timeout(Duration::from_millis(200), coordinator.wait_for_shutdown()).await;
 
         assert!(result.is_ok());
         assert!(result.unwrap()); // True = completed, not timed out

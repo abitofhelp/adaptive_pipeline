@@ -133,8 +133,8 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use crate::infrastructure::repositories::generic::{ Repository, RepositoryEntity };
-use crate::infrastructure::repositories::sqlite::{ SqliteEntity, SqliteRepository };
+use crate::infrastructure::repositories::generic::{Repository, RepositoryEntity};
+use crate::infrastructure::repositories::sqlite::{SqliteEntity, SqliteRepository};
 use adaptive_pipeline_domain::PipelineError;
 
 /// Adapter that bridges between domain Repository trait and SQLite
@@ -162,7 +162,8 @@ pub struct SqliteRepositoryAdapter<T> {
 }
 
 impl<T> SqliteRepositoryAdapter<T>
-    where T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>
+where
+    T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>,
 {
     /// Creates a new adapter wrapping the SQLite repository
     pub fn new(sqlite_repo: SqliteRepository<T>) -> Self {
@@ -199,18 +200,15 @@ impl<T> SqliteRepositoryAdapter<T>
 }
 
 #[async_trait]
-impl<T> Repository<T>
-    for SqliteRepositoryAdapter<T>
-    where T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>
+impl<T> Repository<T> for SqliteRepositoryAdapter<T>
+where
+    T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>,
 {
     async fn save(&self, entity: &T) -> Result<(), PipelineError> {
         self.sqlite_repo.save(entity).await
     }
 
-    async fn find_by_id(
-        &self,
-        id: <T as RepositoryEntity>::Id
-    ) -> Result<Option<T>, PipelineError> {
+    async fn find_by_id(&self, id: <T as RepositoryEntity>::Id) -> Result<Option<T>, PipelineError> {
         self.sqlite_repo.find_by_id(id).await
     }
 
@@ -266,16 +264,18 @@ pub struct RepositoryFactory;
 
 impl RepositoryFactory {
     /// Creates an in-memory repository for the given entity type
-    pub fn create_in_memory<T>() -> Arc<dyn Repository<T>> where T: RepositoryEntity {
+    pub fn create_in_memory<T>() -> Arc<dyn Repository<T>>
+    where
+        T: RepositoryEntity,
+    {
         use crate::infrastructure::repositories::generic::InMemoryRepository;
         Arc::new(InMemoryRepository::<T>::new())
     }
 
     /// Creates a SQLite repository for the given entity type
-    pub async fn create_sqlite<T>(
-        database_path: &str
-    ) -> Result<Arc<dyn Repository<T>>, PipelineError>
-        where T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>
+    pub async fn create_sqlite<T>(database_path: &str) -> Result<Arc<dyn Repository<T>>, PipelineError>
+    where
+        T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>,
     {
         let adapter = SqliteRepositoryAdapter::from_file(database_path).await?;
         Ok(Arc::new(adapter))
@@ -283,7 +283,8 @@ impl RepositoryFactory {
 
     /// Creates an in-memory SQLite repository (useful for testing)
     pub async fn create_sqlite_in_memory<T>() -> Result<Arc<dyn Repository<T>>, PipelineError>
-        where T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>
+    where
+        T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>,
     {
         let adapter = SqliteRepositoryAdapter::in_memory().await?;
         Ok(Arc::new(adapter))
@@ -301,9 +302,7 @@ pub enum RepositoryConfig {
     /// Use in-memory storage (fast, non-persistent)
     InMemory,
     /// Use SQLite storage with file path (persistent)
-    Sqlite {
-        database_path: String,
-    },
+    Sqlite { database_path: String },
     /// Use in-memory SQLite (useful for testing)
     SqliteInMemory,
 }
@@ -311,12 +310,12 @@ pub enum RepositoryConfig {
 impl RepositoryConfig {
     /// Creates a repository based on the configuration
     pub async fn create_repository<T>(&self) -> Result<Arc<dyn Repository<T>>, PipelineError>
-        where T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>
+    where
+        T: RepositoryEntity + SqliteEntity<Id = <T as RepositoryEntity>::Id>,
     {
         match self {
             RepositoryConfig::InMemory => Ok(RepositoryFactory::create_in_memory()),
-            RepositoryConfig::Sqlite { database_path } =>
-                RepositoryFactory::create_sqlite(database_path).await,
+            RepositoryConfig::Sqlite { database_path } => RepositoryFactory::create_sqlite(database_path).await,
             RepositoryConfig::SqliteInMemory => RepositoryFactory::create_sqlite_in_memory().await,
         }
     }
@@ -325,9 +324,7 @@ impl RepositoryConfig {
     pub fn from_env() -> Self {
         match std::env::var("REPOSITORY_TYPE").as_deref() {
             Ok("sqlite") => {
-                let database_path = std::env
-                    ::var("DATABASE_PATH")
-                    .unwrap_or_else(|_| "pipeline.db".to_string());
+                let database_path = std::env::var("DATABASE_PATH").unwrap_or_else(|_| "pipeline.db".to_string());
                 RepositoryConfig::Sqlite { database_path }
             }
             Ok("sqlite_memory") => RepositoryConfig::SqliteInMemory,
@@ -341,7 +338,7 @@ mod tests {
     use super::*;
     use crate::infrastructure::repositories::generic::RepositoryEntity;
     use crate::infrastructure::repositories::sqlite::SqliteEntity;
-    use serde::{ Deserialize, Serialize };
+    use serde::{Deserialize, Serialize};
     use uuid::Uuid;
 
     #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -400,11 +397,9 @@ mod tests {
         }
 
         fn id_from_string(s: &str) -> Result<Self::Id, adaptive_pipeline_domain::PipelineError> {
-            Uuid::parse_str(s).map_err(|e|
-                adaptive_pipeline_domain::PipelineError::InvalidConfiguration(
-                    format!("Invalid UUID: {}", e)
-                )
-            )
+            Uuid::parse_str(s).map_err(|e| {
+                adaptive_pipeline_domain::PipelineError::InvalidConfiguration(format!("Invalid UUID: {}", e))
+            })
         }
     }
 
@@ -448,7 +443,9 @@ mod tests {
         // assert!(in_memory_repo.count().is_ok());
 
         // Test SQLite in-memory creation
-        let sqlite_repo = RepositoryFactory::create_sqlite_in_memory::<TestEntity>().await.unwrap();
+        let sqlite_repo = RepositoryFactory::create_sqlite_in_memory::<TestEntity>()
+            .await
+            .unwrap();
         // assert!(sqlite_repo.count().is_ok());
     }
 

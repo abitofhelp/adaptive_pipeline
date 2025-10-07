@@ -12,13 +12,13 @@
 //! pattern.
 
 pub mod concurrency_metrics;
-pub mod generic_collector;
 pub mod endpoint;
+pub mod generic_collector;
 pub mod observer;
 pub mod service;
 
 pub use concurrency_metrics::*;
-pub use generic_collector::*;
 pub use endpoint::*;
+pub use generic_collector::*;
 pub use observer::*;
 pub use service::*;

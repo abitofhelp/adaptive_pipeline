@@ -179,10 +179,10 @@
 //! - **Circuit Breaker**: Built-in circuit breaker implementation
 //! - **Distributed Tracing**: Distributed tracing support
 
-use async_trait::async_trait;
 use adaptive_pipeline_domain::error::PipelineError;
 use adaptive_pipeline_domain::services::datetime_serde;
-use serde::{ Deserialize, Serialize };
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::RwLock;
@@ -263,14 +263,22 @@ impl ServiceMetadata {
 }
 
 /// Generic service base providing common functionality for all services
-pub struct GenericServiceBase<C, S> where C: ServiceConfig, S: ServiceStats {
+pub struct GenericServiceBase<C, S>
+where
+    C: ServiceConfig,
+    S: ServiceStats,
+{
     metadata: ServiceMetadata,
     config: RwLock<C>,
     stats: RwLock<S>,
     is_healthy: RwLock<bool>,
 }
 
-impl<C, S> GenericServiceBase<C, S> where C: ServiceConfig, S: ServiceStats {
+impl<C, S> GenericServiceBase<C, S>
+where
+    C: ServiceConfig,
+    S: ServiceStats,
+{
     /// Creates a new service base with default configuration
     pub fn new(service_name: String, service_version: String) -> Self {
         Self {
@@ -282,11 +290,7 @@ impl<C, S> GenericServiceBase<C, S> where C: ServiceConfig, S: ServiceStats {
     }
 
     /// Creates a new service base with custom configuration
-    pub fn with_config(
-        service_name: String,
-        service_version: String,
-        config: C
-    ) -> Result<Self, PipelineError> {
+    pub fn with_config(service_name: String, service_version: String, config: C) -> Result<Self, PipelineError> {
         config.validate()?;
         Ok(Self {
             metadata: ServiceMetadata::new(service_name, service_version),
@@ -308,7 +312,8 @@ impl<C, S> GenericServiceBase<C, S> where C: ServiceConfig, S: ServiceStats {
     pub fn update_config(&self, new_config: C) -> Result<(), PipelineError> {
         new_config.validate()?;
 
-        let mut config = self.config
+        let mut config = self
+            .config
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write config: {}", e)))?;
 
@@ -332,8 +337,12 @@ impl<C, S> GenericServiceBase<C, S> where C: ServiceConfig, S: ServiceStats {
     }
 
     /// Updates statistics
-    pub fn update_stats<F>(&self, updater: F) -> Result<(), PipelineError> where F: FnOnce(&mut S) {
-        let mut stats = self.stats
+    pub fn update_stats<F>(&self, updater: F) -> Result<(), PipelineError>
+    where
+        F: FnOnce(&mut S),
+    {
+        let mut stats = self
+            .stats
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write stats: {}", e)))?;
 
@@ -353,10 +362,7 @@ impl<C, S> GenericServiceBase<C, S> where C: ServiceConfig, S: ServiceStats {
 
     /// Checks if the service is healthy
     pub fn is_healthy(&self) -> bool {
-        self.is_healthy
-            .read()
-            .map(|health| *health)
-            .unwrap_or(false)
+        self.is_healthy.read().map(|health| *health).unwrap_or(false)
     }
 
     /// Sets the health status
@@ -432,18 +438,14 @@ mod tests {
     impl ServiceConfig for TestConfig {
         fn validate(&self) -> Result<(), PipelineError> {
             if self.max_connections == 0 {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        "max_connections must be greater than 0".to_string()
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(
+                    "max_connections must be greater than 0".to_string(),
+                ));
             }
             if self.timeout_ms == 0 {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        "timeout_ms must be greater than 0".to_string()
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(
+                    "timeout_ms must be greater than 0".to_string(),
+                ));
             }
             Ok(())
         }
@@ -489,7 +491,7 @@ mod tests {
             summary.insert("errors_count".to_string(), self.errors_count.to_string());
             summary.insert(
                 "total_processing_time_ms".to_string(),
-                self.total_processing_time_ms.to_string()
+                self.total_processing_time_ms.to_string(),
             );
             summary
         }
@@ -530,10 +532,7 @@ mod tests {
     /// - Default configuration is applied
     #[test]
     fn test_generic_service_base_creation() {
-        let service = GenericServiceBase::<TestConfig, TestStats>::new(
-            "test_service".to_string(),
-            "1.0.0".to_string()
-        );
+        let service = GenericServiceBase::<TestConfig, TestStats>::new("test_service".to_string(), "1.0.0".to_string());
 
         // assert_eq!(service.get_metadata().service_name, "test_service");
         // assert_eq!(service.get_metadata().service_version, "1.0.0");
@@ -589,7 +588,7 @@ mod tests {
         let result = GenericServiceBase::<TestConfig, TestStats>::with_config(
             "test_service".to_string(),
             "1.0.0".to_string(),
-            invalid_config
+            invalid_config,
         );
 
         assert!(result.is_err());
@@ -629,10 +628,7 @@ mod tests {
     /// - Values are preserved and reset
     #[test]
     fn test_stats_operations() {
-        let service = GenericServiceBase::<TestConfig, TestStats>::new(
-            "test_service".to_string(),
-            "1.0.0".to_string()
-        );
+        let service = GenericServiceBase::<TestConfig, TestStats>::new("test_service".to_string(), "1.0.0".to_string());
 
         // Update stats
         service
@@ -688,10 +684,7 @@ mod tests {
     /// - Summary is complete
     #[test]
     fn test_service_summary() {
-        let service = GenericServiceBase::<TestConfig, TestStats>::new(
-            "test_service".to_string(),
-            "1.0.0".to_string()
-        );
+        let service = GenericServiceBase::<TestConfig, TestStats>::new("test_service".to_string(), "1.0.0".to_string());
 
         let summary = service.get_service_summary().unwrap();
         assert_eq!(summary.get("service_name").unwrap(), "test_service");

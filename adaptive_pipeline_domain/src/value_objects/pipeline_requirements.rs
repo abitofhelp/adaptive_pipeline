@@ -33,7 +33,7 @@
 //!
 //! ## Usage Examples
 
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
 /// Pipeline requirements for optimization, security, and performance
 /// configuration.

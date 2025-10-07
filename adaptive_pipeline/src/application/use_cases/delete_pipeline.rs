@@ -53,7 +53,7 @@
 //! ```
 
 use anyhow::Result;
-use std::io::{ self, Write };
+use std::io::{self, Write};
 use std::sync::Arc;
 use tracing::info;
 
@@ -172,8 +172,10 @@ impl DeletePipelineUseCase {
         info!("Deleting pipeline: {}", pipeline_name);
 
         // Find pipeline by name first (verify it exists)
-        let pipeline = self.pipeline_repository
-            .find_by_name(&pipeline_name).await
+        let pipeline = self
+            .pipeline_repository
+            .find_by_name(&pipeline_name)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
             .ok_or_else(|| anyhow::anyhow!("Pipeline '{}' not found", pipeline_name))?;
 
@@ -186,7 +188,10 @@ impl DeletePipelineUseCase {
 
         // Confirmation prompt unless --force is used
         if !force {
-            print!("\nAre you sure you want to delete pipeline '{}'? [y/N]: ", pipeline_name);
+            print!(
+                "\nAre you sure you want to delete pipeline '{}'? [y/N]: ",
+                pipeline_name
+            );
             io::stdout().flush()?;
 
             let mut input = String::new();
@@ -201,7 +206,8 @@ impl DeletePipelineUseCase {
 
         // Delete the pipeline from repository
         self.pipeline_repository
-            .delete(pipeline.id().clone()).await
+            .delete(pipeline.id().clone())
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to delete pipeline: {}", e))?;
 
         println!("✅ Pipeline '{}' deleted successfully", pipeline_name);

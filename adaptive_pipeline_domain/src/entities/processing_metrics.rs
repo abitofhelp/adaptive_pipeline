@@ -39,9 +39,9 @@
 //! Metrics are calculated and updated in real-time as processing progresses,
 //! providing immediate feedback on performance characteristics.
 
-use chrono::{ DateTime, Utc };
-use serde::{ Deserialize, Serialize };
-use std::time::{ Duration, Instant };
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::time::{Duration, Instant};
 
 /// Processing metrics entity for comprehensive performance tracking and
 /// analysis.
@@ -308,20 +308,16 @@ impl ProcessingMetrics {
 
     /// Gets start time as `DateTime<Utc>`
     pub fn start_time(&self) -> Option<DateTime<Utc>> {
-        self.start_time_rfc3339.as_ref().and_then(|s|
-            DateTime::parse_from_rfc3339(s)
-                .ok()
-                .map(|dt| dt.with_timezone(&Utc))
-        )
+        self.start_time_rfc3339
+            .as_ref()
+            .and_then(|s| DateTime::parse_from_rfc3339(s).ok().map(|dt| dt.with_timezone(&Utc)))
     }
 
     /// Gets end time as `DateTime<Utc>`
     pub fn end_time(&self) -> Option<DateTime<Utc>> {
-        self.end_time_rfc3339.as_ref().and_then(|s|
-            DateTime::parse_from_rfc3339(s)
-                .ok()
-                .map(|dt| dt.with_timezone(&Utc))
-        )
+        self.end_time_rfc3339
+            .as_ref()
+            .and_then(|s| DateTime::parse_from_rfc3339(s).ok().map(|dt| dt.with_timezone(&Utc)))
     }
 
     /// Gets throughput in bytes per second

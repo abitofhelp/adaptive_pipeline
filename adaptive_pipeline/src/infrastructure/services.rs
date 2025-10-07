@@ -31,7 +31,7 @@ pub mod tee;
 
 // Re-export service implementations
 pub use base64_encoding::Base64EncodingService;
-pub use binary_format::{ BinaryFormatService, AdapipeFormat, BinaryFormatWriter };
+pub use binary_format::{AdapipeFormat, BinaryFormatService, BinaryFormatWriter};
 pub use debug::DebugService;
 pub use passthrough::PassThroughService;
 pub use pii_masking::PiiMaskingService;

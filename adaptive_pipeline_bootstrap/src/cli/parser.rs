@@ -12,7 +12,7 @@
 //! This module defines the CLI structure and handles argument parsing.
 //! Security validation happens in the validator module after parsing.
 
-use clap::{ Parser, Subcommand };
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 /// Main CLI structure

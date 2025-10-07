@@ -160,14 +160,14 @@
 //! - **Configuration Analytics**: Analytics and monitoring of configuration
 //!   usage
 
-use async_trait::async_trait;
 use adaptive_pipeline_domain::error::PipelineError;
 use adaptive_pipeline_domain::services::datetime_serde;
+use async_trait::async_trait;
 use serde::de::DeserializeOwned;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::sync::{ Arc, RwLock };
+use std::sync::{Arc, RwLock};
 
 /// Generic trait for configuration validation with detailed error reporting
 ///
@@ -284,23 +284,15 @@ impl FileConfigSource {
 #[async_trait]
 impl ConfigSource for FileConfigSource {
     async fn load(&self) -> Result<String, PipelineError> {
-        tokio::fs
-            ::read_to_string(&self.file_path).await
-            .map_err(|e|
-                PipelineError::InternalError(
-                    format!("Failed to read config file {}: {}", self.file_path, e)
-                )
-            )
+        tokio::fs::read_to_string(&self.file_path)
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to read config file {}: {}", self.file_path, e)))
     }
 
     async fn save(&self, data: &str) -> Result<(), PipelineError> {
-        tokio::fs
-            ::write(&self.file_path, data).await
-            .map_err(|e|
-                PipelineError::InternalError(
-                    format!("Failed to write config file {}: {}", self.file_path, e)
-                )
-            )
+        tokio::fs::write(&self.file_path, data)
+            .await
+            .map_err(|e| PipelineError::InternalError(format!("Failed to write config file {}: {}", self.file_path, e)))
     }
 
     async fn exists(&self) -> bool {
@@ -335,15 +327,14 @@ impl ConfigSource for EnvConfigSource {
             }
         }
 
-        serde_json
-            ::to_string(&config_map)
-            .map_err(|e|
-                PipelineError::InternalError(format!("Failed to serialize env config: {}", e))
-            )
+        serde_json::to_string(&config_map)
+            .map_err(|e| PipelineError::InternalError(format!("Failed to serialize env config: {}", e)))
     }
 
     async fn save(&self, _data: &str) -> Result<(), PipelineError> {
-        Err(PipelineError::InternalError("Cannot save to environment variables".to_string()))
+        Err(PipelineError::InternalError(
+            "Cannot save to environment variables".to_string(),
+        ))
     }
 
     async fn exists(&self) -> bool {
@@ -369,16 +360,19 @@ pub struct ConfigChangeEvent<T> {
 
 /// Configuration change listener trait
 #[async_trait]
-pub trait ConfigChangeListener<T>
-    : Send + Sync
-    where T: ConfigValidation + Serialize + DeserializeOwned
+pub trait ConfigChangeListener<T>: Send + Sync
+where
+    T: ConfigValidation + Serialize + DeserializeOwned,
 {
     /// Called when configuration changes
     async fn on_config_changed(&self, event: ConfigChangeEvent<T>) -> Result<(), PipelineError>;
 }
 
 /// Generic configuration manager providing centralized configuration management
-pub struct GenericConfigManager<T> where T: ConfigValidation + Serialize + DeserializeOwned {
+pub struct GenericConfigManager<T>
+where
+    T: ConfigValidation + Serialize + DeserializeOwned,
+{
     config: RwLock<T>,
     sources: Vec<Arc<dyn ConfigSource>>,
     listeners: Vec<Arc<dyn ConfigChangeListener<T>>>,
@@ -386,7 +380,10 @@ pub struct GenericConfigManager<T> where T: ConfigValidation + Serialize + Deser
     auto_reload: bool,
 }
 
-impl<T> GenericConfigManager<T> where T: ConfigValidation + Serialize + DeserializeOwned {
+impl<T> GenericConfigManager<T>
+where
+    T: ConfigValidation + Serialize + DeserializeOwned,
+{
     /// Creates a new configuration manager with default configuration
     pub fn new(default_config: T) -> Self {
         Self {
@@ -429,20 +426,20 @@ impl<T> GenericConfigManager<T> where T: ConfigValidation + Serialize + Deserial
         &self,
         new_config: T,
         change_reason: String,
-        changed_by: String
+        changed_by: String,
     ) -> Result<(), PipelineError> {
         // Validate the new configuration
         let validation_result = new_config.validate();
         if !validation_result.is_valid {
-            let error_messages: Vec<String> = validation_result.errors
+            let error_messages: Vec<String> = validation_result
+                .errors
                 .iter()
                 .map(|e| format!("{}: {}", e.field, e.message))
                 .collect();
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("Configuration validation failed: {}", error_messages.join(", "))
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "Configuration validation failed: {}",
+                error_messages.join(", ")
+            )));
         }
 
         // Get the old configuration for the change event
@@ -450,11 +447,10 @@ impl<T> GenericConfigManager<T> where T: ConfigValidation + Serialize + Deserial
 
         // Update the configuration
         {
-            let mut config = self.config
+            let mut config = self
+                .config
                 .write()
-                .map_err(|e|
-                    PipelineError::InternalError(format!("Failed to write config: {}", e))
-                )?;
+                .map_err(|e| PipelineError::InternalError(format!("Failed to write config: {}", e)))?;
             *config = new_config.clone();
         }
 
@@ -494,13 +490,9 @@ impl<T> GenericConfigManager<T> where T: ConfigValidation + Serialize + Deserial
         for source in &self.sources {
             if source.exists().await {
                 let config_data = source.load().await?;
-                let config: T = serde_json
-                    ::from_str(&config_data)
-                    .map_err(|e| {
-                        PipelineError::InternalError(
-                            format!("Failed to parse config from {}: {}", source.source_id(), e)
-                        )
-                    })?;
+                let config: T = serde_json::from_str(&config_data).map_err(|e| {
+                    PipelineError::InternalError(format!("Failed to parse config from {}: {}", source.source_id(), e))
+                })?;
 
                 merged_config = Some(match merged_config {
                     Some(_existing) => {
@@ -514,7 +506,8 @@ impl<T> GenericConfigManager<T> where T: ConfigValidation + Serialize + Deserial
         }
 
         if let Some(config) = merged_config {
-            self.update_config(config, "Loaded from sources".to_string(), changed_by).await?;
+            self.update_config(config, "Loaded from sources".to_string(), changed_by)
+                .await?;
         }
 
         Ok(())
@@ -523,11 +516,8 @@ impl<T> GenericConfigManager<T> where T: ConfigValidation + Serialize + Deserial
     /// Saves current configuration to the first writable source
     pub async fn save_to_source(&self) -> Result<(), PipelineError> {
         let config = self.get_config()?;
-        let config_data = serde_json
-            ::to_string_pretty(&config)
-            .map_err(|e|
-                PipelineError::InternalError(format!("Failed to serialize config: {}", e))
-            )?;
+        let config_data = serde_json::to_string_pretty(&config)
+            .map_err(|e| PipelineError::InternalError(format!("Failed to serialize config: {}", e)))?;
 
         for source in &self.sources {
             if let Ok(()) = source.save(&config_data).await {
@@ -535,7 +525,9 @@ impl<T> GenericConfigManager<T> where T: ConfigValidation + Serialize + Deserial
             }
         }
 
-        Err(PipelineError::InternalError("No writable configuration source available".to_string()))
+        Err(PipelineError::InternalError(
+            "No writable configuration source available".to_string(),
+        ))
     }
 
     /// Gets configuration change history
@@ -570,30 +562,27 @@ mod tests {
             let mut result = ConfigValidationResult::valid();
 
             if self.database_url.is_empty() {
-                result.add_error(
-                    "database_url".to_string(),
-                    "Database URL cannot be empty".to_string()
-                );
+                result.add_error("database_url".to_string(), "Database URL cannot be empty".to_string());
             }
 
             if self.max_connections == 0 {
                 result.add_error(
                     "max_connections".to_string(),
-                    "Max connections must be greater than 0".to_string()
+                    "Max connections must be greater than 0".to_string(),
                 );
             }
 
             if self.max_connections > 1000 {
                 result.add_warning(
                     "max_connections".to_string(),
-                    "Very high connection count may impact performance".to_string()
+                    "Very high connection count may impact performance".to_string(),
                 );
             }
 
             if self.timeout_seconds == 0 {
                 result.add_error(
                     "timeout_seconds".to_string(),
-                    "Timeout must be greater than 0".to_string()
+                    "Timeout must be greater than 0".to_string(),
                 );
             }
 
@@ -604,11 +593,7 @@ mod tests {
             "1.0.0".to_string()
         }
 
-        fn migrate_from_version(
-            &self,
-            _from_version: &str,
-            _data: &str
-        ) -> Result<Self, PipelineError> {
+        fn migrate_from_version(&self, _from_version: &str, _data: &str) -> Result<Self, PipelineError> {
             // Simple migration - just return self for now
             Ok(self.clone())
         }
@@ -645,11 +630,9 @@ mod tests {
             features: vec![],
         };
 
-        let result = config_manager.update_config(
-            invalid_config,
-            "Test update".to_string(),
-            "test_user".to_string()
-        ).await;
+        let result = config_manager
+            .update_config(invalid_config, "Test update".to_string(), "test_user".to_string())
+            .await;
 
         assert!(result.is_err());
     }
@@ -666,11 +649,8 @@ mod tests {
         };
 
         config_manager
-            .update_config(
-                new_config,
-                "Updated for testing".to_string(),
-                "test_user".to_string()
-            ).await
+            .update_config(new_config, "Updated for testing".to_string(), "test_user".to_string())
+            .await
             .unwrap();
 
         let history = config_manager.get_change_history();

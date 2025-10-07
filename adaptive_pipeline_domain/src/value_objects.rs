@@ -196,7 +196,7 @@ pub mod worker_count;
 
 // Re-export all value object types for convenient access
 pub use algorithm::Algorithm;
-pub use binary_file_format::{ ChunkFormat, FileHeader, ProcessingStepType };
+pub use binary_file_format::{ChunkFormat, FileHeader, ProcessingStepType};
 pub use chunk_metadata::ChunkMetadata;
 pub use chunk_size::ChunkSize;
 pub use encryption_benchmark::EncryptionBenchmark;

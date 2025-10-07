@@ -195,10 +195,10 @@
 //! - **Path Compression**: Compressed path storage
 //! - **Advanced Validation**: More sophisticated validation rules
 
-use serde::{ Deserialize, Serialize };
-use std::fmt::{ self, Display };
+use serde::{Deserialize, Serialize};
+use std::fmt::{self, Display};
 use std::marker::PhantomData;
-use std::path::{ Path, PathBuf };
+use std::path::{Path, PathBuf};
 
 use crate::PipelineError;
 
@@ -289,19 +289,17 @@ impl PathCategory for InputMarker {
     fn validate_category(path: &Path) -> Result<(), PipelineError> {
         // Input paths should exist and be readable
         if !path.exists() {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("Input path does not exist: {}", path.display())
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "Input path does not exist: {}",
+                path.display()
+            )));
         }
 
         if path.is_dir() {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("Input path must be a file, not a directory: {}", path.display())
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "Input path must be a file, not a directory: {}",
+                path.display()
+            )));
         }
 
         Ok(())
@@ -321,11 +319,10 @@ impl PathCategory for OutputMarker {
         // Output paths should have writable parent directories
         if let Some(parent) = path.parent() {
             if parent.exists() && !parent.is_dir() {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!("Output path parent is not a directory: {}", parent.display())
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Output path parent is not a directory: {}",
+                    parent.display()
+                )));
             }
         }
 
@@ -348,11 +345,9 @@ impl PathCategory for TempMarker {
         if let Ok(canonical_path) = path.canonicalize() {
             if let Ok(canonical_temp) = temp_dir.canonicalize() {
                 if !canonical_path.starts_with(canonical_temp) {
-                    return Err(
-                        PipelineError::InvalidConfiguration(
-                            "Temporary path should be in system temp directory".to_string()
-                        )
-                    );
+                    return Err(PipelineError::InvalidConfiguration(
+                        "Temporary path should be in system temp directory".to_string(),
+                    ));
                 }
             }
         }
@@ -375,21 +370,16 @@ impl PathCategory for ConfigMarker {
         if let Some(extension) = path.extension() {
             let ext_str = extension.to_string_lossy().to_lowercase();
             if !["toml", "yaml", "yml", "json", "ini", "conf"].contains(&ext_str.as_str()) {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!(
-                            "Configuration file must have valid extension (.toml, .yaml, .json, etc.): {}",
-                            path.display()
-                        )
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Configuration file must have valid extension (.toml, .yaml, .json, etc.): {}",
+                    path.display()
+                )));
             }
         } else {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("Configuration file must have an extension: {}", path.display())
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "Configuration file must have an extension: {}",
+                path.display()
+            )));
         }
 
         Ok(())
@@ -411,20 +401,16 @@ impl PathCategory for LogMarker {
             .extension()
             .is_some_and(|ext| ext.to_string_lossy().to_lowercase() == "log");
 
-        let in_logs_dir = path
-            .ancestors()
-            .any(|ancestor| {
-                ancestor
-                    .file_name()
-                    .is_some_and(|name| name.to_string_lossy().to_lowercase().contains("log"))
-            });
+        let in_logs_dir = path.ancestors().any(|ancestor| {
+            ancestor
+                .file_name()
+                .is_some_and(|name| name.to_string_lossy().to_lowercase().contains("log"))
+        });
 
         if !has_log_extension && !in_logs_dir {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "Log file should have .log extension or be in a logs directory".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "Log file should have .log extension or be in a logs directory".to_string(),
+            ));
         }
 
         Ok(())
@@ -581,26 +567,22 @@ impl<T: PathCategory> FilePath<T> {
     fn validate_path(path: &Path) -> Result<(), PipelineError> {
         // Common validation for all path types
         if path.as_os_str().is_empty() {
-            return Err(
-                PipelineError::InvalidConfiguration("File path cannot be empty".to_string())
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "File path cannot be empty".to_string(),
+            ));
         }
 
         let path_str = path.to_string_lossy();
         if path_str.contains('\0') {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "File path cannot contain null bytes".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "File path cannot contain null bytes".to_string(),
+            ));
         }
 
         if path_str.len() > 4096 {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    "File path exceeds maximum length of 4096 characters".to_string()
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(
+                "File path exceeds maximum length of 4096 characters".to_string(),
+            ));
         }
 
         Ok(())
@@ -614,7 +596,10 @@ impl<T: PathCategory> FilePath<T> {
     }
 }
 
-impl<T> Display for FilePath<T> where T: PathCategory {
+impl<T> Display for FilePath<T>
+where
+    T: PathCategory,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", T::category_name(), self.to_string_lossy())
     }
@@ -638,27 +623,22 @@ impl InputPath {
     pub fn existing<P: AsRef<Path>>(path: P) -> Result<Self, PipelineError> {
         let input_path = Self::new(path)?;
         if !input_path.exists() {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("Input file does not exist: {}", input_path.to_string_lossy())
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "Input file does not exist: {}",
+                input_path.to_string_lossy()
+            )));
         }
         Ok(input_path)
     }
 
     /// Creates an input path with required extension
-    pub fn with_required_extension<P: AsRef<Path>>(
-        path: P,
-        ext: &str
-    ) -> Result<Self, PipelineError> {
+    pub fn with_required_extension<P: AsRef<Path>>(path: P, ext: &str) -> Result<Self, PipelineError> {
         let input_path = Self::new(path)?;
         if !input_path.extension().is_some_and(|e| e.eq_ignore_ascii_case(ext)) {
-            return Err(
-                PipelineError::InvalidConfiguration(
-                    format!("Input file must have .{} extension", ext)
-                )
-            );
+            return Err(PipelineError::InvalidConfiguration(format!(
+                "Input file must have .{} extension",
+                ext
+            )));
         }
         Ok(input_path)
     }
@@ -670,13 +650,9 @@ impl OutputPath {
         let output_path = Self::new(path)?;
         if let Some(parent) = output_path.path.parent() {
             if !parent.exists() {
-                std::fs
-                    ::create_dir_all(parent)
-                    .map_err(|e| {
-                        PipelineError::InvalidConfiguration(
-                            format!("Failed to create parent directory: {}", e)
-                        )
-                    })?;
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    PipelineError::InvalidConfiguration(format!("Failed to create parent directory: {}", e))
+                })?;
             }
         }
         Ok(output_path)
@@ -685,17 +661,14 @@ impl OutputPath {
     /// Creates a backup of an existing output path
     pub fn create_backup(&self) -> Result<OutputPath, PipelineError> {
         if self.exists() {
-            let backup_path = self.with_extension(
-                &format!("{}.backup", self.extension().unwrap_or("bak"))
-            );
-            std::fs
-                ::copy(&self.path, &backup_path.path)
-                .map_err(|e|
-                    PipelineError::InvalidConfiguration(format!("Failed to create backup: {}", e))
-                )?;
+            let backup_path = self.with_extension(&format!("{}.backup", self.extension().unwrap_or("bak")));
+            std::fs::copy(&self.path, &backup_path.path)
+                .map_err(|e| PipelineError::InvalidConfiguration(format!("Failed to create backup: {}", e)))?;
             Ok(backup_path)
         } else {
-            Err(PipelineError::InvalidConfiguration("Cannot backup non-existing file".to_string()))
+            Err(PipelineError::InvalidConfiguration(
+                "Cannot backup non-existing file".to_string(),
+            ))
         }
     }
 }
@@ -704,8 +677,7 @@ impl TempPath {
     /// Creates a temporary path with unique name
     pub fn unique(prefix: &str, extension: &str) -> Result<Self, PipelineError> {
         let temp_dir = std::env::temp_dir();
-        let timestamp = std::time::SystemTime
-            ::now()
+        let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis();
@@ -722,10 +694,7 @@ impl TempPath {
     }
 
     /// Creates a temporary path that will be automatically cleaned up
-    pub fn auto_cleanup(
-        prefix: &str,
-        extension: &str
-    ) -> Result<AutoCleanupTempPath, PipelineError> {
+    pub fn auto_cleanup(prefix: &str, extension: &str) -> Result<AutoCleanupTempPath, PipelineError> {
         let temp_path = Self::unique(prefix, extension)?;
         Ok(AutoCleanupTempPath::new(temp_path))
     }
@@ -798,7 +767,7 @@ mod tests {
     use std::collections::HashMap;
     use std::fs;
     use std::io::Write;
-    use std::time::{ SystemTime, UNIX_EPOCH };
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     // ============================================================================
     // COMPREHENSIVE TEST FRAMEWORK APPLICATION
@@ -810,7 +779,12 @@ mod tests {
 
     impl FilePathTestImpl {
         fn valid_input_paths() -> Vec<&'static str> {
-            vec!["/tmp/test_input.txt", "/tmp/config.conf", "/tmp/app.log", "/tmp/document.pdf"]
+            vec![
+                "/tmp/test_input.txt",
+                "/tmp/config.conf",
+                "/tmp/app.log",
+                "/tmp/document.pdf",
+            ]
         }
 
         fn valid_output_paths() -> Vec<&'static str> {
@@ -818,7 +792,7 @@ mod tests {
                 "/tmp/test_output.txt",
                 "/var/output/result.dat",
                 "/home/user/processed.bin",
-                "/opt/app/export.json"
+                "/opt/app/export.json",
             ]
         }
 
@@ -827,7 +801,7 @@ mod tests {
                 "",
                 "relative/path.txt",
                 "/nonexistent/deeply/nested/path.txt",
-                "/dev/null/invalid.txt" // null is not a directory
+                "/dev/null/invalid.txt", // null is not a directory
             ]
         }
 
@@ -1008,7 +982,7 @@ mod tests {
             ("/tmp/output_ser.txt", "OutputPath"),
             ("/tmp/temp_ser.txt", "TempPath"),
             ("/tmp/config_ser.toml", "ConfigPath"),
-            ("/tmp/logs/log_ser.log", "LogPath")
+            ("/tmp/logs/log_ser.log", "LogPath"),
         ];
 
         for (path_str, type_name) in test_cases {
@@ -1319,7 +1293,7 @@ mod tests {
             "/tmp/config.toml",
             "/tmp/config.yaml",
             "/tmp/config.yml",
-            "/tmp/config.json"
+            "/tmp/config.json",
         ];
 
         for config_path in valid_configs {
@@ -1492,7 +1466,7 @@ mod tests {
 
     #[test]
     fn test_path_creation_and_validation() {
-        use std::time::{ SystemTime, UNIX_EPOCH };
+        use std::time::{SystemTime, UNIX_EPOCH};
 
         // Create unique temporary file for testing to avoid conflicts
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();

@@ -32,74 +32,54 @@ use futures::future;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{ debug, info, warn, Instrument };
+use tracing::{debug, info, warn, Instrument};
 
 use adaptive_pipeline_domain::aggregates::PipelineAggregate;
 use adaptive_pipeline_domain::entities::pipeline_stage::StageType;
 use adaptive_pipeline_domain::entities::{
-    Pipeline,
-    PipelineStage,
-    ProcessingContext,
-    ProcessingMetrics,
-    SecurityContext,
+    Pipeline, PipelineStage, ProcessingContext, ProcessingMetrics, SecurityContext,
 };
 use adaptive_pipeline_domain::repositories::stage_executor::ResourceRequirements;
-use adaptive_pipeline_domain::repositories::{ PipelineRepository, StageExecutor };
-use adaptive_pipeline_domain::services::file_io_service::{ FileIOService, ReadOptions };
-use adaptive_pipeline_domain::services::file_processor_service::{
-    ChunkProcessor,
-    FileProcessingResult,
-};
+use adaptive_pipeline_domain::repositories::{PipelineRepository, StageExecutor};
+use adaptive_pipeline_domain::services::file_io_service::{FileIOService, ReadOptions};
+use adaptive_pipeline_domain::services::file_processor_service::{ChunkProcessor, FileProcessingResult};
 use adaptive_pipeline_domain::services::{
-    CompressionService,
-    EncryptionService,
-    ExecutionRecord,
-    ExecutionState,
-    ExecutionStatus,
-    KeyMaterial,
-    PipelineRequirements,
-    PipelineService,
+    CompressionService, EncryptionService, ExecutionRecord, ExecutionState, ExecutionStatus, KeyMaterial,
+    PipelineRequirements, PipelineService,
 };
-use adaptive_pipeline_domain::value_objects::{
-    ChunkFormat,
-    ChunkSize,
-    FileChunk,
-    PipelineId,
-    WorkerCount,
-};
+use adaptive_pipeline_domain::value_objects::{ChunkFormat, ChunkSize, FileChunk, PipelineId, WorkerCount};
 use adaptive_pipeline_domain::PipelineError;
 
-use crate::infrastructure::services::binary_format::{ BinaryFormatService, BinaryFormatWriter };
+use crate::infrastructure::services::binary_format::{BinaryFormatService, BinaryFormatWriter};
 use crate::infrastructure::services::progress_indicator::ProgressIndicatorService;
 
-/// Concrete implementation of the pipeline service
-///
-/// This struct provides the main orchestration logic for the adaptive pipeline
-/// system, coordinating multiple services to process files through compression,
-/// encryption, and binary format operations.
-///
-/// # Architecture
-///
-/// The pipeline service acts as the central coordinator, managing:
-/// - Service dependencies and their lifecycles
-/// - Processing workflow orchestration
-/// - Resource allocation and management
-/// - Progress monitoring and reporting
-/// - Error handling and recovery
-///
-/// # Dependencies
-///
-/// The service requires several injected dependencies:
-/// - **Compression Service**: Handles data compression operations
-/// - **Encryption Service**: Manages encryption and key operations
-/// - **Binary Format Service**: Creates and manages .adapipe format files
-/// - **Pipeline Repository**: Persists pipeline state and metadata
-/// - **Stage Executor**: Executes individual pipeline stages
-/// - **Metrics Service**: Collects and reports performance metrics
-/// - **Progress Indicator**: Provides real-time progress updates
-///
-/// # Examples
-
+// Concrete implementation of the pipeline service
+//
+// This struct provides the main orchestration logic for the adaptive pipeline
+// system, coordinating multiple services to process files through compression,
+// encryption, and binary format operations.
+//
+// # Architecture
+//
+// The pipeline service acts as the central coordinator, managing:
+// - Service dependencies and their lifecycles
+// - Processing workflow orchestration
+// - Resource allocation and management
+// - Progress monitoring and reporting
+// - Error handling and recovery
+//
+// # Dependencies
+//
+// The service requires several injected dependencies:
+// - **Compression Service**: Handles data compression operations
+// - **Encryption Service**: Manages encryption and key operations
+// - **Binary Format Service**: Creates and manages .adapipe format files
+// - **Pipeline Repository**: Persists pipeline state and metadata
+// - **Stage Executor**: Executes individual pipeline stages
+// - **Metrics Service**: Collects and reports performance metrics
+// - **Progress Indicator**: Provides real-time progress updates
+//
+// # Examples
 // ============================================================================
 // Channel-Based Pipeline Architecture
 // ============================================================================
@@ -217,7 +197,7 @@ async fn reader_task(
     tx_cpu: tokio::sync::mpsc::Sender<ChunkMessage>,
     file_io_service: Arc<dyn FileIOService>,
     channel_capacity: usize,
-    cancel_token: bootstrap::shutdown::CancellationToken
+    cancel_token: bootstrap::shutdown::CancellationToken,
 ) -> Result<ReaderStats, PipelineError> {
     use crate::infrastructure::metrics::CONCURRENCY_METRICS;
 
@@ -229,14 +209,15 @@ async fn reader_task(
     // Configure read options for streaming
     let read_options = ReadOptions {
         chunk_size: Some(chunk_size),
-        use_memory_mapping: false, // Stream from disk, don't load all into memory
+        use_memory_mapping: false,  // Stream from disk, don't load all into memory
         calculate_checksums: false, // We'll calculate during processing
         ..Default::default()
     };
 
     // Read file into chunks using FileIOService
     let read_result = file_io_service
-        .read_file_chunks(&input_path, read_options).await
+        .read_file_chunks(&input_path, read_options)
+        .await
         .map_err(|e| PipelineError::IoError(format!("Failed to read file chunks: {}", e)))?;
 
     let total_chunks = read_result.chunks.len();
@@ -286,6 +267,19 @@ async fn reader_task(
     })
 }
 
+/// Context for CPU worker tasks
+///
+/// Groups related parameters to avoid excessive function arguments
+struct CpuWorkerContext {
+    writer: Arc<dyn BinaryFormatWriter>,
+    pipeline: Arc<Pipeline>,
+    stage_executor: Arc<dyn StageExecutor>,
+    input_path: PathBuf,
+    output_path: PathBuf,
+    input_size: u64,
+    security_context: SecurityContext,
+}
+
 /// CPU Worker Task - Stage 2 of Execution Pipeline
 ///
 /// ## Educational: Worker Pool Pattern
@@ -308,26 +302,15 @@ async fn reader_task(
 /// ## Arguments
 /// - `worker_id`: Unique identifier for this worker (for metrics/debugging)
 /// - `rx_cpu`: Channel receiver for chunks (shared among workers)
-/// - `writer`: Thread-safe writer for concurrent random-access writes
-/// - `pipeline`: Processing pipeline configuration (what stages to run)
-/// - `stage_executor`: Executes individual processing stages
-/// - `input_path`: Input file path (for ProcessingContext)
-/// - `output_path`: Output file path (for ProcessingContext)
-/// - `input_size`: Total input file size (for ProcessingContext)
-/// - `security_context`: Security context for processing
+/// - `ctx`: Context containing processing dependencies and file information
 ///
 /// ## Returns
 /// `WorkerStats` with worker ID and chunks processed
+#[allow(dead_code)]
 async fn cpu_worker_task(
     worker_id: usize,
     mut rx_cpu: tokio::sync::mpsc::Receiver<ChunkMessage>,
-    writer: Arc<dyn BinaryFormatWriter>,
-    pipeline: Arc<Pipeline>,
-    stage_executor: Arc<dyn StageExecutor>,
-    input_path: PathBuf,
-    output_path: PathBuf,
-    input_size: u64,
-    security_context: SecurityContext
+    ctx: CpuWorkerContext,
 ) -> Result<WorkerStats, PipelineError> {
     use crate::infrastructure::metrics::CONCURRENCY_METRICS;
     use crate::infrastructure::runtime::RESOURCE_MANAGER;
@@ -342,9 +325,10 @@ async fn cpu_worker_task(
 
         // Acquire global CPU token to prevent oversubscription
         let cpu_wait_start = std::time::Instant::now();
-        let _cpu_permit = RESOURCE_MANAGER.acquire_cpu().await.map_err(|e|
-            PipelineError::resource_exhausted(format!("Failed to acquire CPU token: {}", e))
-        )?;
+        let _cpu_permit = RESOURCE_MANAGER
+            .acquire_cpu()
+            .await
+            .map_err(|e| PipelineError::resource_exhausted(format!("Failed to acquire CPU token: {}", e)))?;
         let cpu_wait_duration = cpu_wait_start.elapsed();
 
         CONCURRENCY_METRICS.record_cpu_wait(cpu_wait_duration);
@@ -356,22 +340,22 @@ async fn cpu_worker_task(
 
         // Create local processing context for this chunk
         let mut local_context = ProcessingContext::new(
-            input_path.clone(),
-            output_path.clone(),
-            input_size,
-            security_context.clone()
+            ctx.input_path.clone(),
+            ctx.output_path.clone(),
+            ctx.input_size,
+            ctx.security_context.clone(),
         );
 
         // Execute each configured stage sequentially on this chunk
         // Start with the FileChunk we received
         let mut file_chunk = chunk_msg.file_chunk;
 
-        for stage in pipeline.stages() {
-            file_chunk = stage_executor
-                .execute(stage, file_chunk, &mut local_context).await
-                .map_err(|e|
-                    PipelineError::processing_failed(format!("Stage execution failed: {}", e))
-                )?;
+        for stage in ctx.pipeline.stages() {
+            file_chunk = ctx
+                .stage_executor
+                .execute(stage, file_chunk, &mut local_context)
+                .await
+                .map_err(|e| PipelineError::processing_failed(format!("Stage execution failed: {}", e)))?;
         }
 
         // ===================================================
@@ -411,7 +395,9 @@ async fn cpu_worker_task(
         let chunk_format = ChunkFormat::new(nonce, chunk_data);
 
         // Direct concurrent write to calculated position
-        writer.write_chunk_at_position(chunk_format, chunk_msg.chunk_index as u64).await?;
+        ctx.writer
+            .write_chunk_at_position(chunk_format, chunk_msg.chunk_index as u64)
+            .await?;
 
         // Educational: CPU token released automatically (RAII drop)
         CONCURRENCY_METRICS.worker_completed();
@@ -454,7 +440,7 @@ impl ConcurrentPipeline {
         file_io_service: Arc<dyn FileIOService>,
         pipeline_repository: Arc<dyn PipelineRepository>,
         stage_executor: Arc<dyn StageExecutor>,
-        binary_format_service: Arc<dyn BinaryFormatService>
+        binary_format_service: Arc<dyn BinaryFormatService>,
     ) -> Self {
         Self {
             compression_service,
@@ -472,7 +458,7 @@ impl ConcurrentPipeline {
         &self,
         chunk: FileChunk,
         stage: &PipelineStage,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<FileChunk, PipelineError> {
         debug!("Processing chunk through stage: {}", stage.name());
 
@@ -480,26 +466,23 @@ impl ConcurrentPipeline {
             StageType::Compression => {
                 // Extract compression configuration from stage
                 let compression_config = self.extract_compression_config(stage)?;
-                self.compression_service.compress_chunk(chunk, &compression_config, context)
+                self.compression_service
+                    .compress_chunk(chunk, &compression_config, context)
             }
             StageType::Encryption => {
                 let encryption_config = self.extract_encryption_config(stage)?;
                 // Generate a temporary key material for demonstration (NOT secure for
                 // production)
                 let key_material = KeyMaterial {
-                    key: vec![0u8; 32], // 32-byte key
+                    key: vec![0u8; 32],   // 32-byte key
                     nonce: vec![0u8; 12], // 12-byte nonce
-                    salt: vec![0u8; 32], // 32-byte salt
+                    salt: vec![0u8; 32],  // 32-byte salt
                     algorithm: encryption_config.algorithm.clone(),
                     created_at: chrono::Utc::now(),
                     expires_at: None,
                 };
-                self.encryption_service.encrypt_chunk(
-                    chunk,
-                    &encryption_config,
-                    &key_material,
-                    context
-                )
+                self.encryption_service
+                    .encrypt_chunk(chunk, &encryption_config, &key_material, context)
             }
 
             StageType::Checksum => {
@@ -521,7 +504,7 @@ impl ConcurrentPipeline {
     /// Extracts compression configuration from a pipeline stage
     fn extract_compression_config(
         &self,
-        stage: &PipelineStage
+        stage: &PipelineStage,
     ) -> Result<adaptive_pipeline_domain::services::CompressionConfig, PipelineError> {
         let algorithm_str = stage.configuration().algorithm.as_str();
         let algorithm = match algorithm_str {
@@ -530,25 +513,23 @@ impl ConcurrentPipeline {
             "zstd" => adaptive_pipeline_domain::services::CompressionAlgorithm::Zstd,
             "lz4" => adaptive_pipeline_domain::services::CompressionAlgorithm::Lz4,
             _ => {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!("Unsupported compression algorithm: {}", algorithm_str)
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Unsupported compression algorithm: {}",
+                    algorithm_str
+                )));
             }
         };
 
         // Extract compression level from parameters
         let level = stage
             .configuration()
-            .parameters.get("level")
+            .parameters
+            .get("level")
             .and_then(|v| v.parse::<u32>().ok())
-            .map(|l| {
-                match l {
-                    0..=3 => adaptive_pipeline_domain::services::CompressionLevel::Fast,
-                    4..=6 => adaptive_pipeline_domain::services::CompressionLevel::Balanced,
-                    7.. => adaptive_pipeline_domain::services::CompressionLevel::Best,
-                }
+            .map(|l| match l {
+                0..=3 => adaptive_pipeline_domain::services::CompressionLevel::Fast,
+                4..=6 => adaptive_pipeline_domain::services::CompressionLevel::Balanced,
+                7.. => adaptive_pipeline_domain::services::CompressionLevel::Best,
             })
             .unwrap_or(adaptive_pipeline_domain::services::CompressionLevel::Balanced);
 
@@ -564,69 +545,55 @@ impl ConcurrentPipeline {
     /// Extracts encryption configuration from a pipeline stage
     fn extract_encryption_config(
         &self,
-        stage: &PipelineStage
+        stage: &PipelineStage,
     ) -> Result<adaptive_pipeline_domain::services::EncryptionConfig, PipelineError> {
         let algorithm_str = stage.configuration().algorithm.as_str();
         let algorithm = match algorithm_str {
-            "aes256-gcm" | "aes256gcm" =>
-                adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm,
+            "aes256-gcm" | "aes256gcm" => adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm,
             "chacha20-poly1305" | "chacha20poly1305" => {
                 adaptive_pipeline_domain::services::EncryptionAlgorithm::ChaCha20Poly1305
             }
-            "aes128-gcm" | "aes128gcm" =>
-                adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes128Gcm,
-            "aes192-gcm" | "aes192gcm" =>
-                adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes192Gcm,
+            "aes128-gcm" | "aes128gcm" => adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes128Gcm,
+            "aes192-gcm" | "aes192gcm" => adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes192Gcm,
             _ => {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!("Unsupported encryption algorithm: {}", algorithm_str)
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Unsupported encryption algorithm: {}",
+                    algorithm_str
+                )));
             }
         };
 
         let kdf = stage
             .configuration()
-            .parameters.get("kdf")
-            .map(|kdf_str| {
-                match kdf_str.as_str() {
-                    "argon2" => adaptive_pipeline_domain::services::KeyDerivationFunction::Argon2,
-                    "scrypt" => adaptive_pipeline_domain::services::KeyDerivationFunction::Scrypt,
-                    "pbkdf2" => adaptive_pipeline_domain::services::KeyDerivationFunction::Pbkdf2,
-                    _ => adaptive_pipeline_domain::services::KeyDerivationFunction::Argon2,
-                }
+            .parameters
+            .get("kdf")
+            .map(|kdf_str| match kdf_str.as_str() {
+                "argon2" => adaptive_pipeline_domain::services::KeyDerivationFunction::Argon2,
+                "scrypt" => adaptive_pipeline_domain::services::KeyDerivationFunction::Scrypt,
+                "pbkdf2" => adaptive_pipeline_domain::services::KeyDerivationFunction::Pbkdf2,
+                _ => adaptive_pipeline_domain::services::KeyDerivationFunction::Argon2,
             });
 
         Ok(adaptive_pipeline_domain::services::EncryptionConfig {
             algorithm,
-            key_derivation: kdf.unwrap_or(
-                adaptive_pipeline_domain::services::KeyDerivationFunction::Argon2
-            ),
-            key_size: 32, // Default to 256-bit keys
-            nonce_size: 12, // Standard for AES-GCM
-            salt_size: 16, // Standard salt size
-            iterations: 100_000, // Default iterations for PBKDF2
+            key_derivation: kdf.unwrap_or(adaptive_pipeline_domain::services::KeyDerivationFunction::Argon2),
+            key_size: 32,             // Default to 256-bit keys
+            nonce_size: 12,           // Standard for AES-GCM
+            salt_size: 16,            // Standard salt size
+            iterations: 100_000,      // Default iterations for PBKDF2
             memory_cost: Some(65536), // Default for Argon2
-            parallel_cost: Some(1), // Default for Argon2
-            associated_data: None, // No additional authenticated data by default
+            parallel_cost: Some(1),   // Default for Argon2
+            associated_data: None,    // No additional authenticated data by default
         })
     }
 
     /// Updates processing metrics based on execution results
-    fn update_metrics(
-        &self,
-        context: &mut ProcessingContext,
-        stage_name: &str,
-        duration: std::time::Duration
-    ) {
+    fn update_metrics(&self, context: &mut ProcessingContext, stage_name: &str, duration: std::time::Duration) {
         let mut metrics = context.metrics().clone();
 
         // Create new stage metrics with actual data
         let mut stage_metrics =
-            adaptive_pipeline_domain::entities::processing_metrics::StageMetrics::new(
-                stage_name.to_string()
-            );
+            adaptive_pipeline_domain::entities::processing_metrics::StageMetrics::new(stage_name.to_string());
         stage_metrics.update(metrics.bytes_processed(), duration);
         metrics.add_stage_metrics(stage_metrics);
 
@@ -638,51 +605,43 @@ impl ConcurrentPipeline {
 impl PipelineService for ConcurrentPipeline {
     async fn process_file(
         &self,
-        pipeline_id: PipelineId,
         input_path: &std::path::Path,
         output_path: &std::path::Path,
-        security_context: SecurityContext,
-        user_worker_override: Option<usize>,
-        channel_depth_override: Option<usize>,
-        observer: Option<
-            std::sync::Arc<
-                dyn adaptive_pipeline_domain::services::pipeline_service::ProcessingObserver
-            >
-        >
+        context: adaptive_pipeline_domain::services::pipeline_service::ProcessFileContext,
     ) -> Result<ProcessingMetrics, PipelineError> {
         debug!(
             "Processing file: {} -> {} with pipeline {} (.adapipe format)",
             input_path.display(),
             output_path.display(),
-            pipeline_id
+            context.pipeline_id
         );
 
         let start_time = std::time::Instant::now();
 
         // Load pipeline from repository using the provided PipelineId
-        let pipeline = self.pipeline_repository
-            .find_by_id(pipeline_id.clone()).await?
-            .ok_or_else(|| PipelineError::PipelineNotFound(pipeline_id.to_string()))?;
+        let pipeline = self
+            .pipeline_repository
+            .find_by_id(context.pipeline_id.clone())
+            .await?
+            .ok_or_else(|| PipelineError::PipelineNotFound(context.pipeline_id.to_string()))?;
 
         // Validate pipeline before execution
         self.validate_pipeline(&pipeline).await?;
 
         // Get file metadata first to determine optimal chunk size
-        let input_metadata = tokio::fs
-            ::metadata(input_path).await
+        let input_metadata = tokio::fs::metadata(input_path)
+            .await
             .map_err(|e| PipelineError::IoError(e.to_string()))?;
         let input_size = input_metadata.len();
 
         // Calculate optimal chunk size based on file size
-        let chunk_size = adaptive_pipeline_domain::value_objects::ChunkSize
-            ::optimal_for_file_size(input_size)
-            .bytes();
+        let chunk_size = adaptive_pipeline_domain::value_objects::ChunkSize::optimal_for_file_size(input_size).bytes();
 
         // Use FileIOService to read file in chunks (streaming, memory-efficient)
         // This avoids loading the entire file into memory
         let read_options = adaptive_pipeline_domain::services::file_io_service::ReadOptions {
             chunk_size: Some(chunk_size),
-            use_memory_mapping: false, // Start with streaming; can optimize later
+            use_memory_mapping: false,  // Start with streaming; can optimize later
             calculate_checksums: false, // We'll calculate overall checksum ourselves
             ..Default::default()
         };
@@ -720,7 +679,7 @@ impl PipelineService for ConcurrentPipeline {
                 .unwrap_or("unknown")
                 .to_string(),
             input_size,
-            original_checksum.clone()
+            original_checksum.clone(),
         );
 
         // Add processing steps based on pipeline stages
@@ -736,22 +695,18 @@ impl PipelineService for ConcurrentPipeline {
                     debug!("✅ Matched Compression stage: {}", stage.name());
                     let config = self.extract_compression_config(stage)?;
                     let algorithm_str = match config.algorithm {
-                        adaptive_pipeline_domain::services::CompressionAlgorithm::Brotli =>
-                            "brotli",
+                        adaptive_pipeline_domain::services::CompressionAlgorithm::Brotli => "brotli",
                         adaptive_pipeline_domain::services::CompressionAlgorithm::Gzip => "gzip",
                         adaptive_pipeline_domain::services::CompressionAlgorithm::Zstd => "zstd",
                         adaptive_pipeline_domain::services::CompressionAlgorithm::Lz4 => "lz4",
-                        adaptive_pipeline_domain::services::CompressionAlgorithm::Custom(
-                            ref name,
-                        ) => name.as_str(),
+                        adaptive_pipeline_domain::services::CompressionAlgorithm::Custom(ref name) => name.as_str(),
                     };
                     let level = match config.level {
                         adaptive_pipeline_domain::services::CompressionLevel::Fastest => 1,
                         adaptive_pipeline_domain::services::CompressionLevel::Fast => 3,
                         adaptive_pipeline_domain::services::CompressionLevel::Balanced => 6,
                         adaptive_pipeline_domain::services::CompressionLevel::Best => 9,
-                        adaptive_pipeline_domain::services::CompressionLevel::Custom(level) =>
-                            level,
+                        adaptive_pipeline_domain::services::CompressionLevel::Custom(level) => level,
                     };
                     header = header.add_compression_step(algorithm_str, level);
                 }
@@ -759,16 +714,11 @@ impl PipelineService for ConcurrentPipeline {
                     debug!("✅ Matched Encryption stage: {}", stage.name());
                     let config = self.extract_encryption_config(stage)?;
                     let algorithm_str = match config.algorithm {
-                        adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes128Gcm =>
-                            "aes128gcm",
-                        adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes192Gcm =>
-                            "aes192gcm",
-                        adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm =>
-                            "aes256gcm",
-                        adaptive_pipeline_domain::services::EncryptionAlgorithm::ChaCha20Poly1305 =>
-                            "chacha20poly1305",
-                        adaptive_pipeline_domain::services::EncryptionAlgorithm::Custom(ref name) =>
-                            name.as_str(),
+                        adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes128Gcm => "aes128gcm",
+                        adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes192Gcm => "aes192gcm",
+                        adaptive_pipeline_domain::services::EncryptionAlgorithm::Aes256Gcm => "aes256gcm",
+                        adaptive_pipeline_domain::services::EncryptionAlgorithm::ChaCha20Poly1305 => "chacha20poly1305",
+                        adaptive_pipeline_domain::services::EncryptionAlgorithm::Custom(ref name) => name.as_str(),
                     };
                     header = header.add_encryption_step(algorithm_str, "argon2", 32, 12);
                 }
@@ -793,7 +743,7 @@ impl PipelineService for ConcurrentPipeline {
                     header = header.add_custom_step(
                         stage.name(),
                         stage.configuration().algorithm.as_str(),
-                        stage.configuration().parameters.clone()
+                        stage.configuration().parameters.clone(),
                     );
                 }
             }
@@ -802,23 +752,23 @@ impl PipelineService for ConcurrentPipeline {
         // Set chunk info and pipeline ID - chunk_size already calculated above
         header = header
             .with_chunk_info(chunk_size as u32, 0) // chunk_count will be updated later
-            .with_pipeline_id(pipeline_id.to_string());
+            .with_pipeline_id(context.pipeline_id.to_string());
 
         // Clone security context before moving it into ProcessingContext
-        let security_context_for_tasks = security_context.clone();
+        let security_context_for_tasks = context.security_context.clone();
 
-        let mut context = ProcessingContext::new(
+        let mut processing_context = ProcessingContext::new(
             input_path.to_path_buf(),
             output_path.to_path_buf(),
             input_size,
-            security_context
+            context.security_context,
         );
 
         // Set input file checksum in metrics
         {
-            let mut metrics = context.metrics().clone();
+            let mut metrics = processing_context.metrics().clone();
             metrics.set_input_file_info(input_size, Some(original_checksum.clone()));
-            context.update_metrics(metrics);
+            processing_context.update_metrics(metrics);
         }
 
         // =============================================================================
@@ -846,40 +796,27 @@ impl PipelineService for ConcurrentPipeline {
         // STEP 2: Create thread-safe writer
         // Writer uses &self for concurrent writes (no mutex on individual writes!)
         // But we wrap in Arc for sharing, and Mutex is needed only for finalization
-        let binary_writer = self.binary_format_service.create_writer(
-            output_path,
-            header.clone()
-        ).await?;
+        let binary_writer = self
+            .binary_format_service
+            .create_writer(output_path, header.clone())
+            .await?;
         let writer_shared = Arc::new(binary_writer);
 
         // Create progress indicator for this operation
         let progress_indicator = Arc::new(ProgressIndicatorService::new(total_chunks as u64));
 
         // STEP 3: Determine worker count (adaptive or user-specified)
-        let available_cores = std::thread
-            ::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(4);
-        let is_cpu_intensive = pipeline
-            .stages()
-            .iter()
-            .any(|stage| {
-                matches!(stage.stage_type(), StageType::Checksum) &&
-                    (stage.name().contains("compression") || stage.name().contains("encryption"))
-            });
+        let available_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+        let is_cpu_intensive = pipeline.stages().iter().any(|stage| {
+            matches!(stage.stage_type(), StageType::Checksum)
+                && (stage.name().contains("compression") || stage.name().contains("encryption"))
+        });
 
-        let optimal_worker_count = WorkerCount::optimal_for_processing_type(
-            input_size,
-            available_cores,
-            is_cpu_intensive
-        );
+        let optimal_worker_count =
+            WorkerCount::optimal_for_processing_type(input_size, available_cores, is_cpu_intensive);
 
-        let worker_count = if let Some(user_workers) = user_worker_override {
-            let validated = WorkerCount::validate_user_input(
-                user_workers,
-                available_cores,
-                input_size
-            );
+        let worker_count = if let Some(user_workers) = context.user_worker_override {
+            let validated = WorkerCount::validate_user_input(user_workers, available_cores, input_size);
             match validated {
                 Ok(count) => {
                     debug!("Using user-specified worker count: {} (validated)", count);
@@ -909,14 +846,12 @@ impl PipelineService for ConcurrentPipeline {
         // STEP 4: Create cancellation token for graceful shutdown
         // Educational: Enables graceful cancellation of reader and worker tasks
         // TODO: Wire this to global ShutdownCoordinator for Ctrl-C handling
-        let shutdown_coordinator = bootstrap::shutdown::ShutdownCoordinator::new(
-            std::time::Duration::from_secs(5)
-        );
+        let shutdown_coordinator = bootstrap::shutdown::ShutdownCoordinator::new(std::time::Duration::from_secs(5));
         let cancel_token = shutdown_coordinator.token();
 
         // STEP 5: Create bounded channels for pipeline stages
         // Educational: Channel depth creates backpressure to prevent memory overload
-        let channel_depth = channel_depth_override.unwrap_or(4);
+        let channel_depth = context.channel_depth_override.unwrap_or(4);
         debug!("Using channel depth: {}", channel_depth);
         let (tx_cpu, rx_cpu) = tokio::sync::mpsc::channel::<ChunkMessage>(channel_depth);
 
@@ -927,16 +862,14 @@ impl PipelineService for ConcurrentPipeline {
 
         // STEP 6: Spawn reader task
         // Single reader streams chunks from disk to CPU workers
-        let reader_handle = tokio::spawn(
-            reader_task(
-                input_path.to_path_buf(),
-                chunk_size,
-                tx_cpu,
-                self.file_io_service.clone(),
-                channel_depth,
-                cancel_token.clone()
-            )
-        );
+        let reader_handle = tokio::spawn(reader_task(
+            input_path.to_path_buf(),
+            chunk_size,
+            tx_cpu,
+            self.file_io_service.clone(),
+            channel_depth,
+            cancel_token.clone(),
+        ));
 
         // STEP 7: Spawn CPU worker pool
         // Multiple workers receive chunks, process them, and write directly
@@ -966,8 +899,7 @@ impl PipelineService for ConcurrentPipeline {
                     // IMPORTANT: We hold the mutex across await in the receive - this is correct!
                     // It ensures atomic receive from shared receiver (work-stealing pattern)
                     #[allow(clippy::await_holding_lock)]
-                    let chunk_result =
-                        tokio::select! {
+                    let chunk_result = tokio::select! {
                         _ = cancel_token_clone.cancelled() => {
                             // Graceful shutdown: exit worker loop
                             break;
@@ -989,9 +921,7 @@ impl PipelineService for ConcurrentPipeline {
                             // Acquire global CPU token
                             let cpu_wait_start = std::time::Instant::now();
                             let _cpu_permit = RESOURCE_MANAGER.acquire_cpu().await.map_err(|e| {
-                                PipelineError::resource_exhausted(
-                                    format!("Failed to acquire CPU token: {}", e)
-                                )
+                                PipelineError::resource_exhausted(format!("Failed to acquire CPU token: {}", e))
                             })?;
                             let cpu_wait_duration = cpu_wait_start.elapsed();
 
@@ -1003,18 +933,17 @@ impl PipelineService for ConcurrentPipeline {
                                 input_path_clone.clone(),
                                 output_path_clone.clone(),
                                 input_size,
-                                security_context_clone.clone()
+                                security_context_clone.clone(),
                             );
 
                             // Execute all processing stages
                             let mut file_chunk = chunk_msg.file_chunk;
                             for stage in pipeline_clone.stages() {
                                 file_chunk = stage_executor_clone
-                                    .execute(stage, file_chunk, &mut local_context).await
+                                    .execute(stage, file_chunk, &mut local_context)
+                                    .await
                                     .map_err(|e| {
-                                        PipelineError::processing_failed(
-                                            format!("Stage execution failed: {}", e)
-                                        )
+                                        PipelineError::processing_failed(format!("Stage execution failed: {}", e))
                                     })?;
                             }
 
@@ -1039,10 +968,9 @@ impl PipelineService for ConcurrentPipeline {
                             };
 
                             let chunk_format = ChunkFormat::new(nonce, chunk_data);
-                            writer_clone.write_chunk_at_position(
-                                chunk_format,
-                                chunk_msg.chunk_index as u64
-                            ).await?;
+                            writer_clone
+                                .write_chunk_at_position(chunk_format, chunk_msg.chunk_index as u64)
+                                .await?;
 
                             CONCURRENCY_METRICS.worker_completed();
                             chunks_processed += 1;
@@ -1069,27 +997,25 @@ impl PipelineService for ConcurrentPipeline {
         // Reader → Workers all complete independently, coordinated by channels
 
         // Wait for reader to finish
-        let reader_stats = reader_handle.await.map_err(|e|
-            PipelineError::processing_failed(format!("Reader task failed: {}", e))
-        )??;
+        let reader_stats = reader_handle
+            .await
+            .map_err(|e| PipelineError::processing_failed(format!("Reader task failed: {}", e)))??;
 
         debug!(
             "Reader completed: {} chunks read, {} bytes",
-            reader_stats.chunks_read,
-            reader_stats.bytes_read
+            reader_stats.chunks_read, reader_stats.bytes_read
         );
 
         // Wait for all workers to complete
         let mut total_chunks_processed = 0;
         for (worker_id, worker_handle) in worker_handles.into_iter().enumerate() {
-            let worker_stats = worker_handle.await.map_err(|e|
-                PipelineError::processing_failed(format!("Worker {} failed: {}", worker_id, e))
-            )??;
+            let worker_stats = worker_handle
+                .await
+                .map_err(|e| PipelineError::processing_failed(format!("Worker {} failed: {}", worker_id, e)))??;
 
             debug!(
                 "Worker {} completed: {} chunks processed",
-                worker_stats.worker_id,
-                worker_stats.chunks_processed
+                worker_stats.worker_id, worker_stats.chunks_processed
             );
             total_chunks_processed += worker_stats.chunks_processed;
         }
@@ -1113,18 +1039,19 @@ impl PipelineService for ConcurrentPipeline {
 
         // Show completion summary to user
         let total_duration = start_time.elapsed();
-        let throughput =
-            (total_bytes_processed as f64) / total_duration.as_secs_f64() / (1024.0 * 1024.0); // MB/s
-        progress_indicator.show_completion(total_bytes_processed, throughput, total_duration).await;
+        let throughput = (total_bytes_processed as f64) / total_duration.as_secs_f64() / (1024.0 * 1024.0); // MB/s
+        progress_indicator
+            .show_completion(total_bytes_processed, throughput, total_duration)
+            .await;
 
         // Get the final file size for metrics
-        let total_output_bytes = tokio::fs
-            ::metadata(output_path).await
+        let total_output_bytes = tokio::fs::metadata(output_path)
+            .await
             .map_err(|e| PipelineError::io_error(format!("Failed to get output file size: {}", e)))?
             .len();
 
         // Record metrics to Prometheus
-        let mut processing_metrics = context.metrics().clone();
+        let mut processing_metrics = processing_context.metrics().clone();
         processing_metrics.start();
         processing_metrics.update_bytes_processed(total_bytes_processed);
         processing_metrics.update_chunks_processed(chunks_processed);
@@ -1146,15 +1073,15 @@ impl PipelineService for ConcurrentPipeline {
         );
 
         // Create and return processing metrics
-        let mut metrics = context.metrics().clone();
+        let mut metrics = processing_context.metrics().clone();
         metrics.start();
         metrics.update_bytes_processed(total_bytes_processed);
         metrics.update_chunks_processed(chunks_processed);
 
         // Calculate output file checksum
         let output_checksum = {
-            let output_data = tokio::fs
-                ::read(output_path).await
+            let output_data = tokio::fs::read(output_path)
+                .await
                 .map_err(|e| PipelineError::io_error(e.to_string()))?;
             let digest = ring::digest::digest(&ring::digest::SHA256, &output_data);
             hex::encode(digest.as_ref())
@@ -1165,7 +1092,7 @@ impl PipelineService for ConcurrentPipeline {
         metrics.end();
 
         // Notify observer that processing completed with final metrics
-        if let Some(obs) = &observer {
+        if let Some(obs) = &context.observer {
             obs.on_processing_completed(total_duration, Some(&metrics)).await;
         }
 
@@ -1176,7 +1103,7 @@ impl PipelineService for ConcurrentPipeline {
         &self,
         pipeline: &Pipeline,
         chunks: Vec<FileChunk>,
-        context: &mut ProcessingContext
+        context: &mut ProcessingContext,
     ) -> Result<Vec<FileChunk>, PipelineError> {
         let mut processed_chunks = chunks;
 
@@ -1210,27 +1137,28 @@ impl PipelineService for ConcurrentPipeline {
 
         // Check if pipeline has stages
         if pipeline.stages().is_empty() {
-            return Err(PipelineError::InvalidConfiguration("Pipeline has no stages".to_string()));
+            return Err(PipelineError::InvalidConfiguration(
+                "Pipeline has no stages".to_string(),
+            ));
         }
 
         // Validate each stage
         for stage in pipeline.stages() {
             // Check stage configuration
             if stage.configuration().algorithm.is_empty() {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!("Stage '{}' has no algorithm specified", stage.name())
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Stage '{}' has no algorithm specified",
+                    stage.name()
+                )));
             }
 
             // Check stage compatibility
             if let Err(e) = stage.validate() {
-                return Err(
-                    PipelineError::InvalidConfiguration(
-                        format!("Stage '{}' validation failed: {}", stage.name(), e)
-                    )
-                );
+                return Err(PipelineError::InvalidConfiguration(format!(
+                    "Stage '{}' validation failed: {}",
+                    stage.name(),
+                    e
+                )));
             }
         }
 
@@ -1245,7 +1173,7 @@ impl PipelineService for ConcurrentPipeline {
     async fn estimate_processing_time(
         &self,
         pipeline: &Pipeline,
-        file_size: u64
+        file_size: u64,
     ) -> Result<std::time::Duration, PipelineError> {
         let mut total_seconds = 0.0;
         let file_size_mb = (file_size as f64) / (1024.0 * 1024.0);
@@ -1268,7 +1196,7 @@ impl PipelineService for ConcurrentPipeline {
     async fn get_resource_requirements(
         &self,
         pipeline: &Pipeline,
-        file_size: u64
+        file_size: u64,
     ) -> Result<ResourceRequirements, PipelineError> {
         let mut total_memory_mb = 0.0;
         let mut total_cpu_cores = 0;
@@ -1283,7 +1211,7 @@ impl PipelineService for ConcurrentPipeline {
             // Estimate CPU cores needed
             if stage.configuration().parallel_processing {
                 total_cpu_cores = total_cpu_cores.max(4); // Assume 4 cores for
-                // parallel stages
+                                                          // parallel stages
             } else {
                 total_cpu_cores = total_cpu_cores.max(1);
             }
@@ -1303,8 +1231,8 @@ impl PipelineService for ConcurrentPipeline {
             memory_bytes: (total_memory_mb * 1024.0 * 1024.0) as u64,
             cpu_cores: total_cpu_cores,
             disk_space_bytes: ((file_size as f64) * 2.0) as u64, // Estimate 2x file size
-            network_bandwidth_bps: None, // Not applicable for local processing
-            gpu_memory_bytes: None, // Not implemented yet
+            network_bandwidth_bps: None,                         // Not applicable for local processing
+            gpu_memory_bytes: None,                              // Not implemented yet
             estimated_duration: std::time::Duration::from_secs_f64(estimated_time_seconds),
         })
     }
@@ -1312,12 +1240,9 @@ impl PipelineService for ConcurrentPipeline {
     async fn create_optimized_pipeline(
         &self,
         file_path: &std::path::Path,
-        requirements: PipelineRequirements
+        requirements: PipelineRequirements,
     ) -> Result<Pipeline, PipelineError> {
-        let file_extension = file_path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .unwrap_or("");
+        let file_extension = file_path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
 
         let pipeline_name = format!("optimized_pipeline_{}", uuid::Uuid::new_v4());
         let mut stages = Vec::new();
@@ -1342,7 +1267,7 @@ impl PipelineService for ConcurrentPipeline {
                 "compression".to_string(),
                 adaptive_pipeline_domain::entities::StageType::Compression,
                 compression_config,
-                stages.len() as u32
+                stages.len() as u32,
             )?;
 
             stages.push(compression_stage);
@@ -1362,7 +1287,7 @@ impl PipelineService for ConcurrentPipeline {
                 "encryption".to_string(),
                 adaptive_pipeline_domain::entities::StageType::Encryption,
                 encryption_config,
-                stages.len() as u32
+                stages.len() as u32,
             )?;
 
             stages.push(encryption_stage);
@@ -1374,7 +1299,7 @@ impl PipelineService for ConcurrentPipeline {
     async fn monitor_execution(
         &self,
         pipeline_id: PipelineId,
-        context: &ProcessingContext
+        context: &ProcessingContext,
     ) -> Result<ExecutionStatus, PipelineError> {
         let active_pipelines = self.active_pipelines.read().await;
 
@@ -1421,7 +1346,7 @@ impl PipelineService for ConcurrentPipeline {
     async fn get_execution_history(
         &self,
         pipeline_id: PipelineId,
-        _limit: Option<usize>
+        _limit: Option<usize>,
     ) -> Result<Vec<ExecutionRecord>, PipelineError> {
         // In a real implementation, this would query a database
         // For now, return empty history
@@ -1465,15 +1390,13 @@ impl PipelineChunkProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::runtime::stage_executor::BasicStageExecutor;
-    use crate::infrastructure::adapters::{ MultiAlgoCompression, MultiAlgoEncryption };
+    use crate::infrastructure::adapters::{MultiAlgoCompression, MultiAlgoEncryption};
     use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
+    use crate::infrastructure::runtime::stage_executor::BasicStageExecutor;
     use adaptive_pipeline_domain::entities::pipeline::Pipeline;
     use adaptive_pipeline_domain::entities::security_context::SecurityContext;
     use adaptive_pipeline_domain::value_objects::binary_file_format::{
-        FileHeader,
-        CURRENT_FORMAT_VERSION,
-        MAGIC_BYTES,
+        FileHeader, CURRENT_FORMAT_VERSION, MAGIC_BYTES,
     };
     use std::path::PathBuf;
     use tempfile::TempDir;
@@ -1517,27 +1440,23 @@ mod tests {
         println!("Testing pipeline creation for database operations");
 
         // Test that we can create a simple pipeline for database operations
-        let compression_stage = adaptive_pipeline_domain::entities::PipelineStage
-            ::new(
-                "compression".to_string(),
-                StageType::Compression,
-                adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration {
-                    algorithm: "brotli".to_string(),
-                    operation: adaptive_pipeline_domain::entities::Operation::Forward,
-                    parameters: std::collections::HashMap::new(),
-                    parallel_processing: false,
-                    chunk_size: Some(1024),
-                },
-                1
-            )
-            .unwrap();
+        let compression_stage = adaptive_pipeline_domain::entities::PipelineStage::new(
+            "compression".to_string(),
+            StageType::Compression,
+            adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration {
+                algorithm: "brotli".to_string(),
+                operation: adaptive_pipeline_domain::entities::Operation::Forward,
+                parameters: std::collections::HashMap::new(),
+                parallel_processing: false,
+                chunk_size: Some(1024),
+            },
+            1,
+        )
+        .unwrap();
         println!("✅ Created compression stage");
 
         // Just test that we can create a pipeline - no complex assertions
-        let test_pipeline = Pipeline::new(
-            "test-database-integration".to_string(),
-            vec![compression_stage]
-        ).unwrap();
+        let test_pipeline = Pipeline::new("test-database-integration".to_string(), vec![compression_stage]).unwrap();
         println!("✅ Created test pipeline with {} stages", test_pipeline.stages().len());
 
         // Basic sanity checks
@@ -1602,33 +1521,27 @@ mod tests {
         assert!(database_url.contains("test_pipeline.db"));
 
         // Test that we can read the schema file
-        let schema_sql = include_str!(
-            "../../../scripts/test_data/create_fresh_structured_database.sql"
-        );
+        let schema_sql = include_str!("../../../scripts/test_data/create_fresh_structured_database.sql");
         println!("📝 Schema file loaded: {} characters", schema_sql.len());
         assert!(!schema_sql.is_empty());
         assert!(schema_sql.contains("CREATE TABLE"));
 
         // Test pipeline creation for database operations
-        let compression_stage = adaptive_pipeline_domain::entities::PipelineStage
-            ::new(
-                "compression".to_string(),
-                StageType::Compression,
-                adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration {
-                    algorithm: "brotli".to_string(),
-                    operation: adaptive_pipeline_domain::entities::Operation::Forward,
-                    parameters: std::collections::HashMap::new(),
-                    parallel_processing: false,
-                    chunk_size: Some(1024),
-                },
-                1
-            )
-            .unwrap();
+        let compression_stage = adaptive_pipeline_domain::entities::PipelineStage::new(
+            "compression".to_string(),
+            StageType::Compression,
+            adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration {
+                algorithm: "brotli".to_string(),
+                operation: adaptive_pipeline_domain::entities::Operation::Forward,
+                parameters: std::collections::HashMap::new(),
+                parallel_processing: false,
+                chunk_size: Some(1024),
+            },
+            1,
+        )
+        .unwrap();
 
-        let test_pipeline = Pipeline::new(
-            "test-database-operations".to_string(),
-            vec![compression_stage]
-        ).unwrap();
+        let test_pipeline = Pipeline::new("test-database-operations".to_string(), vec![compression_stage]).unwrap();
         println!(
             "✅ Created test pipeline: {} with {} stages",
             test_pipeline.name(),
@@ -1664,8 +1577,8 @@ mod tests {
     #[tokio::test]
     async fn test_reader_task_cancellation() {
         use crate::infrastructure::adapters::file_io::TokioFileIO;
-        use bootstrap::shutdown::ShutdownCoordinator;
         use adaptive_pipeline_domain::services::file_io_service::FileIOConfig;
+        use bootstrap::shutdown::ShutdownCoordinator;
         use std::time::Duration;
 
         // Create test file
@@ -1688,7 +1601,11 @@ mod tests {
         // Verify cancellation error
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("cancel"), "Expected cancellation error, got: {}", err);
+        assert!(
+            err.to_string().contains("cancel"),
+            "Expected cancellation error, got: {}",
+            err
+        );
     }
 
     /// Tests cancellation propagation during active processing.
@@ -1712,9 +1629,9 @@ mod tests {
     #[tokio::test]
     async fn test_cancellation_during_processing() {
         use crate::infrastructure::adapters::file_io::TokioFileIO;
-        use crate::infrastructure::runtime::{ init_resource_manager, ResourceConfig };
-        use bootstrap::shutdown::ShutdownCoordinator;
+        use crate::infrastructure::runtime::{init_resource_manager, ResourceConfig};
         use adaptive_pipeline_domain::services::file_io_service::FileIOConfig;
+        use bootstrap::shutdown::ShutdownCoordinator;
         use std::time::Duration;
 
         // Initialize resource manager for test (required by CONCURRENCY_METRICS)
@@ -1734,9 +1651,8 @@ mod tests {
 
         // Spawn reader task
         let file_io = Arc::new(TokioFileIO::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
-        let reader_handle = tokio::spawn(async move {
-            reader_task(input_file, 1024, tx, file_io, 5, cancel_clone).await
-        });
+        let reader_handle =
+            tokio::spawn(async move { reader_task(input_file, 1024, tx, file_io, 5, cancel_clone).await });
 
         // Let some chunks be sent
         tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
@@ -1786,8 +1702,7 @@ mod tests {
                 let mut rx_lock = rx_shared.lock().await;
 
                 #[allow(clippy::await_holding_lock)]
-                let result =
-                    tokio::select! {
+                let result = tokio::select! {
                     _ = cancel_clone.cancelled() => {
                         // Graceful shutdown: exit worker loop
                         break;
@@ -1833,8 +1748,8 @@ mod tests {
     #[tokio::test]
     async fn test_early_cancellation_detection() {
         use crate::infrastructure::adapters::file_io::TokioFileIO;
-        use bootstrap::shutdown::ShutdownCoordinator;
         use adaptive_pipeline_domain::services::file_io_service::FileIOConfig;
+        use bootstrap::shutdown::ShutdownCoordinator;
         use std::time::Duration;
 
         let temp_dir = TempDir::new().unwrap();
@@ -1893,12 +1808,12 @@ mod tests {
         assert!(clone2.is_cancelled());
 
         // All should unblock from cancelled()
-        tokio::time
-            ::timeout(tokio::time::Duration::from_millis(100), clone1.cancelled()).await
+        tokio::time::timeout(tokio::time::Duration::from_millis(100), clone1.cancelled())
+            .await
             .unwrap();
 
-        tokio::time
-            ::timeout(tokio::time::Duration::from_millis(100), clone2.cancelled()).await
+        tokio::time::timeout(tokio::time::Duration::from_millis(100), clone2.cancelled())
+            .await
             .unwrap();
     }
 }

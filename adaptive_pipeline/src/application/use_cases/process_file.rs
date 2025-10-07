@@ -50,31 +50,22 @@ use anyhow::Result;
 use byte_unit::Byte;
 use std::collections::HashMap;
 use std::fs;
-use std::path::{ Path, PathBuf };
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::{ debug, error, warn };
+use tracing::{debug, error, warn};
 
 use crate::application::services::pipeline::ConcurrentPipeline;
 use crate::infrastructure::adapters::file_io::TokioFileIO;
-use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
-use crate::infrastructure::adapters::{ MultiAlgoCompression, MultiAlgoEncryption };
+use crate::infrastructure::adapters::{MultiAlgoCompression, MultiAlgoEncryption};
 use crate::infrastructure::logging::ObservabilityService;
 use crate::infrastructure::metrics::MetricsService;
+use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
 use crate::infrastructure::runtime::stage_executor::BasicStageExecutor;
 use crate::infrastructure::services::{
-    Base64EncodingService,
-    AdapipeFormat,
-    DebugService,
-    PassThroughService,
-    PiiMaskingService,
-    TeeService,
+    AdapipeFormat, Base64EncodingService, DebugService, PassThroughService, PiiMaskingService, TeeService,
 };
-use adaptive_pipeline_domain::entities::security_context::{
-    Permission,
-    SecurityContext,
-    SecurityLevel,
-};
+use adaptive_pipeline_domain::entities::security_context::{Permission, SecurityContext, SecurityLevel};
 use adaptive_pipeline_domain::services::PipelineService;
 use adaptive_pipeline_domain::value_objects::chunk_size::ChunkSize;
 use adaptive_pipeline_domain::value_objects::worker_count::WorkerCount;
@@ -112,7 +103,7 @@ impl ProcessFileUseCase {
     pub fn new(
         metrics_service: Arc<MetricsService>,
         observability_service: Arc<ObservabilityService>,
-        pipeline_repository: Arc<SqlitePipelineRepository>
+        pipeline_repository: Arc<SqlitePipelineRepository>,
     ) -> Self {
         Self {
             metrics_service,
@@ -135,7 +126,8 @@ impl ProcessFileUseCase {
     /// 1. **Load Pipeline**: Retrieve pipeline configuration from repository
     /// 2. **Determine Chunk Size**: Adaptive or user-specified chunk size
     /// 3. **Determine Worker Count**: Optimal parallelism for file size
-    /// 4. **Create Services**: Instantiate compression, encryption, I/O services
+    /// 4. **Create Services**: Instantiate compression, encryption, I/O
+    ///    services
     /// 5. **Execute Pipeline**: Process file through all configured stages
     /// 6. **Collect Metrics**: Track performance at each stage
     /// 7. **Generate Output**: Write .adapipe binary format with metadata
@@ -155,8 +147,14 @@ impl ProcessFileUseCase {
     /// - Output file write errors
     /// - Insufficient permissions
     pub async fn execute(&self, config: ProcessFileConfig) -> Result<()> {
-        let ProcessFileConfig { input, output, pipeline, chunk_size_mb, workers, channel_depth } =
-            config;
+        let ProcessFileConfig {
+            input,
+            output,
+            pipeline,
+            chunk_size_mb,
+            workers,
+            channel_depth,
+        } = config;
 
         // Ensure output file has .adapipe extension
         let output = if output.extension().is_none_or(|ext| ext != "adapipe") {
@@ -165,7 +163,11 @@ impl ProcessFileUseCase {
             output
         };
 
-        debug!("Processing file: {} -> {} (.adapipe format)", input.display(), output.display());
+        debug!(
+            "Processing file: {} -> {} (.adapipe format)",
+            input.display(),
+            output.display()
+        );
         debug!("Pipeline: {}", pipeline);
 
         // Get file size for processing metrics
@@ -180,10 +182,7 @@ impl ProcessFileUseCase {
         );
 
         // Determine chunk size: user override with validation or adaptive
-        let (actual_chunk_size_bytes, chunk_size_source) = Self::determine_chunk_size(
-            actual_input_size,
-            chunk_size_mb
-        );
+        let (actual_chunk_size_bytes, chunk_size_source) = Self::determine_chunk_size(actual_input_size, chunk_size_mb);
 
         debug!(
             "Final chunk size: {} bytes ({}) - {}",
@@ -202,16 +201,23 @@ impl ProcessFileUseCase {
         // Create security context
         let security_context = SecurityContext::with_permissions(
             None,
-            vec![Permission::Read, Permission::Write, Permission::Compress, Permission::Encrypt],
-            SecurityLevel::Internal
+            vec![
+                Permission::Read,
+                Permission::Write,
+                Permission::Compress,
+                Permission::Encrypt,
+            ],
+            SecurityLevel::Internal,
         );
 
         debug!("Security context: {:?}", security_context.security_level());
 
         // Load pipeline from repository
         debug!("Loading pipeline configuration...");
-        let pipeline_entity = self.pipeline_repository
-            .find_by_name(&pipeline).await
+        let pipeline_entity = self
+            .pipeline_repository
+            .find_by_name(&pipeline)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
             .ok_or_else(|| anyhow::anyhow!("Pipeline '{}' not found", pipeline))?;
 
@@ -225,10 +231,7 @@ impl ProcessFileUseCase {
         }
 
         // Create and configure pipeline service
-        let pipeline_service = Self::create_pipeline_service(
-            &self.metrics_service,
-            &self.pipeline_repository
-        );
+        let pipeline_service = Self::create_pipeline_service(&self.metrics_service, &self.pipeline_repository);
 
         // Track active pipeline processing
         self.metrics_service.increment_active_pipelines();
@@ -237,20 +240,30 @@ impl ProcessFileUseCase {
         let processing_start = Instant::now();
 
         // Create metrics observer
-        let metrics_observer = Arc::new(
-            crate::infrastructure::metrics::MetricsObserver::new(self.metrics_service.clone())
+        let metrics_observer = Arc::new(crate::infrastructure::metrics::MetricsObserver::new(
+            self.metrics_service.clone(),
+        ));
+
+        // Build processing context
+        let mut process_context = adaptive_pipeline_domain::services::pipeline_service::ProcessFileContext::new(
+            pipeline_entity.id().clone(),
+            security_context,
         );
 
+        if let Some(w) = workers {
+            process_context = process_context.with_workers(w);
+        }
+
+        if let Some(depth) = channel_depth {
+            process_context = process_context.with_channel_depth(depth);
+        }
+
+        process_context = process_context.with_observer(metrics_observer);
+
         // Process the file through the pipeline
-        let processing_result = pipeline_service.process_file(
-            pipeline_entity.id().clone(),
-            input.as_path(),
-            output.as_path(),
-            security_context,
-            workers,
-            channel_depth,
-            Some(metrics_observer)
-        ).await;
+        let processing_result = pipeline_service
+            .process_file(input.as_path(), output.as_path(), process_context)
+            .await;
 
         let total_processing_duration = processing_start.elapsed();
 
@@ -284,7 +297,7 @@ impl ProcessFileUseCase {
                     &metrics,
                     &pipeline_entity,
                     chunk_size_source,
-                    workers
+                    workers,
                 );
 
                 Ok(())
@@ -310,8 +323,7 @@ impl ProcessFileUseCase {
                     } else {
                         debug!(
                             "Using user-specified chunk size: {} MB ({} bytes)",
-                            user_chunk_mb,
-                            validated_bytes
+                            user_chunk_mb, validated_bytes
                         );
                         (validated_bytes, "user-override")
                     }
@@ -331,10 +343,11 @@ impl ProcessFileUseCase {
         }
     }
 
-    /// Creates and configures the pipeline service with all required dependencies.
+    /// Creates and configures the pipeline service with all required
+    /// dependencies.
     fn create_pipeline_service(
         metrics_service: &Arc<MetricsService>,
-        pipeline_repository: &Arc<SqlitePipelineRepository>
+        pipeline_repository: &Arc<SqlitePipelineRepository>,
     ) -> ConcurrentPipeline {
         // Create services
         let compression_service = Arc::new(MultiAlgoCompression::new());
@@ -343,71 +356,62 @@ impl ProcessFileUseCase {
         let binary_format_service = Arc::new(AdapipeFormat::new());
 
         // Build stage service registry
-        let mut stage_services: HashMap<
-            String,
-            Arc<dyn adaptive_pipeline_domain::services::StageService>
-        > = HashMap::new();
+        let mut stage_services: HashMap<String, Arc<dyn adaptive_pipeline_domain::services::StageService>> =
+            HashMap::new();
 
         // Register compression algorithms
         stage_services.insert(
             "brotli".to_string(),
-            compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+            compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "gzip".to_string(),
-            compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+            compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "zstd".to_string(),
-            compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+            compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "lz4".to_string(),
-            compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+            compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
 
         // Register encryption algorithms
         stage_services.insert(
             "aes256gcm".to_string(),
-            encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+            encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "aes128gcm".to_string(),
-            encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+            encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "chacha20poly1305".to_string(),
-            encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+            encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
 
         // Register transform stages
         stage_services.insert(
             "base64".to_string(),
-            Arc::new(Base64EncodingService::new()) as Arc<
-                dyn adaptive_pipeline_domain::services::StageService
-            >
+            Arc::new(Base64EncodingService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "pii_masking".to_string(),
-            Arc::new(PiiMaskingService::new()) as Arc<
-                dyn adaptive_pipeline_domain::services::StageService
-            >
+            Arc::new(PiiMaskingService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "tee".to_string(),
-            Arc::new(TeeService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>
+            Arc::new(TeeService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "passthrough".to_string(),
-            Arc::new(PassThroughService::new()) as Arc<
-                dyn adaptive_pipeline_domain::services::StageService
-            >
+            Arc::new(PassThroughService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
         stage_services.insert(
             "debug".to_string(),
-            Arc::new(DebugService::new(metrics_service.clone())) as Arc<
-                dyn adaptive_pipeline_domain::services::StageService
-            >
+            Arc::new(DebugService::new(metrics_service.clone()))
+                as Arc<dyn adaptive_pipeline_domain::services::StageService>,
         );
 
         ConcurrentPipeline::new(
@@ -416,11 +420,12 @@ impl ProcessFileUseCase {
             file_io_service,
             pipeline_repository.clone(),
             Arc::new(BasicStageExecutor::new(stage_services)),
-            binary_format_service
+            binary_format_service,
         )
     }
 
-    /// Displays comprehensive processing summary with metrics and stage details.
+    /// Displays comprehensive processing summary with metrics and stage
+    /// details.
     #[allow(clippy::too_many_arguments)]
     fn display_processing_summary(
         input: &Path,
@@ -431,7 +436,7 @@ impl ProcessFileUseCase {
         metrics: &adaptive_pipeline_domain::entities::ProcessingMetrics,
         pipeline: &adaptive_pipeline_domain::entities::Pipeline,
         chunk_size_source: &str,
-        workers: Option<usize>
+        workers: Option<usize>,
     ) {
         println!();
 
@@ -446,13 +451,11 @@ impl ProcessFileUseCase {
 
         let compression_info = if metrics.output_file_size_bytes() < actual_input_size {
             let reduction_percent =
-                (1.0 - (metrics.output_file_size_bytes() as f64) / (actual_input_size as f64)) *
-                100.0;
+                (1.0 - (metrics.output_file_size_bytes() as f64) / (actual_input_size as f64)) * 100.0;
             format!(" ({:.1} MB, {:.1}% reduction)", output_size_mb, reduction_percent)
         } else if metrics.output_file_size_bytes() > actual_input_size {
             let expansion_percent =
-                ((metrics.output_file_size_bytes() as f64) / (actual_input_size as f64) - 1.0) *
-                100.0;
+                ((metrics.output_file_size_bytes() as f64) / (actual_input_size as f64) - 1.0) * 100.0;
             format!(" ({:.1} MB, {:.1}% expansion)", output_size_mb, expansion_percent)
         } else {
             format!(" ({:.1} MB, unchanged)", output_size_mb)
@@ -463,9 +466,7 @@ impl ProcessFileUseCase {
         // Create formatted box
         let status_text = format!(
             "STATUS: Processed {:.1} MB in {:.2}s -> {:.1} MB/s throughput",
-            input_size_mb,
-            processing_seconds,
-            actual_throughput
+            input_size_mb, processing_seconds, actual_throughput
         );
 
         let input_path = input.display().to_string();
@@ -488,8 +489,11 @@ impl ProcessFileUseCase {
             format!("Output:  \"{}\"", output_with_compression)
         };
 
-        let max_content_width =
-            [status_text.len(), input_text.len(), output_text.len()].iter().max().unwrap_or(&0) + 2;
+        let max_content_width = [status_text.len(), input_text.len(), output_text.len()]
+            .iter()
+            .max()
+            .unwrap_or(&0)
+            + 2;
         let box_width = max_content_width + 2;
 
         let horizontal_line = "─".repeat(box_width - 2);
@@ -512,30 +516,23 @@ impl ProcessFileUseCase {
         println!();
 
         // Adaptive configuration
-        let available_cores = std::thread
-            ::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(4);
+        let available_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
         let optimal_workers = WorkerCount::optimal_for_file_size(actual_input_size);
 
         let (chunk_strategy, chunk_label) = match chunk_size_source {
             "user-override" => ("User-specified".to_string(), "user override".to_string()),
-            "adaptive-fallback" =>
-                (
-                    format!("{} (fallback)", ChunkSize::strategy_description(actual_input_size)),
-                    "adaptive fallback".to_string(),
-                ),
-            _ =>
-                (
-                    ChunkSize::strategy_description(actual_input_size).to_string(),
-                    "adaptive".to_string(),
-                ),
+            "adaptive-fallback" => (
+                format!("{} (fallback)", ChunkSize::strategy_description(actual_input_size)),
+                "adaptive fallback".to_string(),
+            ),
+            _ => (
+                ChunkSize::strategy_description(actual_input_size).to_string(),
+                "adaptive".to_string(),
+            ),
         };
 
         let (worker_strategy, worker_label, worker_count) = if let Some(user_workers) = workers {
-            match
-                WorkerCount::validate_user_input(user_workers, available_cores, actual_input_size)
-            {
+            match WorkerCount::validate_user_input(user_workers, available_cores, actual_input_size) {
                 Ok(_) => {
                     if user_workers == optimal_workers.count() {
                         (
@@ -547,15 +544,11 @@ impl ProcessFileUseCase {
                         ("User-specified".to_string(), "user override".to_string(), user_workers)
                     }
                 }
-                Err(_) =>
-                    (
-                        format!(
-                            "{} (fallback)",
-                            WorkerCount::strategy_description(actual_input_size)
-                        ),
-                        "adaptive fallback".to_string(),
-                        optimal_workers.count(),
-                    ),
+                Err(_) => (
+                    format!("{} (fallback)", WorkerCount::strategy_description(actual_input_size)),
+                    "adaptive fallback".to_string(),
+                    optimal_workers.count(),
+                ),
             }
         } else {
             (
@@ -568,24 +561,15 @@ impl ProcessFileUseCase {
         println!("🔧 ADAPTIVE CONFIGURATION");
         println!(
             "├─ Chunk Strategy:    {} → {:.1} MB ({})",
-            chunk_strategy,
-            chunk_size_mb,
-            chunk_label
+            chunk_strategy, chunk_size_mb, chunk_label
         );
         println!(
             "├─ Worker Strategy:   {} → {} workers ({}, {} cores available)",
-            worker_strategy,
-            worker_count,
-            worker_label,
-            available_cores
+            worker_strategy, worker_count, worker_label, available_cores
         );
 
         // Pipeline stages
-        let stage_names: Vec<String> = pipeline
-            .stages()
-            .iter()
-            .map(|stage| stage.name().to_string())
-            .collect();
+        let stage_names: Vec<String> = pipeline.stages().iter().map(|stage| stage.name().to_string()).collect();
 
         if !stage_names.is_empty() {
             let stage_metrics_map = metrics.stage_metrics();
@@ -602,8 +586,7 @@ impl ProcessFileUseCase {
                     if let Some(stage_metrics) = stage_metrics_map.get(stage_name) {
                         let stage_time_ms = stage_metrics.processing_time.as_millis();
                         let stage_throughput_mb = stage_metrics.throughput / (1024.0 * 1024.0);
-                        let stage_mb_processed =
-                            (stage_metrics.bytes_processed as f64) / (1024.0 * 1024.0);
+                        let stage_mb_processed = (stage_metrics.bytes_processed as f64) / (1024.0 * 1024.0);
                         let status_icon = if stage_metrics.error_count == 0 { "✅" } else { "❌" };
 
                         println!(
