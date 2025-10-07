@@ -1,4 +1,13 @@
-/dashboards/     linguist-vendored
-/docs/           linguist-vendored
-/pipeline/docs/  linguist-vendored
-/dashboards/     linguist-vendored
+# --- GitHub Linguist tuning ------------------------------------------------
+# Treat documentation as documentation (excluded from language stats).
+/docs/**                 linguist-documentation
+/pipeline/docs/**        linguist-documentation
+
+# mdBook (or other) built site under pipeline/docs/book is generated HTML/CSS/JS.
+/pipeline/docs/book/**   linguist-generated
+
+# Dashboards (Grafana/JSON config) are vendored/config and should not skew stats.
+/dashboards/**           linguist-vendored
+
+# Optional: diagram sources shouldn't affect language stats.
+*.puml                   linguist-documentation

@@ -74,7 +74,7 @@
 //! - Configuration management
 
 use std::path::Path;
-use pipeline::infrastructure::services::FileIOServiceImpl;
+use pipeline::infrastructure::services::TokioFileIO;
 use pipeline_domain::services::file_io_service::{
     FileIOService, ReadOptions, WriteOptions, FileIOConfig
 };
@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         max_concurrent_operations: 5,
     };
     
-    let mut file_service = FileIOServiceImpl::new(config);
+    let mut file_service = TokioFileIO::new(config);
     
     println!("File I/O Service Demo");
     println!("====================");

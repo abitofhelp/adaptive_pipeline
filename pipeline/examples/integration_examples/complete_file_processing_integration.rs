@@ -71,7 +71,8 @@ use std::io::Write;
 use tempfile::NamedTempFile;
 use async_trait::async_trait;
 
-use pipeline::infrastructure::services::{FileIOServiceImpl, FileProcessorServiceImpl};
+use pipeline::infrastructure::services::TokioFileIO;
+use pipeline::application::services::StreamingFileProcessor;
 use pipeline_domain::services::{
     file_io_service::{FileIOService, FileIOConfig, ReadOptions, WriteOptions},
     file_processor_service::{
@@ -95,7 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
     
-    let file_io_service = Arc::new(FileIOServiceImpl::new(file_io_config));
+    let file_io_service = Arc::new(TokioFileIO::new(file_io_config));
     let processor_config = FileProcessorConfig {
         processing_chunk_size: 16 * 1024, // 16KB for processing
         use_memory_mapping: true,
@@ -103,8 +104,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         max_concurrent_files: 3,
         ..Default::default()
     };
-    
-    let mut file_processor = FileProcessorServiceImpl::new(file_io_service.clone(), processor_config);
+
+    let mut file_processor = StreamingFileProcessor::new(file_io_service.clone(), processor_config);
     
     // Create test files with different sizes
     println!("\n1. Creating test files...");
