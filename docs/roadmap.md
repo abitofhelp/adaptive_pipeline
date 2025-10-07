@@ -1,7 +1,7 @@
 # Optimized Adaptive Pipeline - Development Roadmap
 
 **Last Updated**: 2025-10-06
-**Version**: 0.1.0
+**Version**: 1.0.0
 
 This document tracks medium and low priority enhancements and technical debt items identified during development. Items are organized by category and priority.
 
@@ -417,4 +417,5 @@ Based on dependencies and impact:
 ---
 
 **Version History**:
+- v1.0.0 (2025-10-06): First production release with cross-platform support
 - v0.1.0 (2025-10-06): Initial roadmap created from TODO audit

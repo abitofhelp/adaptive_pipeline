@@ -516,13 +516,31 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
             // Get mutable reference to file for write
             let file_ref = &*file;
 
-            // Write footer using atomic position-based write
-            use std::os::unix::fs::FileExt;
+            // Get current file size for append position
             let current_pos = file_ref.metadata().map(|m| m.len()).unwrap_or(0);
 
-            file_ref
-                .write_all_at(&footer_bytes, current_pos)
-                .map_err(|e| PipelineError::IoError(e.to_string()))?;
+            // Write footer using platform-specific positional write
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::FileExt;
+                file_ref
+                    .write_all_at(&footer_bytes, current_pos)
+                    .map_err(|e| PipelineError::IoError(e.to_string()))?;
+            }
+
+            #[cfg(windows)]
+            {
+                use std::io::Seek;
+                use std::io::SeekFrom;
+                // Note: On Windows, seek+write is not atomic, but sufficient for single-writer scenario
+                let mut file_mut = file_ref;
+                file_mut
+                    .seek(SeekFrom::Start(current_pos))
+                    .map_err(|e| PipelineError::IoError(e.to_string()))?;
+                file_mut
+                    .write_all(&footer_bytes)
+                    .map_err(|e| PipelineError::IoError(e.to_string()))?;
+            }
 
             // Sync to disk for durability
             file_ref.sync_all().map_err(|e| PipelineError::IoError(e.to_string()))

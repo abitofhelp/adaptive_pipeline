@@ -448,39 +448,39 @@ release-check: ## Check release build
 	@$(CARGO) check --release --workspace
 
 ##@ Cross-Platform Builds
-install-cross-targets: ## Install cross-compilation toolchains
-	@echo -e "$(BLUE)Installing cross-compilation targets...$(NC)"
-	@rustup target add x86_64-unknown-linux-gnu
-	@rustup target add aarch64-unknown-linux-gnu
-	@rustup target add x86_64-apple-darwin
-	@rustup target add aarch64-apple-darwin
-	@rustup target add x86_64-pc-windows-msvc
-	@echo -e "$(GREEN)✓ Cross-compilation targets installed!$(NC)"
+# install-cross-targets: ## Install cross-compilation toolchains
+# 	@echo -e "$(BLUE)Installing cross-compilation targets...$(NC)"
+# 	@rustup target add x86_64-unknown-linux-gnu
+# 	@rustup target add aarch64-unknown-linux-gnu
+# 	@rustup target add x86_64-apple-darwin
+# 	@rustup target add aarch64-apple-darwin
+# 	@rustup target add x86_64-pc-windows-msvc
+# 	@echo -e "$(GREEN)✓ Cross-compilation targets installed!$(NC)"
 
 build-linux-x86_64: ## Build for Linux x86_64
 	@echo -e "$(BLUE)Building for Linux x86_64...$(NC)"
-	@$(CARGO) build --release --target x86_64-unknown-linux-gnu
+	@CROSS_LOG=info cross +nightly build --release --target x86_64-unknown-linux-gnu
 	@echo -e "$(GREEN)✓ Build complete: target/x86_64-unknown-linux-gnu/release/$(NC)"
 
 build-linux-aarch64: ## Build for Linux ARM64
 	@echo -e "$(BLUE)Building for Linux ARM64...$(NC)"
-	@$(CARGO) build --release --target aarch64-unknown-linux-gnu
+	@CROSS_LOG=info cross +nightly build --release --target aarch64-unknown-linux-gnu
 	@echo -e "$(GREEN)✓ Build complete: target/aarch64-unknown-linux-gnu/release/$(NC)"
 
 build-macos-x86_64: ## Build for macOS x86_64 (Intel)
 	@echo -e "$(BLUE)Building for macOS x86_64...$(NC)"
-	@$(CARGO) build --release --target x86_64-apple-darwin
+	@CROSS_LOG=info cross +nightly build --release --target x86_64-apple-darwin
 	@echo -e "$(GREEN)✓ Build complete: target/x86_64-apple-darwin/release/$(NC)"
 
 build-macos-aarch64: ## Build for macOS ARM64 (Apple Silicon)
 	@echo -e "$(BLUE)Building for macOS ARM64...$(NC)"
-	@$(CARGO) build --release --target aarch64-apple-darwin
+	@CROSS_LOG=info cross +nightly build --release --target aarch64-apple-darwin
 	@echo -e "$(GREEN)✓ Build complete: target/aarch64-apple-darwin/release/$(NC)"
 
 build-windows-x86_64: ## Build for Windows x86_64
 	@echo -e "$(BLUE)Building for Windows x86_64...$(NC)"
-	@$(CARGO) build --release --target x86_64-pc-windows-msvc
-	@echo -e "$(GREEN)✓ Build complete: target/x86_64-pc-windows-msvc/release/$(NC)"
+	@CROSS_LOG=info cross +nightly build --release --target x86_64-pc-windows-gnu
+	@echo -e "$(GREEN)✓ Build complete: target/x86_64-pc-windows-gnu/release/$(NC)"
 
 build-all-platforms: ## Build for all supported platforms
 	@echo -e "$(CYAN)Building for all platforms...$(NC)"

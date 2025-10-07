@@ -100,7 +100,11 @@ impl WindowsPlatform {
 
     #[cfg(windows)]
     fn is_elevated_impl() -> bool {
-        use winapi::um::shellapi::IsUserAnAdmin;
+        // Manual FFI declaration since winapi doesn't properly expose IsUserAnAdmin
+        #[link(name = "shell32")]
+        extern "system" {
+            fn IsUserAnAdmin() -> i32;
+        }
         unsafe { IsUserAnAdmin() != 0 }
     }
 

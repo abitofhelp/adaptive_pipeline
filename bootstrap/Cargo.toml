@@ -1,6 +1,6 @@
 [package]
 name = "bootstrap"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["Michael Gardner <michael@abitofhelp.com>"]
 description = "Bootstrap module for adaptive pipeline - handles entry point, DI, signals, and platform abstraction"
@@ -28,7 +28,7 @@ tracing = { workspace = true }
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["sysinfoapi", "memoryapi", "winbase"] }
+winapi = { version = "0.3", features = ["sysinfoapi", "memoryapi", "winbase", "shellapi"] }
 
 [dev-dependencies]
 # Testing

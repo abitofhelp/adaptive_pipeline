@@ -43,11 +43,17 @@ use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+#[cfg(unix)]
 mod unix;
+
+#[cfg(windows)]
 mod windows;
 
 // Re-export implementations
+#[cfg(unix)]
 pub use unix::UnixPlatform;
+
+#[cfg(windows)]
 pub use windows::WindowsPlatform;
 
 /// Platform-specific errors
