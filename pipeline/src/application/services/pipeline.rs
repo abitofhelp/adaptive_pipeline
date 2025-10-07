@@ -410,7 +410,7 @@ async fn cpu_worker_task(
 // Public Implementation
 // ============================================================================
 
-pub struct PipelineServiceImpl {
+pub struct ConcurrentPipeline {
     compression_service: Arc<dyn CompressionService>,
     encryption_service: Arc<dyn EncryptionService>,
     file_io_service: Arc<dyn FileIOService>,
@@ -420,7 +420,7 @@ pub struct PipelineServiceImpl {
     active_pipelines: Arc<RwLock<std::collections::HashMap<String, PipelineAggregate>>>,
 }
 
-impl PipelineServiceImpl {
+impl ConcurrentPipeline {
     /// Creates a new pipeline service with injected dependencies
     ///
     /// # Arguments
@@ -598,7 +598,7 @@ impl PipelineServiceImpl {
 }
 
 #[async_trait]
-impl PipelineService for PipelineServiceImpl {
+impl PipelineService for ConcurrentPipeline {
     async fn process_file(
         &self,
         pipeline_id: PipelineId,
@@ -1387,9 +1387,9 @@ impl PipelineChunkProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::adapters::repositories::stage_executor_adapter::BasicStageExecutorAdapterAdapter;
-    use crate::infrastructure::adapters::{CompressionServiceImpl, EncryptionServiceImpl};
-    use crate::infrastructure::repositories::sqlite_pipeline_repository::SqlitePipelineRepository;
+    use crate::infrastructure::runtime::stage_executor::BasicStageExecutor;
+    use crate::infrastructure::adapters::{MultiAlgoCompression, MultiAlgoEncryption};
+    use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
     use pipeline_domain::entities::pipeline::Pipeline;
     use pipeline_domain::entities::security_context::SecurityContext;
     use pipeline_domain::value_objects::binary_file_format::{FileHeader, CURRENT_FORMAT_VERSION, MAGIC_BYTES};
@@ -1571,7 +1571,7 @@ mod tests {
     /// 4. Verify reader stops with cancellation error
     #[tokio::test]
     async fn test_reader_task_cancellation() {
-        use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+        use crate::infrastructure::adapters::file_io::TokioFileIO;
         use bootstrap::shutdown::ShutdownCoordinator;
         use pipeline_domain::services::file_io_service::FileIOConfig;
         use std::time::Duration;
@@ -1590,7 +1590,7 @@ mod tests {
         cancel_token.cancel();
 
         // Start reader task (should detect cancellation and exit)
-        let file_io = Arc::new(FileIOServiceImpl::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
+        let file_io = Arc::new(TokioFileIO::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
         let result = reader_task(input_file, 1024, tx, file_io, 10, cancel_token).await;
 
         // Verify cancellation error
@@ -1623,7 +1623,7 @@ mod tests {
     /// 4. Verify all tasks stop gracefully
     #[tokio::test]
     async fn test_cancellation_during_processing() {
-        use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+        use crate::infrastructure::adapters::file_io::TokioFileIO;
         use crate::infrastructure::runtime::{init_resource_manager, ResourceConfig};
         use bootstrap::shutdown::ShutdownCoordinator;
         use pipeline_domain::services::file_io_service::FileIOConfig;
@@ -1645,7 +1645,7 @@ mod tests {
         let cancel_clone = cancel_token.clone();
 
         // Spawn reader task
-        let file_io = Arc::new(FileIOServiceImpl::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
+        let file_io = Arc::new(TokioFileIO::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
         let reader_handle =
             tokio::spawn(async move { reader_task(input_file, 1024, tx, file_io, 5, cancel_clone).await });
 
@@ -1742,7 +1742,7 @@ mod tests {
     /// - Clean error propagation
     #[tokio::test]
     async fn test_early_cancellation_detection() {
-        use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+        use crate::infrastructure::adapters::file_io::TokioFileIO;
         use bootstrap::shutdown::ShutdownCoordinator;
         use pipeline_domain::services::file_io_service::FileIOConfig;
         use std::time::Duration;
@@ -1760,7 +1760,7 @@ mod tests {
         assert!(cancel_token.is_cancelled(), "Token should be cancelled");
 
         // Attempt to start reader
-        let file_io = Arc::new(FileIOServiceImpl::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
+        let file_io = Arc::new(TokioFileIO::new(FileIOConfig::default())) as Arc<dyn FileIOService>;
         let result = reader_task(input_file, 1024, tx, file_io, 10, cancel_token).await;
 
         // Should immediately return cancellation error

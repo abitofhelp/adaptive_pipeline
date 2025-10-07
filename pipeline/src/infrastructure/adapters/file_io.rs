@@ -29,7 +29,7 @@
 //!
 //! The implementation follows the infrastructure layer patterns:
 //!
-//! - **Service Implementation**: `FileIOServiceImpl` implements domain
+//! - **Service Implementation**: `TokioFileIO` implements domain
 //!   interface
 //! - **Memory Management**: Efficient memory usage with memory mapping
 //! - **Concurrency**: Thread-safe operations with parking_lot RwLock
@@ -154,12 +154,12 @@ use pipeline_domain::{FileChunk, PipelineError};
 /// - **Configuration**: Runtime configuration updates supported
 ///
 /// # Examples
-pub struct FileIOServiceImpl {
+pub struct TokioFileIO {
     config: RwLock<FileIOConfig>,
     stats: RwLock<FileIOStats>,
 }
 
-impl FileIOServiceImpl {
+impl TokioFileIO {
     /// Creates a new FileIOService instance
     pub fn new(config: FileIOConfig) -> Self {
         Self {
@@ -239,7 +239,7 @@ impl FileIOServiceImpl {
 }
 
 #[async_trait]
-impl FileIOService for FileIOServiceImpl {
+impl FileIOService for TokioFileIO {
     async fn read_file_chunks(&self, path: &Path, options: ReadOptions) -> Result<ReadResult, PipelineError> {
         let start_time = std::time::Instant::now();
         let metadata = self.get_file_metadata(path).await?;
@@ -754,7 +754,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_file_io_basic_operations() {
-        let service = FileIOServiceImpl::new_default();
+        let service = TokioFileIO::new_default();
 
         // Create a temporary file with enough data for 1MB minimum chunk size
         let temp_file = NamedTempFile::new().unwrap();
@@ -790,7 +790,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_memory_mapping() {
-        let service = FileIOServiceImpl::new_default();
+        let service = TokioFileIO::new_default();
 
         // Create a temporary file with enough data to trigger memory mapping
         let temp_file = NamedTempFile::new().unwrap();

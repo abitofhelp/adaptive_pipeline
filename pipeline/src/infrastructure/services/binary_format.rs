@@ -125,16 +125,16 @@ pub struct ValidationResult {
 }
 
 /// Implementation of BinaryFormatService
-pub struct BinaryFormatServiceImpl;
+pub struct AdapipeFormat;
 
-impl BinaryFormatServiceImpl {
+impl AdapipeFormat {
     pub fn new() -> Self {
         Self
     }
 }
 
 #[async_trait]
-impl BinaryFormatService for BinaryFormatServiceImpl {
+impl BinaryFormatService for AdapipeFormat {
     async fn create_writer(
         &self,
         output_path: &Path,
@@ -728,7 +728,7 @@ impl BinaryFormatReader for StreamingBinaryReader {
     }
 }
 
-impl Default for BinaryFormatServiceImpl {
+impl Default for AdapipeFormat {
     fn default() -> Self {
         Self::new()
     }
@@ -763,7 +763,7 @@ mod tests {
         let chunk2 = ChunkFormat::new([2u8; 12], vec![0xca, 0xfe, 0xba, 0xbe]);
 
         // Write file using StreamingBinaryWriter
-        let service = BinaryFormatServiceImpl::new();
+        let service = AdapipeFormat::new();
         let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
         writer.write_chunk(chunk1.clone()).unwrap();
         writer.write_chunk(chunk2.clone()).unwrap();
@@ -824,7 +824,7 @@ mod tests {
         let chunk = ChunkFormat::new([5u8; 12], vec![0x12, 0x34, 0x56, 0x78]);
 
         // Write file
-        let service = BinaryFormatServiceImpl::new();
+        let service = AdapipeFormat::new();
         let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
         writer.write_chunk(chunk.clone()).unwrap();
         let final_header = header.clone();
@@ -860,7 +860,7 @@ mod tests {
         let chunk1 = ChunkFormat::new([7u8; 12], vec![0xaa, 0xbb, 0xcc, 0xdd]);
         let chunk2 = ChunkFormat::new([8u8; 12], vec![0x11, 0x22, 0x33, 0x44]);
 
-        let service = BinaryFormatServiceImpl::new();
+        let service = AdapipeFormat::new();
         let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
         writer.write_chunk(chunk1).unwrap();
         writer.write_chunk(chunk2).unwrap();
@@ -895,7 +895,7 @@ mod tests {
         let chunk3 = ChunkFormat::new([3u8; 12], vec![0x09, 0x0a, 0x0b, 0x0c]);
 
         // Write file
-        let service = BinaryFormatServiceImpl::new();
+        let service = AdapipeFormat::new();
         let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
         writer.write_chunk(chunk1.clone()).unwrap();
         writer.write_chunk(chunk2.clone()).unwrap();

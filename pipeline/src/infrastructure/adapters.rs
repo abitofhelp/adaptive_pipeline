@@ -29,9 +29,12 @@
 //! ```text
 //! adapters/
 //! ├── chunk_processor_adapters.rs  # Chunk processing implementations
-//! ├── compression_service_adapter.rs # Compression service implementations
-//! ├── encryption_service_adapter.rs  # Encryption service implementations
-//! └── file_io_service_adapter.rs    # File I/O service implementations
+//! ├── compression.rs               # Compression service implementations
+//! ├── encryption.rs                # Encryption service implementations
+//! ├── file_io.rs                   # File I/O service implementations
+//! ├── async_compression.rs         # Async compression adapter
+//! ├── async_encryption.rs          # Async encryption adapter
+//! └── async_checksum.rs            # Async checksum adapter
 //!     requires_security_context: false,
 //! };
 //!
@@ -57,29 +60,26 @@
 pub mod chunk_processor_adapters;
 
 /// Compression service adapter
-pub mod compression_service_adapter;
+pub mod compression;
 
 /// Async compression adapter (wraps sync domain trait for async contexts)
-pub mod async_compression_adapter;
+pub mod async_compression;
 
 /// Async encryption adapter (wraps sync domain trait for async contexts)
-pub mod async_encryption_adapter;
+pub mod async_encryption;
 
 /// Async checksum adapter (wraps sync domain trait for async contexts)
-pub mod async_checksum_adapter;
+pub mod async_checksum;
 
 /// Encryption service adapter
-pub mod encryption_service_adapter;
+pub mod encryption;
 
 /// File I/O service adapter
-pub mod file_io_service_adapter;
-
-/// Repository adapters
-pub mod repositories;
+pub mod file_io;
 
 // Re-export for easy access
-pub use async_checksum_adapter::*;
-pub use async_compression_adapter::*;
-pub use async_encryption_adapter::*;
-pub use compression_service_adapter::*;
-pub use encryption_service_adapter::*;
+pub use async_checksum::*;
+pub use async_compression::*;
+pub use async_encryption::*;
+pub use compression::*;
+pub use encryption::*;

@@ -180,7 +180,7 @@ use tracing::{debug, error, info, warn};
 // Import ChunkSize and WorkerCount for optimal sizing calculations
 use crate::application::commands::RestoreFileCommand;
 // File restoration is now handled via use_cases::restore_file
-use crate::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+use crate::infrastructure::adapters::file_io::TokioFileIO;
 use crate::infrastructure::services::progress_indicator::ProgressIndicatorService;
 use pipeline_domain::value_objects::binary_file_format::FileHeader;
 use pipeline_domain::value_objects::chunk_size::ChunkSize;
@@ -245,14 +245,14 @@ use pipeline_domain::{FileChunk, Pipeline, PipelineStage, ProcessingContext, Sec
 // Application layer imports (duplicates removed - already imported above)
 use pipeline_domain::services::file_io_service::FileIOService;
 
-use crate::application::services::pipeline::PipelineServiceImpl;
-use crate::infrastructure::adapters::repositories::sqlite_pipeline_repository_adapter::SqlitePipelineRepository;
-use crate::infrastructure::adapters::{CompressionServiceImpl, EncryptionServiceImpl};
+use crate::application::services::pipeline::ConcurrentPipeline;
+use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
+use crate::infrastructure::adapters::{MultiAlgoCompression, MultiAlgoEncryption};
 use crate::infrastructure::logging::ObservabilityService;
 use crate::infrastructure::metrics::{MetricsEndpoint, MetricsService};
-use crate::infrastructure::repositories::stage_executor::BasicStageExecutor;
+use crate::infrastructure::runtime::stage_executor::BasicStageExecutor;
 use crate::infrastructure::services::{
-    Base64EncodingService, BinaryFormatService, BinaryFormatServiceImpl, DebugService,
+    Base64EncodingService, BinaryFormatService, AdapipeFormat, DebugService,
     PassThroughService, PiiMaskingService, TeeService,
 };
 use pipeline_domain::repositories::stage_executor::StageExecutor;
@@ -507,7 +507,7 @@ async fn restore_file_from_adapipe_v2(
     println!("📁 Target restoration path: {}", target_path.display());
 
     // Note: Restoration service removed - use use_cases::restore_file directly
-    // instead let file_io_service = Arc::new(FileIOServiceImpl::new_default());
+    // instead let file_io_service = Arc::new(TokioFileIO::new_default());
 
     // Create Command following CQRS pattern
     let command = RestoreFileCommand::new(input.clone(), target_path.clone())
@@ -580,7 +580,7 @@ async fn restore_file_from_adapipe_v2(
 
     // Step 1: Read .adapipe metadata
     info!("Reading .adapipe file metadata...");
-    let binary_format_service = BinaryFormatServiceImpl::new();
+    let binary_format_service = AdapipeFormat::new();
     let metadata = binary_format_service
         .read_metadata(&input)
         .await
@@ -652,8 +652,8 @@ async fn restore_file_from_adapipe_v2(
         .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
 
     // Create services and stage executor for restoration
-    let compression_service = Arc::new(CompressionServiceImpl::new());
-    let encryption_service = Arc::new(EncryptionServiceImpl::new());
+    let compression_service = Arc::new(MultiAlgoCompression::new());
+    let encryption_service = Arc::new(MultiAlgoEncryption::new());
 
     // Build stage service registry for restoration
     let mut stage_services: HashMap<String, Arc<dyn pipeline_domain::services::StageService>> = HashMap::new();
@@ -1241,7 +1241,7 @@ async fn stream_restore_with_validation(
     let mut chunks_processed = 0u32;
 
     // Create binary format reader for proper .adapipe chunk parsing
-    let binary_format_service = BinaryFormatServiceImpl::new();
+    let binary_format_service = AdapipeFormat::new();
     let mut adapipe_reader = binary_format_service
         .create_reader(input_path)
         .await
@@ -1253,8 +1253,8 @@ async fn stream_restore_with_validation(
         .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
 
     // Create domain services for restoration pipeline
-    let compression_service = Arc::new(CompressionServiceImpl::new());
-    let encryption_service = Arc::new(EncryptionServiceImpl::new());
+    let compression_service = Arc::new(MultiAlgoCompression::new());
+    let encryption_service = Arc::new(MultiAlgoEncryption::new());
 
     // Build stage service registry for validation
     let mut stage_services: HashMap<String, Arc<dyn pipeline_domain::services::StageService>> = HashMap::new();

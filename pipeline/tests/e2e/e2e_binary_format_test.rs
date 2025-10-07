@@ -7,7 +7,7 @@
 use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
 
-use pipeline::infrastructure::services::{BinaryFormatService, BinaryFormatServiceImpl, BinaryFormatWriter};
+use pipeline::infrastructure::services::{BinaryFormatService, AdapipeFormat, BinaryFormatWriter};
 use pipeline_domain::value_objects::FileHeader;
 use pipeline_domain::PipelineError;
 
@@ -79,7 +79,7 @@ async fn test_e2e_real_pipeline_roundtrip() {
     assert!(output_file.exists(), ".adapipe file was not created");
 
     // Step 4: Use BinaryFormatService to validate and read metadata
-    let service = BinaryFormatServiceImpl::new();
+    let service = AdapipeFormat::new();
 
     // Validate file format
     let validation = service.validate_file(&output_file).await.unwrap();
@@ -178,7 +178,7 @@ async fn test_e2e_binary_format_pass_through() {
     );
 
     // Step 3: Validate the file metadata
-    let service = BinaryFormatServiceImpl::new();
+    let service = AdapipeFormat::new();
     let metadata = service.read_metadata(&output_file).await.unwrap();
 
     assert!(!metadata.is_compressed(), "File should not be compressed");
@@ -205,7 +205,7 @@ async fn test_e2e_binary_format_corruption_detection() {
     // Write invalid magic bytes
     fs::write(file_path, b"INVALID_MAGIC_BYTES").await.unwrap();
 
-    let service = BinaryFormatServiceImpl::new();
+    let service = AdapipeFormat::new();
 
     // Should fail to read metadata
     let result = service.read_metadata(file_path).await;
@@ -219,7 +219,7 @@ async fn test_e2e_binary_format_version_compatibility() {
     let temp_dir = TempDir::new().unwrap();
     let output_file = temp_dir.path().join("versioned.adapipe");
 
-    let service = BinaryFormatServiceImpl::new();
+    let service = AdapipeFormat::new();
 
     // Create file with current version
     {
@@ -294,7 +294,7 @@ async fn test_e2e_binary_format_large_file() {
     );
 
     // Step 3: Verify multiple chunks were created
-    let service = BinaryFormatServiceImpl::new();
+    let service = AdapipeFormat::new();
     let metadata = service.read_metadata(&output_file).await.unwrap();
 
     assert!(metadata.chunk_count >= 1, "Should have at least one chunk");

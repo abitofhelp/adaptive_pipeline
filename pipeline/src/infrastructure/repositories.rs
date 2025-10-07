@@ -122,16 +122,15 @@
 //! - **Backward Compatibility**: Support for schema evolution
 //! - **Data Migration**: Safe data transformation during updates
 // DOMAIN-SPECIFIC REPOSITORIES (PUBLIC - for dependency injection)
-pub mod sqlite_pipeline_repository;
+pub mod sqlite_pipeline;
 
 // SCHEMA MANAGEMENT (PUBLIC - for database initialization)
 pub mod schema;
 
 // INFRASTRUCTURE UTILITIES (CRATE-VISIBLE - internal infrastructure sharing)
-pub(crate) mod generic_repository;
-pub(crate) mod sqlite_repository;
-pub(crate) mod sqlite_repository_adapter;
-pub(crate) mod stage_executor;
+pub(crate) mod generic;
+pub(crate) mod sqlite;
+pub(crate) mod sqlite_adapter;
 
 // CLEAN ARCHITECTURE EXPORTS - Only domain-specific implementations
 // Following DIP: Export concrete implementations for dependency injection

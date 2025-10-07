@@ -14,6 +14,7 @@
 //!
 //! - **resource_manager**: Global resource governance (CPU, I/O, memory)
 //! - **supervisor**: Supervised task spawning with error handling and logging
+//! - **stage_executor**: Pipeline stage execution orchestration
 //!
 //! ## Educational Purpose
 //!
@@ -24,6 +25,7 @@
 //! - Supervised concurrent task execution
 
 pub mod resource_manager;
+pub mod stage_executor;
 pub mod supervisor;
 
 // Re-export commonly used types

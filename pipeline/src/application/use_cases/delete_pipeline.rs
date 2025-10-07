@@ -57,7 +57,7 @@ use std::io::{self, Write};
 use std::sync::Arc;
 use tracing::info;
 
-use crate::infrastructure::adapters::repositories::sqlite_pipeline_repository_adapter::SqlitePipelineRepository;
+use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
 
 /// Use case for deleting pipelines from the system.
 ///

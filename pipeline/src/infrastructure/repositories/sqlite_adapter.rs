@@ -133,8 +133,8 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use crate::infrastructure::repositories::generic_repository::{Repository, RepositoryEntity};
-use crate::infrastructure::repositories::sqlite_repository::{SqliteEntity, SqliteRepository};
+use crate::infrastructure::repositories::generic::{Repository, RepositoryEntity};
+use crate::infrastructure::repositories::sqlite::{SqliteEntity, SqliteRepository};
 use pipeline_domain::PipelineError;
 
 /// Adapter that bridges between domain Repository trait and SQLite
@@ -268,7 +268,7 @@ impl RepositoryFactory {
     where
         T: RepositoryEntity,
     {
-        use crate::infrastructure::repositories::generic_repository::InMemoryRepository;
+        use crate::infrastructure::repositories::generic::InMemoryRepository;
         Arc::new(InMemoryRepository::<T>::new())
     }
 
@@ -336,8 +336,8 @@ impl RepositoryConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::repositories::generic_repository::RepositoryEntity;
-    use crate::infrastructure::repositories::sqlite_repository::SqliteEntity;
+    use crate::infrastructure::repositories::generic::RepositoryEntity;
+    use crate::infrastructure::repositories::sqlite::SqliteEntity;
     use serde::{Deserialize, Serialize};
     use uuid::Uuid;
 

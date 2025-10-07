@@ -11,9 +11,9 @@ use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
 use tokio::time::Instant;
 
-use pipeline::infrastructure::adapters::compression_service_adapter::CompressionServiceImpl;
-use pipeline::infrastructure::adapters::encryption_service_adapter::EncryptionServiceImpl;
-use pipeline::infrastructure::adapters::file_io_service_adapter::FileIOServiceImpl;
+use pipeline::infrastructure::adapters::compression::MultiAlgoCompression;
+use pipeline::infrastructure::adapters::encryption::MultiAlgoEncryption;
+use pipeline::infrastructure::adapters::file_io::TokioFileIO;
 use pipeline_domain::entities::security_context::{SecurityContext, SecurityLevel};
 use pipeline_domain::entities::ProcessingContext;
 use pipeline_domain::services::checksum_service::{ChecksumProcessor, ChecksumService};
@@ -362,7 +362,7 @@ fn test_checksum_service_basic_functionality() {
 async fn test_file_io_service_basic_operations() {
     println!("📁 Testing file I/O service basic operations...");
 
-    let file_io_service = FileIOServiceImpl::new(FileIOConfig::default());
+    let file_io_service = TokioFileIO::new(FileIOConfig::default());
     let test_data = DomainServicesTestImpl::test_data_medium().to_vec();
 
     // Create temporary file
@@ -403,7 +403,7 @@ async fn test_file_io_service_basic_operations() {
 async fn test_file_io_service_chunked_operations() {
     println!("📦 Testing file I/O service chunked operations...");
 
-    let file_io_service = FileIOServiceImpl::new(FileIOConfig::default());
+    let file_io_service = TokioFileIO::new(FileIOConfig::default());
     let large_data = DomainServicesTestImpl::test_data_large();
 
     let temp_dir = TempDir::new().unwrap();
@@ -454,9 +454,9 @@ fn test_domain_services_integration_basic() {
     println!("🔗 Testing domain services integration basic functionality...");
 
     // Test service instantiation
-    let compression_service = CompressionServiceImpl::new();
-    let encryption_service = EncryptionServiceImpl::new();
-    let file_io_service = FileIOServiceImpl::new(FileIOConfig::default());
+    let compression_service = MultiAlgoCompression::new();
+    let encryption_service = MultiAlgoEncryption::new();
+    let file_io_service = TokioFileIO::new(FileIOConfig::default());
 
     // Test configuration creation
     let compression_config = CompressionConfig::new(CompressionAlgorithm::Brotli);
