@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -168,14 +168,14 @@
 use anyhow::Result;
 use byte_unit::Byte;
 // CLI parsing now handled by bootstrap layer
-use sha2::{Digest, Sha256};
+use sha2::{ Digest, Sha256 };
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{ Path, PathBuf };
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::io::AsyncWriteExt;
-use tracing::{debug, error, info, warn};
+use tracing::{ debug, error, info, warn };
 
 // Import ChunkSize and WorkerCount for optimal sizing calculations
 use crate::application::commands::RestoreFileCommand;
@@ -188,9 +188,16 @@ use adaptive_pipeline_domain::value_objects::worker_count::WorkerCount;
 
 // Import all use cases from application layer
 use crate::application::use_cases::{
-    BenchmarkSystemUseCase, CompareFilesUseCase, CreatePipelineUseCase, DeletePipelineUseCase,
-    ListPipelinesUseCase, ProcessFileConfig, ProcessFileUseCase, ShowPipelineUseCase,
-    ValidateConfigUseCase, ValidateFileUseCase,
+    BenchmarkSystemUseCase,
+    CompareFilesUseCase,
+    CreatePipelineUseCase,
+    DeletePipelineUseCase,
+    ListPipelinesUseCase,
+    ProcessFileConfig,
+    ProcessFileUseCase,
+    ShowPipelineUseCase,
+    ValidateConfigUseCase,
+    ValidateFileUseCase,
 };
 
 /// Format bytes with 6-digit precision
@@ -226,10 +233,7 @@ fn resolve_sqlite_path() -> Result<String> {
     }
 
     // 4. Create default database in current directory
-    info!(
-        "No existing database found. Creating new database at: {}",
-        current_dir_path
-    );
+    info!("No existing database found. Creating new database at: {}", current_dir_path);
     Ok(current_dir_path.to_string())
 }
 
@@ -237,23 +241,35 @@ mod application;
 mod infrastructure;
 mod presentation;
 
-use adaptive_pipeline_domain::entities::pipeline_stage::{StageConfiguration, StageType};
+use adaptive_pipeline_domain::entities::pipeline_stage::{ StageConfiguration, StageType };
 use adaptive_pipeline_domain::entities::security_context::Permission;
 use adaptive_pipeline_domain::services::pipeline_service::PipelineService;
-use adaptive_pipeline_domain::{FileChunk, Pipeline, PipelineStage, ProcessingContext, SecurityContext, SecurityLevel};
+use adaptive_pipeline_domain::{
+    FileChunk,
+    Pipeline,
+    PipelineStage,
+    ProcessingContext,
+    SecurityContext,
+    SecurityLevel,
+};
 
 // Application layer imports (duplicates removed - already imported above)
 use adaptive_pipeline_domain::services::file_io_service::FileIOService;
 
 use crate::application::services::pipeline::ConcurrentPipeline;
 use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
-use crate::infrastructure::adapters::{MultiAlgoCompression, MultiAlgoEncryption};
+use crate::infrastructure::adapters::{ MultiAlgoCompression, MultiAlgoEncryption };
 use crate::infrastructure::logging::ObservabilityService;
-use crate::infrastructure::metrics::{MetricsEndpoint, MetricsService};
+use crate::infrastructure::metrics::{ MetricsEndpoint, MetricsService };
 use crate::infrastructure::runtime::stage_executor::BasicStageExecutor;
 use crate::infrastructure::services::{
-    Base64EncodingService, BinaryFormatService, AdapipeFormat, DebugService,
-    PassThroughService, PiiMaskingService, TeeService,
+    Base64EncodingService,
+    BinaryFormatService,
+    AdapipeFormat,
+    DebugService,
+    PassThroughService,
+    PiiMaskingService,
+    TeeService,
 };
 use adaptive_pipeline_domain::repositories::stage_executor::StageExecutor;
 
@@ -292,26 +308,28 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
     // === Initialize Global Resource Manager ===
     // Educational: This must happen BEFORE any code uses RESOURCE_MANAGER
     // We configure it from CLI flags, falling back to intelligent defaults.
-    use crate::infrastructure::runtime::{init_resource_manager, ResourceConfig, StorageType};
+    use crate::infrastructure::runtime::{ init_resource_manager, ResourceConfig, StorageType };
 
     let resource_config = ResourceConfig {
         cpu_tokens: cli.cpu_threads,
         io_tokens: cli.io_threads,
-        storage_type: cli
-            .storage_type
+        storage_type: cli.storage_type
             .as_ref()
-            .map(|s| match s.as_str() {
-                "nvme" => StorageType::NVMe,
-                "ssd" => StorageType::SSD,
-                "hdd" => StorageType::HDD,
-                _ => StorageType::Auto, // Shouldn't happen due to parse_storage_type validation
+            .map(|s| {
+                match s.as_str() {
+                    "nvme" => StorageType::NVMe,
+                    "ssd" => StorageType::SSD,
+                    "hdd" => StorageType::HDD,
+                    _ => StorageType::Auto, // Shouldn't happen due to parse_storage_type validation
+                }
             })
             .unwrap_or(StorageType::Auto),
         memory_limit: None, // Use system detection
     };
 
-    init_resource_manager(resource_config)
-        .map_err(|e| anyhow::anyhow!("Failed to initialize resource manager: {}", e))?;
+    init_resource_manager(resource_config).map_err(|e|
+        anyhow::anyhow!("Failed to initialize resource manager: {}", e)
+    )?;
 
     // Educational: Log the resource configuration for observability
     let rm = crate::infrastructure::runtime::resource_manager();
@@ -323,23 +341,22 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
     );
 
     // Initialize tracing
-    let subscriber = tracing_subscriber::FmtSubscriber::builder()
-        .with_max_level(if cli.verbose {
-            tracing::Level::DEBUG
-        } else {
-            tracing::Level::INFO
-        })
+    let subscriber = tracing_subscriber::FmtSubscriber
+        ::builder()
+        .with_max_level(if cli.verbose { tracing::Level::DEBUG } else { tracing::Level::INFO })
         .finish();
 
     tracing::subscriber::set_global_default(subscriber)?;
 
-    debug!("Starting Optimized Adaptive Pipeline RS v1.0.1");
+    debug!("Starting Adaptive Pipeline RS v1.0.1");
 
     // Initialize Prometheus metrics service
-    let metrics_service = Arc::new(MetricsService::new().map_err(|e| {
-        error!("Failed to initialize metrics service: {}", e);
-        anyhow::anyhow!("Metrics initialization failed: {}", e)
-    })?);
+    let metrics_service = Arc::new(
+        MetricsService::new().map_err(|e| {
+            error!("Failed to initialize metrics service: {}", e);
+            anyhow::anyhow!("Metrics initialization failed: {}", e)
+        })?
+    );
     debug!("Prometheus metrics service initialized");
 
     // Start metrics endpoint on background thread (port configured in
@@ -355,7 +372,9 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
     // Initialize observability service for enhanced monitoring (with config)
-    let observability_service = Arc::new(ObservabilityService::new_with_config(metrics_service.clone()).await);
+    let observability_service = Arc::new(
+        ObservabilityService::new_with_config(metrics_service.clone()).await
+    );
     debug!("Enhanced observability service initialized with configuration");
 
     // Initialize SQLite pipeline repository
@@ -364,10 +383,12 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
         anyhow::anyhow!("Failed to resolve SQLite path: {}", e)
     })?;
     debug!("Using SQLite database: {}", sqlite_path);
-    let pipeline_repository = Arc::new(SqlitePipelineRepository::new(&sqlite_path).await.map_err(|e| {
-        error!("Failed to initialize pipeline repository: {}", e);
-        anyhow::anyhow!("Repository initialization failed: {}", e)
-    })?);
+    let pipeline_repository = Arc::new(
+        SqlitePipelineRepository::new(&sqlite_path).await.map_err(|e| {
+            error!("Failed to initialize pipeline repository: {}", e);
+            anyhow::anyhow!("Repository initialization failed: {}", e)
+        })?
+    );
     debug!("Pipeline repository initialized");
 
     // Load configuration if provided
@@ -396,7 +417,7 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
             let use_case = ProcessFileUseCase::new(
                 metrics_service.clone(),
                 observability_service.clone(),
-                pipeline_repository.clone(),
+                pipeline_repository.clone()
             );
             use_case.execute(config).await?;
         }
@@ -421,11 +442,7 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
             use_case.execute(pipeline, force).await?;
         }
 
-        bootstrap::ValidatedCommand::Benchmark {
-            file,
-            size_mb,
-            iterations,
-        } => {
+        bootstrap::ValidatedCommand::Benchmark { file, size_mb, iterations } => {
             let use_case = BenchmarkSystemUseCase::new();
             use_case.execute(file, size_mb, iterations).await?;
         }
@@ -440,21 +457,12 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
             use_case.execute(file, full).await?;
         }
 
-        bootstrap::ValidatedCommand::Restore {
-            input,
-            output_dir,
-            mkdir,
-            overwrite,
-        } => {
+        bootstrap::ValidatedCommand::Restore { input, output_dir, mkdir, overwrite } => {
             // Use the new hybrid architecture-compliant function
             restore_file_from_adapipe_v2(input, output_dir, mkdir, overwrite).await?;
         }
 
-        bootstrap::ValidatedCommand::Compare {
-            original,
-            adapipe,
-            detailed,
-        } => {
+        bootstrap::ValidatedCommand::Compare { original, adapipe, detailed } => {
             let use_case = CompareFilesUseCase::new();
             use_case.execute(original, adapipe, detailed).await?;
         }
@@ -467,28 +475,27 @@ async fn restore_file_from_adapipe_v2(
     input: PathBuf,
     output_dir: Option<PathBuf>,
     mkdir: bool,
-    overwrite: bool,
+    overwrite: bool
 ) -> Result<()> {
     info!("Restoring file from .adapipe: {}", input.display());
 
     // Validate input file exists
     if !input.exists() {
-        return Err(anyhow::anyhow!(
-            "Input .adapipe file does not exist: {}",
-            input.display()
-        ));
+        return Err(anyhow::anyhow!("Input .adapipe file does not exist: {}", input.display()));
     }
 
     // Read .adapipe metadata to determine target path
     println!("🔍 Reading .adapipe file metadata...");
     let file_data = std::fs::read(&input)?;
-    let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
-        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
+    let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data).map_err(|e|
+        anyhow::anyhow!("Failed to read .adapipe metadata: {}", e)
+    )?;
 
     // Determine output path
     let target_path = if let Some(ref dir) = output_dir {
         // Use specified directory + original filename
-        let original_filename = std::path::Path::new(&metadata.original_filename)
+        let original_filename = std::path::Path
+            ::new(&metadata.original_filename)
             .file_name()
             .ok_or_else(|| {
                 anyhow::anyhow!(
@@ -536,21 +543,24 @@ async fn restore_file_from_adapipe_v2(
     let target_path = if let Some(output_dir) = output_dir {
         // Create output directory if needed
         if mkdir && !output_dir.exists() {
-            std::fs::create_dir_all(&output_dir)
+            std::fs
+                ::create_dir_all(&output_dir)
                 .map_err(|e| anyhow::anyhow!("Failed to create output directory: {}", e))?;
         }
 
         // Read metadata to get original filename
         let file_data = std::fs::read(&input)?;
-        let (metadata, _) = FileHeader::from_footer_bytes(&file_data)
-            .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
+        let (metadata, _) = FileHeader::from_footer_bytes(&file_data).map_err(|e|
+            anyhow::anyhow!("Failed to read .adapipe metadata: {}", e)
+        )?;
 
         output_dir.join(&metadata.original_filename)
     } else {
         // Use same directory as input file, but with original filename
         let file_data = std::fs::read(&input)?;
-        let (metadata, _) = FileHeader::from_footer_bytes(&file_data)
-            .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
+        let (metadata, _) = FileHeader::from_footer_bytes(&file_data).map_err(|e|
+            anyhow::anyhow!("Failed to read .adapipe metadata: {}", e)
+        )?;
 
         input
             .parent()
@@ -560,10 +570,12 @@ async fn restore_file_from_adapipe_v2(
 
     // Check if target exists and handle overwrite
     if target_path.exists() && !overwrite {
-        return Err(anyhow::anyhow!(
-            "Target file already exists: {}\nUse --overwrite to overwrite existing files",
-            target_path.display()
-        ));
+        return Err(
+            anyhow::anyhow!(
+                "Target file already exists: {}\nUse --overwrite to overwrite existing files",
+                target_path.display()
+            )
+        );
     }
 
     // Create restore command
@@ -583,8 +595,7 @@ async fn restore_file_from_adapipe_v2(
     info!("Reading .adapipe file metadata...");
     let binary_format_service = AdapipeFormat::new();
     let metadata = binary_format_service
-        .read_metadata(&input)
-        .await
+        .read_metadata(&input).await
         .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
 
     println!("   📋 Metadata details:");
@@ -596,10 +607,12 @@ async fn restore_file_from_adapipe_v2(
 
     // Step 2: Validate target path and permissions
     if target_path.exists() && !overwrite {
-        return Err(anyhow::anyhow!(
-            "Target file already exists: {}\nUse --overwrite to replace it",
-            target_path.display()
-        ));
+        return Err(
+            anyhow::anyhow!(
+                "Target file already exists: {}\nUse --overwrite to replace it",
+                target_path.display()
+            )
+        );
     }
 
     // Step 3: Handle directory creation if needed
@@ -614,22 +627,28 @@ async fn restore_file_from_adapipe_v2(
                             parent_dir.display()
                         )
                     } else {
-                        anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
+                        anyhow::anyhow!(
+                            "Failed to create directory '{}': {}",
+                            parent_dir.display(),
+                            e
+                        )
                     }
                 })?;
             } else {
-                return Err(anyhow::anyhow!(
-                    "Output directory does not exist: {}\nUse --mkdir to create it",
-                    parent_dir.display()
-                ));
+                return Err(
+                    anyhow::anyhow!(
+                        "Output directory does not exist: {}\nUse --mkdir to create it",
+                        parent_dir.display()
+                    )
+                );
             }
         }
     }
 
     // Step 4: Create restoration pipeline using use_cases::restore_file
     info!("Creating restoration pipeline...");
-    let restoration_pipeline = application::use_cases::create_restoration_pipeline(&metadata)
-        .await
+    let restoration_pipeline = application::use_cases
+        ::create_restoration_pipeline(&metadata).await
         .map_err(|e| anyhow::anyhow!("Failed to create restoration pipeline: {}", e))?;
 
     println!(
@@ -643,13 +662,12 @@ async fn restore_file_from_adapipe_v2(
     // Step 5: Read chunks from .adapipe file and process through restoration pipeline
     info!("Starting restoration process...");
     let mut reader = binary_format_service
-        .create_reader(&input)
-        .await
+        .create_reader(&input).await
         .map_err(|e| anyhow::anyhow!("Failed to create .adapipe reader: {}", e))?;
 
     // Create output file
-    let mut output_file = tokio::fs::File::create(&target_path)
-        .await
+    let mut output_file = tokio::fs::File
+        ::create(&target_path).await
         .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
 
     // Create services and stage executor for restoration
@@ -657,19 +675,66 @@ async fn restore_file_from_adapipe_v2(
     let encryption_service = Arc::new(MultiAlgoEncryption::new());
 
     // Build stage service registry for restoration
-    let mut stage_services: HashMap<String, Arc<dyn adaptive_pipeline_domain::services::StageService>> = HashMap::new();
-    stage_services.insert("brotli".to_string(), compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("gzip".to_string(), compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("zstd".to_string(), compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("lz4".to_string(), compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("aes256gcm".to_string(), encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("aes128gcm".to_string(), encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("chacha20poly1305".to_string(), encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("tee".to_string(), Arc::new(TeeService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("passthrough".to_string(), Arc::new(PassThroughService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("debug".to_string(), Arc::new(DebugService::new(Arc::new(MetricsService::new().unwrap()))) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
+    let mut stage_services: HashMap<
+        String,
+        Arc<dyn adaptive_pipeline_domain::services::StageService>
+    > = HashMap::new();
+    stage_services.insert(
+        "brotli".to_string(),
+        compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "gzip".to_string(),
+        compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "zstd".to_string(),
+        compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "lz4".to_string(),
+        compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "aes256gcm".to_string(),
+        encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "aes128gcm".to_string(),
+        encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "chacha20poly1305".to_string(),
+        encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "base64".to_string(),
+        Arc::new(Base64EncodingService::new()) as Arc<
+            dyn adaptive_pipeline_domain::services::StageService
+        >
+    );
+    stage_services.insert(
+        "pii_masking".to_string(),
+        Arc::new(PiiMaskingService::new()) as Arc<
+            dyn adaptive_pipeline_domain::services::StageService
+        >
+    );
+    stage_services.insert(
+        "tee".to_string(),
+        Arc::new(TeeService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "passthrough".to_string(),
+        Arc::new(PassThroughService::new()) as Arc<
+            dyn adaptive_pipeline_domain::services::StageService
+        >
+    );
+    stage_services.insert(
+        "debug".to_string(),
+        Arc::new(DebugService::new(Arc::new(MetricsService::new().unwrap()))) as Arc<
+            dyn adaptive_pipeline_domain::services::StageService
+        >
+    );
 
     let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
 
@@ -678,10 +743,10 @@ async fn restore_file_from_adapipe_v2(
     let mut current_offset = 0u64;
 
     // Process each chunk
-    while let Some(chunk_format) = reader
-        .read_next_chunk()
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to read chunk: {}", e))?
+    while
+        let Some(chunk_format) = reader
+            .read_next_chunk().await
+            .map_err(|e| anyhow::anyhow!("Failed to read chunk: {}", e))?
     {
         // Reconstruct FileChunk from ChunkFormat
         // For encrypted chunks, prepend nonce back to data
@@ -694,20 +759,24 @@ async fn restore_file_from_adapipe_v2(
         };
 
         let is_final = chunks_processed == metadata.chunk_count - 1;
-        let mut file_chunk = FileChunk::new(chunks_processed as u64, current_offset, chunk_data, is_final)
-            .map_err(|e| anyhow::anyhow!("Failed to create FileChunk: {}", e))?;
+        let mut file_chunk = FileChunk::new(
+            chunks_processed as u64,
+            current_offset,
+            chunk_data,
+            is_final
+        ).map_err(|e| anyhow::anyhow!("Failed to create FileChunk: {}", e))?;
 
         // Create processing context for restoration
         let security_context = SecurityContext::with_permissions(
             None,
             vec![Permission::Read, Permission::Write],
-            SecurityLevel::Internal,
+            SecurityLevel::Internal
         );
         let mut context = ProcessingContext::new(
             input.clone(),
             target_path.clone(),
             metadata.original_size,
-            security_context,
+            security_context
         );
 
         // Process through restoration stages (decryption, decompression)
@@ -719,15 +788,13 @@ async fn restore_file_from_adapipe_v2(
 
             // Execute stage using stage executor
             file_chunk = stage_executor
-                .execute(stage, file_chunk, &mut context)
-                .await
+                .execute(stage, file_chunk, &mut context).await
                 .map_err(|e| anyhow::anyhow!("Failed to execute stage '{}': {}", stage.name(), e))?;
         }
 
         // Write restored data to output file
         output_file
-            .write_all(file_chunk.data())
-            .await
+            .write_all(file_chunk.data()).await
             .map_err(|e| anyhow::anyhow!("Failed to write to output file: {}", e))?;
 
         bytes_written += file_chunk.data().len() as u64;
@@ -737,16 +804,14 @@ async fn restore_file_from_adapipe_v2(
         if chunks_processed % 100 == 0 {
             println!(
                 "   📦 Processed {} chunks, {} bytes written",
-                chunks_processed, bytes_written
+                chunks_processed,
+                bytes_written
             );
         }
     }
 
     // Flush and close output file
-    output_file
-        .flush()
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to flush output file: {}", e))?;
+    output_file.flush().await.map_err(|e| anyhow::anyhow!("Failed to flush output file: {}", e))?;
 
     println!("✅ Restoration complete!");
     println!("   📦 Chunks processed: {}", chunks_processed);
@@ -758,7 +823,8 @@ async fn restore_file_from_adapipe_v2(
     if restored_size != metadata.original_size {
         println!(
             "   ⚠️  Warning: Restored file size ({} bytes) doesn't match original size ({} bytes)",
-            restored_size, metadata.original_size
+            restored_size,
+            metadata.original_size
         );
     } else {
         println!("   ✅ File size verified: {} bytes", restored_size);
@@ -772,16 +838,13 @@ async fn restore_file_from_adapipe_legacy(
     input: PathBuf,
     output_dir: Option<PathBuf>,
     mkdir: bool,
-    overwrite: bool,
+    overwrite: bool
 ) -> Result<()> {
     info!("Restoring file from .adapipe: {}", input.display());
 
     // Validate input file exists
     if !input.exists() {
-        return Err(anyhow::anyhow!(
-            "Input .adapipe file does not exist: {}",
-            input.display()
-        ));
+        return Err(anyhow::anyhow!("Input .adapipe file does not exist: {}", input.display()));
     }
 
     // Read .adapipe metadata
@@ -789,8 +852,9 @@ async fn restore_file_from_adapipe_legacy(
     let _file = std::fs::File::open(&input)?;
     // Read entire file to get footer data
     let file_data = std::fs::read(&input)?;
-    let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
-        .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
+    let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data).map_err(|e|
+        anyhow::anyhow!("Failed to read .adapipe metadata: {}", e)
+    )?;
 
     // Debug: Show metadata details
     println!("   📋 Metadata details:");
@@ -812,7 +876,8 @@ async fn restore_file_from_adapipe_legacy(
     // Determine output path
     let output_path = if let Some(dir) = output_dir {
         // Use specified directory + original filename
-        let original_filename = std::path::Path::new(&metadata.original_filename)
+        let original_filename = std::path::Path
+            ::new(&metadata.original_filename)
             .file_name()
             .ok_or_else(|| {
                 anyhow::anyhow!(
@@ -837,21 +902,26 @@ async fn restore_file_from_adapipe_legacy(
     // Check if target file already exists
     if output_path.exists() {
         if !overwrite {
-            return Err(anyhow::anyhow!(
-                "Target file already exists: {}\nUse --overwrite to replace it",
-                output_path.display()
-            ));
+            return Err(
+                anyhow::anyhow!(
+                    "Target file already exists: {}\nUse --overwrite to replace it",
+                    output_path.display()
+                )
+            );
         }
 
         // Check if existing file is writable
-        let metadata = std::fs::metadata(&output_path)
+        let metadata = std::fs
+            ::metadata(&output_path)
             .map_err(|e| anyhow::anyhow!("Failed to check existing file permissions: {}", e))?;
 
         if metadata.permissions().readonly() {
-            return Err(anyhow::anyhow!(
-                "Target file is read-only: {}\nChange permissions or use a different location",
-                output_path.display()
-            ));
+            return Err(
+                anyhow::anyhow!(
+                    "Target file is read-only: {}\nChange permissions or use a different location",
+                    output_path.display()
+                )
+            );
         }
 
         println!("   ⚠️  Target file exists and will be overwritten");
@@ -871,14 +941,15 @@ async fn restore_file_from_adapipe_legacy(
                             parent_dir.display()
                         )
                     } else {
-                        anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
+                        anyhow::anyhow!(
+                            "Failed to create directory '{}': {}",
+                            parent_dir.display(),
+                            e
+                        )
                     }
                 })?;
             } else {
-                print!(
-                    "Directory '{}' does not exist. Create it? [y/N]: ",
-                    parent_dir.display()
-                );
+                print!("Directory '{}' does not exist. Create it? [y/N]: ", parent_dir.display());
                 std::io::Write::flush(&mut std::io::stdout())?;
 
                 let mut input = String::new();
@@ -894,7 +965,11 @@ async fn restore_file_from_adapipe_legacy(
                                 parent_dir.display()
                             )
                         } else {
-                            anyhow::anyhow!("Failed to create directory '{}': {}", parent_dir.display(), e)
+                            anyhow::anyhow!(
+                                "Failed to create directory '{}': {}",
+                                parent_dir.display(),
+                                e
+                            )
                         }
                     })?;
                 } else {
@@ -914,14 +989,16 @@ async fn restore_file_from_adapipe_legacy(
                 println!("   ✅ Directory write permissions verified");
             }
             Err(e) => {
-                return Err(anyhow::anyhow!(
-                    "Cannot write to directory '{}': {}\nThis could be due to:\n  - Insufficient permissions (try \
+                return Err(
+                    anyhow::anyhow!(
+                        "Cannot write to directory '{}': {}\nThis could be due to:\n  - Insufficient permissions (try \
                      running with elevated privileges)\n  - Directory is read-only\n  - Filesystem is mounted \
                      read-only\n  - Security restrictions (SELinux, AppArmor, etc.)\nTry choosing a different \
                      location or checking directory permissions",
-                    parent_dir.display(),
-                    e
-                ));
+                        parent_dir.display(),
+                        e
+                    )
+                );
             }
         }
     }
@@ -937,17 +1014,19 @@ async fn restore_file_from_adapipe_legacy(
                     println!(
                         "   💾 Required disk space: {} bytes ({:.1} MB)",
                         required_size,
-                        required_size as f64 / (1024.0 * 1024.0)
+                        (required_size as f64) / (1024.0 * 1024.0)
                     );
                     println!("   ⚠️  Ensure sufficient disk space is available");
                 }
             }
             Err(e) => {
-                return Err(anyhow::anyhow!(
-                    "Cannot access target directory '{}': {}",
-                    parent_dir.display(),
-                    e
-                ));
+                return Err(
+                    anyhow::anyhow!(
+                        "Cannot access target directory '{}': {}",
+                        parent_dir.display(),
+                        e
+                    )
+                );
             }
         }
     }
@@ -957,9 +1036,9 @@ async fn restore_file_from_adapipe_legacy(
 
     // Create ephemeral restoration pipeline from .adapipe metadata
     println!("🔧 Creating ephemeral restoration pipeline...");
-    let restoration_pipeline = create_restoration_pipeline(&metadata)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to create restoration pipeline: {}", e))?;
+    let restoration_pipeline = create_restoration_pipeline(&metadata).await.map_err(|e|
+        anyhow::anyhow!("Failed to create restoration pipeline: {}", e)
+    )?;
 
     println!("   Pipeline ID: {}", restoration_pipeline.id());
     println!("   Stages: {}", restoration_pipeline.stages().len());
@@ -989,25 +1068,26 @@ async fn restore_file_from_adapipe_legacy(
         &restoration_pipeline,
         &metadata,
         _footer_size,
-        &progress_indicator,
-    )
-    .await
-    .map_err(|e| anyhow::anyhow!("Restoration failed: {}", e))?;
+        &progress_indicator
+    ).await.map_err(|e| anyhow::anyhow!("Restoration failed: {}", e))?;
 
     // Validate restoration results
     if restoration_result.checksum_verified {
         println!("   ✅ Checksum verified: restoration successful");
     } else {
-        return Err(anyhow::anyhow!(
-            "Checksum verification failed: expected {}, got {}",
-            metadata.original_checksum,
-            restoration_result.calculated_checksum
-        ));
+        return Err(
+            anyhow::anyhow!(
+                "Checksum verification failed: expected {}, got {}",
+                metadata.original_checksum,
+                restoration_result.calculated_checksum
+            )
+        );
     }
 
     println!(
         "   📊 Processed {} bytes in {} chunks",
-        restoration_result.bytes_processed, restoration_result.chunks_processed
+        restoration_result.bytes_processed,
+        restoration_result.chunks_processed
     );
 
     println!("\n✅ File restoration completed!");
@@ -1015,7 +1095,6 @@ async fn restore_file_from_adapipe_legacy(
 
     Ok(())
 }
-
 
 /// Creates an ephemeral restoration pipeline from .adapipe metadata
 ///
@@ -1030,7 +1109,11 @@ async fn restore_file_from_adapipe_legacy(
 /// - Immutability: Pipeline stages are immutable once created
 pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeline> {
     use adaptive_pipeline_domain::entities::pipeline::Pipeline;
-    use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+    use adaptive_pipeline_domain::entities::pipeline_stage::{
+        PipelineStage,
+        StageConfiguration,
+        StageType,
+    };
     use std::collections::HashMap;
 
     info!("Creating ephemeral restoration pipeline from metadata");
@@ -1044,10 +1127,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
     let mut processing_steps = metadata.processing_steps.clone();
     processing_steps.sort_by(|a, b| b.order.cmp(&a.order)); // Reverse order
 
-    info!(
-        "Building restoration pipeline from {} processing steps",
-        processing_steps.len()
-    );
+    info!("Building restoration pipeline from {} processing steps", processing_steps.len());
 
     for step in processing_steps {
         match step.step_type {
@@ -1064,13 +1144,14 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                     "decryption".to_string(),
                     StageType::Encryption, // Use Encryption type for decryption (internal restoration)
                     decryption_config,
-                    stage_index,
+                    stage_index
                 )?;
 
                 stages.push(decryption_stage);
                 info!(
                     "Added decryption stage: {} (from step order {})",
-                    step.algorithm, step.order
+                    step.algorithm,
+                    step.order
                 );
                 stage_index += 1;
             }
@@ -1087,13 +1168,14 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                     "decompression".to_string(),
                     StageType::Compression, // Note: Using Compression type for decompression
                     decompression_config,
-                    stage_index,
+                    stage_index
                 )?;
 
                 stages.push(decompression_stage);
                 info!(
                     "Added decompression stage: {} (from step order {})",
-                    step.algorithm, step.order
+                    step.algorithm,
+                    step.order
                 );
                 stage_index += 1;
             }
@@ -1101,7 +1183,8 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                 // Checksum steps are used for validation only, not for data transformation
                 info!(
                     "Skipping checksum step: {} (from step order {}) - used for validation only",
-                    step.algorithm, step.order
+                    step.algorithm,
+                    step.order
                 );
                 continue;
             }
@@ -1109,7 +1192,8 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                 // PassThrough steps don't modify data, skip during restoration
                 info!(
                     "Skipping pass-through step: {} (from step order {}) - no data transformation needed",
-                    step.algorithm, step.order
+                    step.algorithm,
+                    step.order
                 );
                 continue;
             }
@@ -1118,7 +1202,8 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                 if step_name.contains("checksum") {
                     info!(
                         "Skipping checksum step: {} (from step order {}) - used for validation only",
-                        step.algorithm, step.order
+                        step.algorithm,
+                        step.order
                     );
                     continue;
                 }
@@ -1149,12 +1234,19 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                     format!("reverse_{}", step_name)
                 };
 
-                let custom_stage = PipelineStage::new(stage_name.clone(), stage_type, custom_config, stage_index)?;
+                let custom_stage = PipelineStage::new(
+                    stage_name.clone(),
+                    stage_type,
+                    custom_config,
+                    stage_index
+                )?;
 
                 stages.push(custom_stage);
                 info!(
                     "Added {} stage: {} (from step order {})",
-                    stage_name, step.algorithm, step.order
+                    stage_name,
+                    step.algorithm,
+                    step.order
                 );
                 stage_index += 1;
             }
@@ -1174,7 +1266,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
         "verification".to_string(),
         StageType::Checksum, // Using Checksum type for verification
         verification_config,
-        stage_index,
+        stage_index
     )?;
 
     stages.push(verification_stage);
@@ -1190,10 +1282,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
 
     let pipeline = Pipeline::new(pipeline_name, stages)?;
 
-    info!(
-        "Created ephemeral restoration pipeline with {} stages",
-        pipeline.stages().len()
-    );
+    info!("Created ephemeral restoration pipeline with {} stages", pipeline.stages().len());
 
     Ok(pipeline)
 }
@@ -1228,7 +1317,7 @@ async fn stream_restore_with_validation(
     restoration_pipeline: &Pipeline,
     metadata: &FileHeader,
     _footer_size: usize,
-    progress_indicator: &ProgressIndicatorService,
+    progress_indicator: &ProgressIndicatorService
 ) -> Result<RestorationResult> {
     use tokio::fs::File;
     use tokio::io::AsyncWriteExt;
@@ -1244,40 +1333,86 @@ async fn stream_restore_with_validation(
     // Create binary format reader for proper .adapipe chunk parsing
     let binary_format_service = AdapipeFormat::new();
     let mut adapipe_reader = binary_format_service
-        .create_reader(input_path)
-        .await
+        .create_reader(input_path).await
         .map_err(|e| anyhow::anyhow!("Failed to create .adapipe reader: {}", e))?;
 
     // Create output file for writing restored data
-    let mut output_file = File::create(output_path)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
+    let mut output_file = File::create(output_path).await.map_err(|e|
+        anyhow::anyhow!("Failed to create output file: {}", e)
+    )?;
 
     // Create domain services for restoration pipeline
     let compression_service = Arc::new(MultiAlgoCompression::new());
     let encryption_service = Arc::new(MultiAlgoEncryption::new());
 
     // Build stage service registry for validation
-    let mut stage_services: HashMap<String, Arc<dyn adaptive_pipeline_domain::services::StageService>> = HashMap::new();
-    stage_services.insert("brotli".to_string(), compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("gzip".to_string(), compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("zstd".to_string(), compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("lz4".to_string(), compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("aes256gcm".to_string(), encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("aes128gcm".to_string(), encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("chacha20poly1305".to_string(), encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("base64".to_string(), Arc::new(Base64EncodingService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("pii_masking".to_string(), Arc::new(PiiMaskingService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("tee".to_string(), Arc::new(TeeService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("passthrough".to_string(), Arc::new(PassThroughService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
-    stage_services.insert("debug".to_string(), Arc::new(DebugService::new(Arc::new(MetricsService::new().unwrap()))) as Arc<dyn adaptive_pipeline_domain::services::StageService>);
+    let mut stage_services: HashMap<
+        String,
+        Arc<dyn adaptive_pipeline_domain::services::StageService>
+    > = HashMap::new();
+    stage_services.insert(
+        "brotli".to_string(),
+        compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "gzip".to_string(),
+        compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "zstd".to_string(),
+        compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "lz4".to_string(),
+        compression_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "aes256gcm".to_string(),
+        encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "aes128gcm".to_string(),
+        encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "chacha20poly1305".to_string(),
+        encryption_service.clone() as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "base64".to_string(),
+        Arc::new(Base64EncodingService::new()) as Arc<
+            dyn adaptive_pipeline_domain::services::StageService
+        >
+    );
+    stage_services.insert(
+        "pii_masking".to_string(),
+        Arc::new(PiiMaskingService::new()) as Arc<
+            dyn adaptive_pipeline_domain::services::StageService
+        >
+    );
+    stage_services.insert(
+        "tee".to_string(),
+        Arc::new(TeeService::new()) as Arc<dyn adaptive_pipeline_domain::services::StageService>
+    );
+    stage_services.insert(
+        "passthrough".to_string(),
+        Arc::new(PassThroughService::new()) as Arc<
+            dyn adaptive_pipeline_domain::services::StageService
+        >
+    );
+    stage_services.insert(
+        "debug".to_string(),
+        Arc::new(DebugService::new(Arc::new(MetricsService::new().unwrap()))) as Arc<
+            dyn adaptive_pipeline_domain::services::StageService
+        >
+    );
 
     let stage_executor = Arc::new(BasicStageExecutor::new(stage_services));
 
     // Create security context for restoration
     let security_context = SecurityContext::new(
         None,
-        adaptive_pipeline_domain::entities::security_context::SecurityLevel::Internal,
+        adaptive_pipeline_domain::entities::security_context::SecurityLevel::Internal
     );
 
     // Create processing context for restoration
@@ -1285,13 +1420,10 @@ async fn stream_restore_with_validation(
         input_path.to_path_buf(),
         output_path.to_path_buf(),
         metadata.original_size,
-        security_context,
+        security_context
     );
 
-    info!(
-        "Streaming restoration through {} stages",
-        restoration_pipeline.stages().len()
-    );
+    info!("Streaming restoration through {} stages", restoration_pipeline.stages().len());
 
     // Process chunks through the restoration pipeline using proper .adapipe format
     // parsing
@@ -1299,13 +1431,15 @@ async fn stream_restore_with_validation(
 
     loop {
         // Read next chunk from .adapipe file using proper format parsing
-        let chunk_format = match adapipe_reader
-            .read_next_chunk()
-            .await
-            .map_err(|e| anyhow::anyhow!("Failed to read chunk: {}", e))?
+        let chunk_format = match
+            adapipe_reader
+                .read_next_chunk().await
+                .map_err(|e| anyhow::anyhow!("Failed to read chunk: {}", e))?
         {
             Some(chunk) => chunk,
-            None => break, // No more chunks
+            None => {
+                break;
+            } // No more chunks
         };
 
         // Combine nonce and payload data as expected by decryption service
@@ -1316,9 +1450,8 @@ async fn stream_restore_with_validation(
             chunk_sequence as u64,
             bytes_processed,
             chunk_data,
-            false, // is_final - we'll determine this later
-        )
-        .map_err(|e| anyhow::anyhow!("Failed to create file chunk: {}", e))?;
+            false // is_final - we'll determine this later
+        ).map_err(|e| anyhow::anyhow!("Failed to create file chunk: {}", e))?;
 
         // Process chunk through restoration pipeline stages
         let mut current_chunk = file_chunk;
@@ -1326,16 +1459,14 @@ async fn stream_restore_with_validation(
             debug!("Processing chunk {} through stage: {}", chunk_sequence, stage.name());
 
             current_chunk = stage_executor
-                .execute(stage, current_chunk, &mut processing_context)
-                .await
+                .execute(stage, current_chunk, &mut processing_context).await
                 .map_err(|e| anyhow::anyhow!("Stage '{}' failed: {}", stage.name(), e))?;
         }
 
         // Write restored chunk to output file
         let restored_data = current_chunk.data();
         output_file
-            .write_all(restored_data)
-            .await
+            .write_all(restored_data).await
             .map_err(|e| anyhow::anyhow!("Failed to write restored data: {}", e))?;
 
         // Update incremental checksum with restored data
@@ -1351,17 +1482,14 @@ async fn stream_restore_with_validation(
 
         // Additional debug logging for large files
         if chunks_processed.is_multiple_of(100) {
-            let progress_mb = bytes_processed as f64 / (1024.0 * 1024.0);
-            let expected_mb = metadata.original_size as f64 / (1024.0 * 1024.0);
+            let progress_mb = (bytes_processed as f64) / (1024.0 * 1024.0);
+            let expected_mb = (metadata.original_size as f64) / (1024.0 * 1024.0);
             debug!("Restoration progress: {:.1} MB / {:.1} MB", progress_mb, expected_mb);
         }
     }
 
     // Ensure all data is written to disk
-    output_file
-        .flush()
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to flush output file: {}", e))?;
+    output_file.flush().await.map_err(|e| anyhow::anyhow!("Failed to flush output file: {}", e))?;
 
     // Calculate final checksum
     let calculated_hash = hasher.finalize();
@@ -1373,25 +1501,27 @@ async fn stream_restore_with_validation(
     let processing_duration = start_time.elapsed();
 
     if checksum_verified {
-        info!(
-            "Streaming restoration completed successfully in {:?}",
+        info!("Streaming restoration completed successfully in {:?}", processing_duration);
+        let throughput_mb_s =
+            (bytes_processed as f64) / (1024.0 * 1024.0) / processing_duration.as_secs_f64();
+        progress_indicator.show_completion(
+            bytes_processed,
+            throughput_mb_s,
             processing_duration
-        );
-        let throughput_mb_s = (bytes_processed as f64 / (1024.0 * 1024.0)) / processing_duration.as_secs_f64();
-        progress_indicator
-            .show_completion(bytes_processed, throughput_mb_s, processing_duration)
-            .await;
+        ).await;
     } else {
         warn!(
             "Checksum verification failed: expected {}, got {}",
-            metadata.original_checksum, calculated_checksum
+            metadata.original_checksum,
+            calculated_checksum
         );
-        progress_indicator
-            .show_error_summary(&format!(
+        progress_indicator.show_error_summary(
+            &format!(
                 "Checksum verification failed: expected {}, got {}",
-                metadata.original_checksum, calculated_checksum
-            ))
-            .await;
+                metadata.original_checksum,
+                calculated_checksum
+            )
+        ).await;
     }
 
     Ok(RestorationResult {
@@ -1424,11 +1554,7 @@ mod restore_tests {
         let header = create_test_file_header();
 
         let result = create_restoration_pipeline(&header).await;
-        assert!(
-            result.is_ok(),
-            "Failed to create restoration pipeline: {:?}",
-            result.err()
-        );
+        assert!(result.is_ok(), "Failed to create restoration pipeline: {:?}", result.err());
 
         let pipeline = result.unwrap();
         assert_eq!(
@@ -1456,8 +1582,11 @@ mod restore_tests {
 
     #[tokio::test]
     async fn test_create_restoration_pipeline_compression_only() {
-        let header =
-            FileHeader::new("test.txt".to_string(), 1024, "abc123".to_string()).add_compression_step("brotli", 6);
+        let header = FileHeader::new(
+            "test.txt".to_string(),
+            1024,
+            "abc123".to_string()
+        ).add_compression_step("brotli", 6);
 
         let result = create_restoration_pipeline(&header).await;
         assert!(result.is_ok());
@@ -1525,8 +1654,11 @@ mod restore_tests {
 
     #[tokio::test]
     async fn test_restoration_pipeline_naming() {
-        let header = FileHeader::new("test.txt".to_string(), 1024, "abc123".to_string())
-            .with_pipeline_id("original-pipeline-123".to_string());
+        let header = FileHeader::new(
+            "test.txt".to_string(),
+            1024,
+            "abc123".to_string()
+        ).with_pipeline_id("original-pipeline-123".to_string());
 
         let pipeline = create_restoration_pipeline(&header).await.unwrap();
 
@@ -1542,7 +1674,7 @@ mod restore_tests {
             0, // sequence_number
             0, // offset
             test_data.clone(),
-            false, // is_final
+            false // is_final
         );
 
         assert!(chunk.is_ok(), "Failed to create FileChunk: {:?}", chunk.err());

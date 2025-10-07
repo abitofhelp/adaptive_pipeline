@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -27,8 +27,13 @@
 //! // Data passes through completely unchanged
 //! ```
 
-use adaptive_pipeline_domain::entities::{ProcessingContext, StageConfiguration, StagePosition, StageType};
-use adaptive_pipeline_domain::services::{FromParameters, StageService};
+use adaptive_pipeline_domain::entities::{
+    ProcessingContext,
+    StageConfiguration,
+    StagePosition,
+    StageType,
+};
+use adaptive_pipeline_domain::services::{ FromParameters, StageService };
 use adaptive_pipeline_domain::value_objects::FileChunk;
 use adaptive_pipeline_domain::PipelineError;
 use std::collections::HashMap;
@@ -67,7 +72,7 @@ impl StageService for PassThroughService {
         &self,
         chunk: FileChunk,
         _config: &StageConfiguration,
-        _context: &mut ProcessingContext,
+        _context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         // Pass through unchanged
         Ok(chunk)
@@ -90,7 +95,7 @@ impl StageService for PassThroughService {
 mod tests {
     use super::*;
     use adaptive_pipeline_domain::entities::security_context::Permission;
-    use adaptive_pipeline_domain::entities::{Operation, SecurityContext, SecurityLevel};
+    use adaptive_pipeline_domain::entities::{ Operation, SecurityContext, SecurityLevel };
 
     fn create_test_chunk(data: Vec<u8>) -> FileChunk {
         FileChunk::new(0, 0, data, false).unwrap()
@@ -100,13 +105,13 @@ mod tests {
         let security_context = SecurityContext::with_permissions(
             None,
             vec![Permission::Read, Permission::Write],
-            SecurityLevel::Internal,
+            SecurityLevel::Internal
         );
         ProcessingContext::new(
             std::path::PathBuf::from("/tmp/input.txt"),
             std::path::PathBuf::from("/tmp/output.adapipe"),
             1024,
-            security_context,
+            security_context
         )
     }
 

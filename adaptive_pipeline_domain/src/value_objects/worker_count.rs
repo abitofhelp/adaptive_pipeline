@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -130,7 +130,7 @@
 //! - **JSON**: Numeric representation for API compatibility
 //! - **Database**: INTEGER column with validation constraints
 
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use std::fmt;
 
 /// Worker count value object for adaptive parallel processing optimization
@@ -296,11 +296,7 @@ impl WorkerCount {
         let optimal_count = match file_size {
             // Tiny files: Minimize overhead, single-threaded or minimal parallelism
             0..=1_048_576 => {
-                if file_size < 64_000 {
-                    1
-                } else {
-                    2
-                }
+                if file_size < 64_000 { 1 } else { 2 }
             }
 
             // Small files: Aggressive parallelism based on benchmark results
@@ -308,7 +304,7 @@ impl WorkerCount {
             // 10MB: 14 workers optimal (vs 4 adaptive = +97% performance)
             1_048_577..=52_428_800 => {
                 // 1MB to 50MB
-                let size_mb = file_size as f64 / 1_048_576.0;
+                let size_mb = (file_size as f64) / 1_048_576.0;
                 if size_mb <= 5.0 {
                     9 // Optimal for 5MB files
                 } else if size_mb <= 10.0 {
@@ -323,7 +319,7 @@ impl WorkerCount {
             // 100MB: 8 workers optimal (chunk size was the issue, not workers)
             52_428_801..=524_288_000 => {
                 // 50MB to 500MB
-                let size_mb = file_size as f64 / 1_048_576.0;
+                let size_mb = (file_size as f64) / 1_048_576.0;
                 if size_mb <= 100.0 {
                     (5.0 + (size_mb - 50.0) * 0.06).round() as usize // 5-8 workers
                 } else {
@@ -334,14 +330,14 @@ impl WorkerCount {
             // Large files: Moderate parallelism to avoid coordination overhead
             524_288_001..=2_147_483_648 => {
                 // 500MB to 2GB
-                let size_gb = file_size as f64 / 1_073_741_824.0;
+                let size_gb = (file_size as f64) / 1_073_741_824.0;
                 (8.0 + size_gb * 2.0).round() as usize // 8-12 workers
             }
 
             // Huge files: Conservative approach based on 2GB benchmark results
             // 2GB: 3 workers optimal (vs 14 adaptive = +76% performance)
             _ => {
-                let size_gb = file_size as f64 / 1_073_741_824.0;
+                let size_gb = (file_size as f64) / 1_073_741_824.0;
                 if size_gb <= 4.0 {
                     3 // Optimal for 2GB files
                 } else {
@@ -386,7 +382,11 @@ impl WorkerCount {
     ///
     /// # Returns
     /// Optimal WorkerCount considering processing complexity
-    pub fn optimal_for_processing_type(file_size: u64, available_cores: usize, is_cpu_intensive: bool) -> Self {
+    pub fn optimal_for_processing_type(
+        file_size: u64,
+        available_cores: usize,
+        is_cpu_intensive: bool
+    ) -> Self {
         let base_optimal = Self::optimal_for_file_and_system(file_size, available_cores);
 
         if is_cpu_intensive {
@@ -395,7 +395,7 @@ impl WorkerCount {
             Self::new(base_optimal.count().max(cpu_optimal))
         } else {
             // I/O-intensive operations need fewer workers to avoid contention
-            Self::new((base_optimal.count() * 3 / 4).max(Self::MIN_WORKERS))
+            Self::new(((base_optimal.count() * 3) / 4).max(Self::MIN_WORKERS))
         }
     }
 
@@ -407,7 +407,8 @@ impl WorkerCount {
     /// # Returns
     /// Default WorkerCount based on available CPU cores
     pub fn default_for_system() -> Self {
-        let available_cores = std::thread::available_parallelism()
+        let available_cores = std::thread
+            ::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(Self::DEFAULT_WORKERS);
 
@@ -457,7 +458,11 @@ impl WorkerCount {
     /// # Returns
     /// * `Ok(usize)` - Validated worker count (may be adjusted)
     /// * `Err(String)` - Error message explaining why input is invalid
-    pub fn validate_user_input(user_count: usize, available_cores: usize, file_size: u64) -> Result<usize, String> {
+    pub fn validate_user_input(
+        user_count: usize,
+        available_cores: usize,
+        file_size: u64
+    ) -> Result<usize, String> {
         // Sanity check: minimum 1 worker
         if user_count == 0 {
             return Err("Worker count must be at least 1".to_string());
@@ -465,30 +470,33 @@ impl WorkerCount {
 
         // Sanity check: don't exceed reasonable limits
         if user_count > Self::MAX_WORKERS {
-            return Err(format!(
-                "Worker count {} exceeds maximum {}",
-                user_count,
-                Self::MAX_WORKERS
-            ));
+            return Err(
+                format!("Worker count {} exceeds maximum {}", user_count, Self::MAX_WORKERS)
+            );
         }
 
         // Warning for excessive oversubscription (more than 4x cores)
         let max_reasonable = available_cores * 4;
         if user_count > max_reasonable {
-            return Err(format!(
-                "Worker count {} may cause excessive oversubscription ({}x cores). Consider {} or less",
-                user_count,
-                user_count / available_cores.max(1),
-                max_reasonable
-            ));
+            return Err(
+                format!(
+                    "Worker count {} may cause excessive oversubscription ({}x cores). Consider {} or less",
+                    user_count,
+                    user_count / available_cores.max(1),
+                    max_reasonable
+                )
+            );
         }
 
         // Warning for tiny files with many workers (inefficient)
         if file_size < 1_048_576 && user_count > 2 {
-            return Err(format!(
-                "Worker count {} is excessive for tiny file ({} bytes). Consider 1-2 workers",
-                user_count, file_size
-            ));
+            return Err(
+                format!(
+                    "Worker count {} is excessive for tiny file ({} bytes). Consider 1-2 workers",
+                    user_count,
+                    file_size
+                )
+            );
         }
 
         // All checks passed
@@ -623,7 +631,7 @@ mod tests {
         // Very huge files should still be conservative
         let very_huge = WorkerCount::optimal_for_file_size(5 * 1024 * 1024 * 1024); // 5GB
         assert_eq!(very_huge.count(), 5); // Based on algorithm: 3 + (5-2)*0.5 =
-                                          // 4.5 rounded to 5
+        // 4.5 rounded to 5
     }
 
     /// Tests optimal worker count considering both file size and system
@@ -801,10 +809,7 @@ mod tests {
     /// - Huge files get maximum throughput description
     #[test]
     fn test_strategy_descriptions() {
-        assert_eq!(
-            WorkerCount::strategy_description(500),
-            "Minimal parallelism (tiny files)"
-        );
+        assert_eq!(WorkerCount::strategy_description(500), "Minimal parallelism (tiny files)");
         assert_eq!(
             WorkerCount::strategy_description(5 * 1024 * 1024),
             "Light parallelism (small files)"
@@ -860,7 +865,7 @@ mod tests {
         let worker_count = WorkerCount::new(8);
         assert_eq!(format!("{}", worker_count), "8 workers");
 
-        let from_usize: WorkerCount = 6.into();
+        let from_usize: WorkerCount = (6).into();
         assert_eq!(from_usize.count(), 6);
 
         let to_usize: usize = worker_count.into();

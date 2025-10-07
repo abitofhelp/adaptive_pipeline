@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -199,7 +199,7 @@
 
 use super::binary_file_format::ProcessingStepType;
 use crate::PipelineError;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use std::collections::HashMap;
 
 /// Value object representing a validated algorithm name
@@ -254,17 +254,18 @@ impl Algorithm {
     pub fn new(value: &str) -> Result<Self, PipelineError> {
         let trimmed = value.trim();
         if trimmed.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Algorithm cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Algorithm cannot be empty".to_string())
+            );
         }
 
         // Validate algorithm name format (alphanumeric, hyphens, underscores)
-        if !trimmed.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
-            return Err(PipelineError::InvalidConfiguration(format!(
-                "Invalid algorithm name '{}': only alphanumeric, hyphens, and underscores allowed",
-                trimmed
-            )));
+        if !trimmed.chars().all(|c| (c.is_alphanumeric() || c == '-' || c == '_')) {
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    format!("Invalid algorithm name '{}': only alphanumeric, hyphens, and underscores allowed", trimmed)
+                )
+            );
         }
 
         Ok(Algorithm(trimmed.to_lowercase()))
@@ -302,15 +303,16 @@ impl StageParameters {
         // Validate parameter keys and values
         for (key, value) in &map {
             if key.trim().is_empty() {
-                return Err(PipelineError::InvalidConfiguration(
-                    "Parameter key cannot be empty".to_string(),
-                ));
+                return Err(
+                    PipelineError::InvalidConfiguration("Parameter key cannot be empty".to_string())
+                );
             }
             if value.len() > 1024 {
-                return Err(PipelineError::InvalidConfiguration(format!(
-                    "Parameter value for '{}' exceeds maximum length of 1024 characters",
-                    key
-                )));
+                return Err(
+                    PipelineError::InvalidConfiguration(
+                        format!("Parameter value for '{}' exceeds maximum length of 1024 characters", key)
+                    )
+                );
             }
         }
         Ok(Self(map))
@@ -320,15 +322,16 @@ impl StageParameters {
     pub fn add_parameter(&mut self, key: &str, value: &str) -> Result<(), PipelineError> {
         let trimmed_key = key.trim();
         if trimmed_key.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Parameter key cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Parameter key cannot be empty".to_string())
+            );
         }
         if value.len() > 1024 {
-            return Err(PipelineError::InvalidConfiguration(format!(
-                "Parameter value for '{}' exceeds maximum length of 1024 characters",
-                trimmed_key
-            )));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    format!("Parameter value for '{}' exceeds maximum length of 1024 characters", trimmed_key)
+                )
+            );
         }
 
         self.0.insert(trimmed_key.to_string(), value.to_string());
@@ -404,7 +407,7 @@ impl ProcessingStepDescriptor {
         step_type: ProcessingStepType,
         algorithm: Algorithm,
         parameters: StageParameters,
-        order: StepOrder,
+        order: StepOrder
     ) -> Self {
         Self {
             step_type,
@@ -416,12 +419,7 @@ impl ProcessingStepDescriptor {
 
     /// Create a compression step descriptor
     pub fn compression(algorithm: Algorithm, order: StepOrder) -> Self {
-        Self::new(
-            ProcessingStepType::Compression,
-            algorithm,
-            StageParameters::new(),
-            order,
-        )
+        Self::new(ProcessingStepType::Compression, algorithm, StageParameters::new(), order)
     }
 
     /// Create an encryption step descriptor
@@ -436,12 +434,7 @@ impl ProcessingStepDescriptor {
 
     /// Create a pass-through step descriptor
     pub fn pass_through(algorithm: Algorithm, order: StepOrder) -> Self {
-        Self::new(
-            ProcessingStepType::PassThrough,
-            algorithm,
-            StageParameters::new(),
-            order,
-        )
+        Self::new(ProcessingStepType::PassThrough, algorithm, StageParameters::new(), order)
     }
 
     /// Get the step type

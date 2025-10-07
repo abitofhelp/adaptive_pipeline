@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -46,7 +46,7 @@
 //! Each context maintains a unique session for audit trails and tracking.
 
 use crate::services::datetime_serde;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -239,7 +239,7 @@ impl SecurityContext {
     pub fn with_permissions(
         user_id: Option<String>,
         permissions: Vec<Permission>,
-        security_level: SecurityLevel,
+        security_level: SecurityLevel
     ) -> Self {
         Self {
             user_id,
@@ -388,8 +388,7 @@ impl SecurityContext {
 
     /// Creates a restricted copy of the security context
     pub fn restrict(&self, allowed_permissions: Vec<Permission>) -> Self {
-        let restricted_permissions = self
-            .permissions
+        let restricted_permissions = self.permissions
             .iter()
             .filter(|p| allowed_permissions.contains(p))
             .cloned()
@@ -411,15 +410,19 @@ impl SecurityContext {
     /// Validates the security context
     pub fn validate(&self) -> Result<(), crate::PipelineError> {
         if self.permissions.is_empty() {
-            return Err(crate::PipelineError::SecurityViolation(
-                "Security context must have at least one permission".to_string(),
-            ));
+            return Err(
+                crate::PipelineError::SecurityViolation(
+                    "Security context must have at least one permission".to_string()
+                )
+            );
         }
 
         if self.integrity_required && self.encryption_key_id.is_none() {
-            return Err(crate::PipelineError::SecurityViolation(
-                "Integrity required but no encryption key specified".to_string(),
-            ));
+            return Err(
+                crate::PipelineError::SecurityViolation(
+                    "Integrity required but no encryption key specified".to_string()
+                )
+            );
         }
 
         Ok(())

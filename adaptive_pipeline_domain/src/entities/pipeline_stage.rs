@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -10,7 +10,7 @@
 use crate::services::datetime_serde;
 use crate::value_objects::StageId;
 use crate::PipelineError;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use std::collections::HashMap;
 
 /// Represents the type of processing performed by a pipeline stage.
@@ -92,10 +92,7 @@ impl std::str::FromStr for StageType {
             "transform" => Ok(StageType::Transform),
             "checksum" => Ok(StageType::Checksum),
             "passthrough" => Ok(StageType::PassThrough),
-            _ => Err(PipelineError::InvalidConfiguration(format!(
-                "Unknown stage type: {}",
-                s
-            ))),
+            _ => Err(PipelineError::InvalidConfiguration(format!("Unknown stage type: {}", s))),
         }
     }
 }
@@ -237,7 +234,11 @@ pub struct StageConfiguration {
 
 impl StageConfiguration {
     /// Creates a new stage configuration
-    pub fn new(algorithm: String, parameters: HashMap<String, String>, parallel_processing: bool) -> Self {
+    pub fn new(
+        algorithm: String,
+        parameters: HashMap<String, String>,
+        parallel_processing: bool
+    ) -> Self {
         Self {
             algorithm,
             operation: Operation::default(),
@@ -492,12 +493,12 @@ impl PipelineStage {
         name: String,
         stage_type: StageType,
         configuration: StageConfiguration,
-        order: u32,
+        order: u32
     ) -> Result<Self, PipelineError> {
         if name.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Stage name cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Stage name cannot be empty".to_string())
+            );
         }
 
         let now = chrono::Utc::now();
@@ -688,23 +689,25 @@ impl PipelineStage {
     /// Validates the stage configuration
     pub fn validate(&self) -> Result<(), PipelineError> {
         if self.name.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Stage name cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Stage name cannot be empty".to_string())
+            );
         }
 
         if self.configuration.algorithm.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Stage algorithm cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Stage algorithm cannot be empty".to_string())
+            );
         }
 
         // Validate chunk size if specified
         if let Some(chunk_size) = self.configuration.chunk_size {
             if !(1024..=100 * 1024 * 1024).contains(&chunk_size) {
-                return Err(PipelineError::InvalidConfiguration(
-                    "Chunk size must be between 1KB and 100MB".to_string(),
-                ));
+                return Err(
+                    PipelineError::InvalidConfiguration(
+                        "Chunk size must be between 1KB and 100MB".to_string()
+                    )
+                );
             }
         }
 

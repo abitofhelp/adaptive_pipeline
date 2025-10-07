@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -92,7 +92,7 @@
 //!
 //! See REFACTORING_STATUS.md Phase 1, item 2 for full discussion.
 
-use crate::{FileChunk, PipelineError};
+use crate::{ FileChunk, PipelineError };
 use async_trait::async_trait;
 use std::path::Path;
 use std::sync::Arc;
@@ -131,7 +131,7 @@ pub struct FileIOConfig {
 impl Default for FileIOConfig {
     fn default() -> Self {
         Self {
-            default_chunk_size: 1024 * 1024,   // 1MB (matches ChunkSize minimum)
+            default_chunk_size: 1024 * 1024, // 1MB (matches ChunkSize minimum)
             max_mmap_size: 1024 * 1024 * 1024, // 1GB
             enable_memory_mapping: true,
             buffer_size: 8192, // 8KB
@@ -265,17 +265,25 @@ pub struct WriteResult {
 #[async_trait]
 pub trait FileIOService: Send + Sync {
     /// Reads a file and returns it as chunks
-    async fn read_file_chunks(&self, path: &Path, options: ReadOptions) -> Result<ReadResult, PipelineError>;
+    async fn read_file_chunks(
+        &self,
+        path: &Path,
+        options: ReadOptions
+    ) -> Result<ReadResult, PipelineError>;
 
     /// Reads a file using memory mapping if possible
-    async fn read_file_mmap(&self, path: &Path, options: ReadOptions) -> Result<ReadResult, PipelineError>;
+    async fn read_file_mmap(
+        &self,
+        path: &Path,
+        options: ReadOptions
+    ) -> Result<ReadResult, PipelineError>;
 
     /// Writes chunks to a file
     async fn write_file_chunks(
         &self,
         path: &Path,
         chunks: &[FileChunk],
-        options: WriteOptions,
+        options: WriteOptions
     ) -> Result<WriteResult, PipelineError>;
 
     /// Writes data directly to a file
@@ -283,7 +291,7 @@ pub trait FileIOService: Send + Sync {
         &self,
         path: &Path,
         data: &[u8],
-        options: WriteOptions,
+        options: WriteOptions
     ) -> Result<WriteResult, PipelineError>;
 
     /// Gets information about a file
@@ -300,7 +308,7 @@ pub trait FileIOService: Send + Sync {
         &self,
         source: &Path,
         destination: &Path,
-        options: WriteOptions,
+        options: WriteOptions
     ) -> Result<WriteResult, PipelineError>;
 
     /// Moves a file
@@ -308,7 +316,7 @@ pub trait FileIOService: Send + Sync {
         &self,
         source: &Path,
         destination: &Path,
-        options: WriteOptions,
+        options: WriteOptions
     ) -> Result<WriteResult, PipelineError>;
 
     /// Creates a directory
@@ -333,7 +341,11 @@ pub trait FileIOService: Send + Sync {
     fn reset_stats(&mut self);
 
     /// Validates file integrity using checksums
-    async fn validate_file_integrity(&self, path: &Path, expected_checksum: &str) -> Result<bool, PipelineError>;
+    async fn validate_file_integrity(
+        &self,
+        path: &Path,
+        expected_checksum: &str
+    ) -> Result<bool, PipelineError>;
 
     /// Calculates file checksum
     async fn calculate_file_checksum(&self, path: &Path) -> Result<String, PipelineError>;
@@ -342,8 +354,11 @@ pub trait FileIOService: Send + Sync {
     async fn stream_file_chunks(
         &self,
         path: &Path,
-        options: ReadOptions,
-    ) -> Result<std::pin::Pin<Box<dyn futures::Stream<Item = Result<FileChunk, PipelineError>> + Send>>, PipelineError>;
+        options: ReadOptions
+    ) -> Result<
+        std::pin::Pin<Box<dyn futures::Stream<Item = Result<FileChunk, PipelineError>> + Send>>,
+        PipelineError
+    >;
 
     /// Writes a single chunk to a file (for streaming writes)
     async fn write_chunk_to_file(
@@ -351,7 +366,7 @@ pub trait FileIOService: Send + Sync {
         path: &Path,
         chunk: &FileChunk,
         options: WriteOptions,
-        is_first_chunk: bool,
+        is_first_chunk: bool
     ) -> Result<WriteResult, PipelineError>;
 }
 
@@ -359,11 +374,19 @@ pub trait FileIOService: Send + Sync {
 /// This enables shared ownership of FileIOService trait objects
 #[async_trait]
 impl FileIOService for Arc<dyn FileIOService> {
-    async fn read_file_chunks(&self, path: &Path, options: ReadOptions) -> Result<ReadResult, PipelineError> {
+    async fn read_file_chunks(
+        &self,
+        path: &Path,
+        options: ReadOptions
+    ) -> Result<ReadResult, PipelineError> {
         (**self).read_file_chunks(path, options).await
     }
 
-    async fn read_file_mmap(&self, path: &Path, options: ReadOptions) -> Result<ReadResult, PipelineError> {
+    async fn read_file_mmap(
+        &self,
+        path: &Path,
+        options: ReadOptions
+    ) -> Result<ReadResult, PipelineError> {
         (**self).read_file_mmap(path, options).await
     }
 
@@ -371,7 +394,7 @@ impl FileIOService for Arc<dyn FileIOService> {
         &self,
         path: &Path,
         chunks: &[FileChunk],
-        options: WriteOptions,
+        options: WriteOptions
     ) -> Result<WriteResult, PipelineError> {
         (**self).write_file_chunks(path, chunks, options).await
     }
@@ -380,7 +403,7 @@ impl FileIOService for Arc<dyn FileIOService> {
         &self,
         path: &Path,
         data: &[u8],
-        options: WriteOptions,
+        options: WriteOptions
     ) -> Result<WriteResult, PipelineError> {
         (**self).write_file_data(path, data, options).await
     }
@@ -401,7 +424,7 @@ impl FileIOService for Arc<dyn FileIOService> {
         &self,
         source: &Path,
         destination: &Path,
-        options: WriteOptions,
+        options: WriteOptions
     ) -> Result<WriteResult, PipelineError> {
         (**self).copy_file(source, destination, options).await
     }
@@ -410,7 +433,7 @@ impl FileIOService for Arc<dyn FileIOService> {
         &self,
         source: &Path,
         destination: &Path,
-        options: WriteOptions,
+        options: WriteOptions
     ) -> Result<WriteResult, PipelineError> {
         (**self).move_file(source, destination, options).await
     }
@@ -447,7 +470,11 @@ impl FileIOService for Arc<dyn FileIOService> {
         // This is intentionally a no-op to avoid panicking in production code
     }
 
-    async fn validate_file_integrity(&self, path: &Path, expected_checksum: &str) -> Result<bool, PipelineError> {
+    async fn validate_file_integrity(
+        &self,
+        path: &Path,
+        expected_checksum: &str
+    ) -> Result<bool, PipelineError> {
         (**self).validate_file_integrity(path, expected_checksum).await
     }
 
@@ -458,9 +485,11 @@ impl FileIOService for Arc<dyn FileIOService> {
     async fn stream_file_chunks(
         &self,
         path: &Path,
-        options: ReadOptions,
-    ) -> Result<std::pin::Pin<Box<dyn futures::Stream<Item = Result<FileChunk, PipelineError>> + Send>>, PipelineError>
-    {
+        options: ReadOptions
+    ) -> Result<
+        std::pin::Pin<Box<dyn futures::Stream<Item = Result<FileChunk, PipelineError>> + Send>>,
+        PipelineError
+    > {
         (**self).stream_file_chunks(path, options).await
     }
 
@@ -469,7 +498,7 @@ impl FileIOService for Arc<dyn FileIOService> {
         path: &Path,
         chunk: &FileChunk,
         options: WriteOptions,
-        is_first_chunk: bool,
+        is_first_chunk: bool
     ) -> Result<WriteResult, PipelineError> {
         (**self).write_chunk_to_file(path, chunk, options, is_first_chunk).await
     }

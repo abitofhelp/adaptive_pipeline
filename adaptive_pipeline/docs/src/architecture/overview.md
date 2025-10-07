@@ -12,7 +12,7 @@ High-level architectural overview of the pipeline system.
 
 ## Design Philosophy
 
-The Optimized Adaptive Pipeline is built on three foundational architectural patterns:
+The Adaptive Pipeline is built on three foundational architectural patterns:
 
 1. **Clean Architecture** - Organizing code by dependency direction
 2. **Domain-Driven Design (DDD)** - Modeling the business domain

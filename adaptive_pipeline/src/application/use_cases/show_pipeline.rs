@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -172,10 +172,8 @@ impl ShowPipelineUseCase {
         info!("Showing pipeline details: {}", pipeline_name);
 
         // Find pipeline by name (user-friendly lookup)
-        let pipeline = self
-            .pipeline_repository
-            .find_by_name(&pipeline_name)
-            .await
+        let pipeline = self.pipeline_repository
+            .find_by_name(&pipeline_name).await
             .map_err(|e| anyhow::anyhow!("Failed to query pipeline: {}", e))?
             .ok_or_else(|| anyhow::anyhow!("Pipeline not found: {}", pipeline_name))?;
 

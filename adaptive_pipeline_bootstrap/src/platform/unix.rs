@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -19,9 +19,9 @@
 //! - **Permissions**: `std::os::unix::fs::PermissionsExt`
 //! - **File Sync**: `tokio::fs::File::sync_all`
 
-use super::{Platform, PlatformError};
+use super::{ Platform, PlatformError };
 use async_trait::async_trait;
-use std::path::{Path, PathBuf};
+use std::path::{ Path, PathBuf };
 
 /// Unix (POSIX) platform implementation
 ///
@@ -39,7 +39,8 @@ impl UnixPlatform {
     fn get_memory_info_linux() -> Result<(u64, u64), PlatformError> {
         use std::fs;
 
-        let meminfo = fs::read_to_string("/proc/meminfo")
+        let meminfo = fs
+            ::read_to_string("/proc/meminfo")
             .map_err(|e| PlatformError::Other(format!("Failed to read /proc/meminfo: {}", e)))?;
 
         let mut total = None;
@@ -87,34 +88,36 @@ impl UnixPlatform {
             // Get total memory
             let mut total: u64 = 0;
             let mut size = mem::size_of::<u64>();
-            let name = c"hw.memsize".as_ptr();
+            let name = "hw.memsize\0".as_ptr() as *const libc::c_char;
 
-            if libc::sysctlbyname(
-                name,
-                &mut total as *mut _ as *mut libc::c_void,
-                &mut size,
-                std::ptr::null_mut(),
-                0,
-            ) != 0
+            if
+                libc::sysctlbyname(
+                    name,
+                    &mut total as *mut _ as *mut libc::c_void,
+                    &mut size,
+                    std::ptr::null_mut(),
+                    0
+                ) != 0
             {
-                return Err(PlatformError::Other(
-                    "Failed to get total memory via sysctl".to_string(),
-                ));
+                return Err(
+                    PlatformError::Other("Failed to get total memory via sysctl".to_string())
+                );
             }
 
             // Get available memory (approximate using free memory)
             // Note: This is an approximation. For exact VM stats, would need mach APIs
             let mut available: u64 = 0;
             let mut avail_size = mem::size_of::<u64>();
-            let avail_name = c"vm.page_free_count".as_ptr();
+            let avail_name = "vm.page_free_count\0".as_ptr() as *const libc::c_char;
 
-            if libc::sysctlbyname(
-                avail_name,
-                &mut available as *mut _ as *mut libc::c_void,
-                &mut avail_size,
-                std::ptr::null_mut(),
-                0,
-            ) != 0
+            if
+                libc::sysctlbyname(
+                    avail_name,
+                    &mut available as *mut _ as *mut libc::c_void,
+                    &mut avail_size,
+                    std::ptr::null_mut(),
+                    0
+                ) != 0
             {
                 // If can't get exact available, estimate as half of total
                 // This is very rough but prevents errors
@@ -182,9 +185,11 @@ impl Platform for UnixPlatform {
 
         #[cfg(not(any(target_os = "linux", target_os = "macos")))]
         {
-            Err(PlatformError::NotSupported(
-                "Memory info not supported on this Unix variant".to_string(),
-            ))
+            Err(
+                PlatformError::NotSupported(
+                    "Memory info not supported on this Unix variant".to_string()
+                )
+            )
         }
     }
 
@@ -201,9 +206,11 @@ impl Platform for UnixPlatform {
 
         #[cfg(not(any(target_os = "linux", target_os = "macos")))]
         {
-            Err(PlatformError::NotSupported(
-                "Memory info not supported on this Unix variant".to_string(),
-            ))
+            Err(
+                PlatformError::NotSupported(
+                    "Memory info not supported on this Unix variant".to_string()
+                )
+            )
         }
     }
 
@@ -233,7 +240,9 @@ impl Platform for UnixPlatform {
     fn is_elevated(&self) -> bool {
         // SAFETY: geteuid() is always safe to call on Unix systems.
         // It simply returns the effective user ID of the calling process.
-        unsafe { libc::geteuid() == 0 }
+        unsafe {
+            libc::geteuid() == 0
+        }
     }
 
     fn set_permissions(&self, path: &Path, mode: u32) -> Result<(), PlatformError> {

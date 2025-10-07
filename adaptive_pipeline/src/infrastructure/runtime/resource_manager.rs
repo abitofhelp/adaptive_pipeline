@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -60,9 +60,9 @@
 //! - **Future:** Can add hard cap in Phase 3
 
 use adaptive_pipeline_domain::PipelineError;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{ AtomicUsize, Ordering };
 use std::sync::Arc;
-use tokio::sync::{Semaphore, SemaphorePermit};
+use tokio::sync::{ Semaphore, SemaphorePermit };
 
 /// Storage device type for I/O queue depth optimization
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,7 +99,7 @@ impl Default for ResourceConfig {
     fn default() -> Self {
         Self {
             cpu_tokens: None, // Will use cores - 1
-            io_tokens: None,  // Will use device-specific
+            io_tokens: None, // Will use device-specific
             storage_type: StorageType::Auto,
             memory_limit: None, // No limit by default
         }
@@ -186,7 +186,10 @@ impl GlobalResourceManager {
     /// ```
     pub fn new(config: ResourceConfig) -> Result<Self, PipelineError> {
         // Detect available CPU cores
-        let available_cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4); // Conservative fallback
+        let available_cores = std::thread
+            ::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(4); // Conservative fallback
 
         // Educational: Why cores - 1?
         // Leave one core for OS, I/O threads, and system tasks
@@ -195,9 +198,9 @@ impl GlobalResourceManager {
 
         // Educational: Device-specific I/O queue depths
         // Different storage devices have different optimal concurrency levels
-        let io_token_count = config
-            .io_tokens
-            .unwrap_or_else(|| Self::detect_optimal_io_tokens(config.storage_type));
+        let io_token_count = config.io_tokens.unwrap_or_else(||
+            Self::detect_optimal_io_tokens(config.storage_type)
+        );
 
         // Educational: Memory capacity detection
         // On most systems, we can query available RAM
@@ -272,8 +275,7 @@ impl GlobalResourceManager {
     /// oversubscription.
     pub async fn acquire_cpu(&self) -> Result<SemaphorePermit<'_>, PipelineError> {
         self.cpu_tokens
-            .acquire()
-            .await
+            .acquire().await
             .map_err(|_| PipelineError::InternalError("CPU semaphore closed".to_string()))
     }
 
@@ -294,8 +296,7 @@ impl GlobalResourceManager {
     /// ```
     pub async fn acquire_io(&self) -> Result<SemaphorePermit<'_>, PipelineError> {
         self.io_tokens
-            .acquire()
-            .await
+            .acquire().await
             .map_err(|_| PipelineError::InternalError("I/O semaphore closed".to_string()))
     }
 
@@ -400,12 +401,13 @@ static RESOURCE_MANAGER_CELL: std::sync::OnceLock<GlobalResourceManager> = std::
 /// - Already initialized (called twice)
 /// - Configuration is invalid (e.g., 0 CPU threads)
 pub fn init_resource_manager(config: ResourceConfig) -> Result<(), String> {
-    let manager =
-        GlobalResourceManager::new(config).map_err(|e| format!("Failed to create resource manager: {}", e))?;
+    let manager = GlobalResourceManager::new(config).map_err(|e|
+        format!("Failed to create resource manager: {}", e)
+    )?;
 
-    RESOURCE_MANAGER_CELL
-        .set(manager)
-        .map_err(|_| "Resource manager already initialized".to_string())
+    RESOURCE_MANAGER_CELL.set(manager).map_err(|_|
+        "Resource manager already initialized".to_string()
+    )
 }
 
 /// Access the global resource manager
@@ -416,9 +418,9 @@ pub fn init_resource_manager(config: ResourceConfig) -> Result<(), String> {
 /// using the resource manager before initialization is a programming error.
 #[allow(clippy::expect_used)]
 pub fn resource_manager() -> &'static GlobalResourceManager {
-    RESOURCE_MANAGER_CELL
-        .get()
-        .expect("Resource manager not initialized! Call init_resource_manager() in main().")
+    RESOURCE_MANAGER_CELL.get().expect(
+        "Resource manager not initialized! Call init_resource_manager() in main()."
+    )
 }
 
 /// Legacy alias for backward compatibility
@@ -426,8 +428,9 @@ pub fn resource_manager() -> &'static GlobalResourceManager {
 /// **Pattern**: Both `RESOURCE_MANAGER` (static) and `resource_manager()` (function)
 /// are supported. New code should prefer the function style for consistency.
 #[allow(non_upper_case_globals)]
-pub static RESOURCE_MANAGER: std::sync::LazyLock<&'static GlobalResourceManager> =
-    std::sync::LazyLock::new(|| resource_manager());
+pub static RESOURCE_MANAGER: std::sync::LazyLock<&'static GlobalResourceManager> = std::sync::LazyLock::new(
+    || resource_manager()
+);
 
 #[cfg(test)]
 mod tests {
@@ -469,8 +472,7 @@ mod tests {
         let manager = GlobalResourceManager::new(ResourceConfig {
             cpu_tokens: Some(2),
             ..Default::default()
-        })
-        .unwrap();
+        }).unwrap();
 
         // Initially 2 available
         assert_eq!(manager.cpu_tokens_available(), 2);
@@ -493,8 +495,7 @@ mod tests {
         let manager = GlobalResourceManager::new(ResourceConfig {
             io_tokens: Some(4),
             ..Default::default()
-        })
-        .unwrap();
+        }).unwrap();
 
         assert_eq!(manager.io_tokens_available(), 4);
 

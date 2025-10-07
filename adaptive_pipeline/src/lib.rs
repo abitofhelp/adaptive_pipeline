@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -10,7 +10,7 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 
-//! # Optimized Adaptive Pipeline
+//! # Adaptive Pipeline
 //!
 //! A high-performance, secure file processing pipeline system built with Rust.
 //! This crate provides a comprehensive framework for processing files through
@@ -161,7 +161,7 @@
 //! - Secure key zeroization
 //! - Input validation and sanitization
 //!
-//! # Optimized Adaptive Pipeline Processing Library
+//! # Adaptive Pipeline Processing Library
 //!
 //! A high-performance, secure file processing pipeline system built in Rust
 //! that provides a flexible framework for creating custom file processing
@@ -319,8 +319,15 @@ pub mod presentation;
 
 // Re-export domain types for convenient access
 pub use adaptive_pipeline_domain::{
-    ChunkSize, FileChunk, Pipeline, PipelineError, PipelineStage, ProcessingContext, ProcessingMetrics,
-    SecurityContext, SecurityLevel,
+    ChunkSize,
+    FileChunk,
+    Pipeline,
+    PipelineError,
+    PipelineStage,
+    ProcessingContext,
+    ProcessingMetrics,
+    SecurityContext,
+    SecurityLevel,
 };
 
 // Re-export restoration functions for testing

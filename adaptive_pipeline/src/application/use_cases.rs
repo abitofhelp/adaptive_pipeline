@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -105,7 +105,7 @@ pub use compare_files::CompareFilesUseCase;
 pub use create_pipeline::CreatePipelineUseCase;
 pub use delete_pipeline::DeletePipelineUseCase;
 pub use list_pipelines::ListPipelinesUseCase;
-pub use process_file::{ProcessFileConfig, ProcessFileUseCase};
+pub use process_file::{ ProcessFileConfig, ProcessFileUseCase };
 pub use restore_file::create_restoration_pipeline;
 pub use show_pipeline::ShowPipelineUseCase;
 pub use validate_config::ValidateConfigUseCase;

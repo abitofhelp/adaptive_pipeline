@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -13,7 +13,7 @@
 //! performance optimization, and benchmarking. Thread-safe, stateless
 //! operations. See mdBook for algorithm characteristics and usage examples.
 
-use crate::{FileChunk, PipelineError, ProcessingContext};
+use crate::{ FileChunk, PipelineError, ProcessingContext };
 
 // NOTE: Domain traits are synchronous. Async execution is an infrastructure
 // concern. Infrastructure can provide async adapters that wrap sync
@@ -214,7 +214,7 @@ pub trait CompressionService: super::stage_service::StageService {
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError>;
 
     /// Decompresses a file chunk using the specified configuration
@@ -250,7 +250,7 @@ pub trait CompressionService: super::stage_service::StageService {
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError>;
 
     /// Estimates compression ratio for given data
@@ -262,7 +262,7 @@ pub trait CompressionService: super::stage_service::StageService {
     fn estimate_compression_ratio(
         &self,
         data_sample: &[u8],
-        algorithm: &CompressionAlgorithm,
+        algorithm: &CompressionAlgorithm
     ) -> Result<f64, PipelineError>;
 
     /// Gets optimal compression configuration for file type
@@ -272,7 +272,7 @@ pub trait CompressionService: super::stage_service::StageService {
         &self,
         file_extension: &str,
         data_sample: &[u8],
-        performance_priority: CompressionPriority,
+        performance_priority: CompressionPriority
     ) -> Result<CompressionConfig, PipelineError>;
 
     /// Validates compression configuration
@@ -291,7 +291,7 @@ pub trait CompressionService: super::stage_service::StageService {
     fn benchmark_algorithm(
         &self,
         algorithm: &CompressionAlgorithm,
-        test_data: &[u8],
+        test_data: &[u8]
     ) -> Result<CompressionBenchmark, PipelineError>;
 }
 
@@ -428,7 +428,9 @@ impl CompressionConfig {
 /// let config = CompressionConfig::from_parameters(&params).unwrap();
 /// ```
 impl super::stage_service::FromParameters for CompressionConfig {
-    fn from_parameters(params: &std::collections::HashMap<String, String>) -> Result<Self, PipelineError> {
+    fn from_parameters(
+        params: &std::collections::HashMap<String, String>
+    ) -> Result<Self, PipelineError> {
         use std::str::FromStr;
 
         // Required: algorithm

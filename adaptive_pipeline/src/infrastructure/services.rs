@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -31,7 +31,7 @@ pub mod tee;
 
 // Re-export service implementations
 pub use base64_encoding::Base64EncodingService;
-pub use binary_format::{BinaryFormatService, AdapipeFormat, BinaryFormatWriter};
+pub use binary_format::{ BinaryFormatService, AdapipeFormat, BinaryFormatWriter };
 pub use debug::DebugService;
 pub use passthrough::PassThroughService;
 pub use pii_masking::PiiMaskingService;

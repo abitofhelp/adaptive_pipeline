@@ -1,6 +1,6 @@
 # Database Management Guide
 
-This guide explains how to create, load, and manage the SQLite database for the Optimized Adaptive Pipeline system.
+This guide explains how to create, load, and manage the SQLite database for the Adaptive Pipeline system.
 
 ## Overview
 

@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -97,12 +97,12 @@
 use async_trait::async_trait;
 use byte_unit::Byte;
 use parking_lot::RwLock;
-use adaptive_pipeline_domain::entities::{PipelineStage, ProcessingContext};
-use adaptive_pipeline_domain::repositories::stage_executor::{ResourceRequirements, StageExecutor};
+use adaptive_pipeline_domain::entities::{ PipelineStage, ProcessingContext };
+use adaptive_pipeline_domain::repositories::stage_executor::{ ResourceRequirements, StageExecutor };
 use adaptive_pipeline_domain::services::StageService;
 use adaptive_pipeline_domain::value_objects::FileChunk;
 use adaptive_pipeline_domain::PipelineError;
-use sha2::{Digest, Sha256};
+use sha2::{ Digest, Sha256 };
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -272,7 +272,7 @@ impl BasicStageExecutor {
         &self,
         stage: &PipelineStage,
         chunk: &FileChunk,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<(), PipelineError> {
         let stage_name = stage.name();
 
@@ -299,7 +299,9 @@ impl BasicStageExecutor {
                 if let Some(hasher) = checksums.remove(stage_name) {
                     format!("{:x}", hasher.finalize())
                 } else {
-                    return Err(PipelineError::IntegrityError("Checksum hasher not found".to_string()));
+                    return Err(
+                        PipelineError::IntegrityError("Checksum hasher not found".to_string())
+                    );
                 }
             };
 
@@ -351,7 +353,7 @@ impl BasicStageExecutor {
         &self,
         stage: &PipelineStage,
         chunk: FileChunk,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         let start_time = std::time::Instant::now();
         let input_size = chunk.data().len();
@@ -391,11 +393,15 @@ impl BasicStageExecutor {
                     }
                     None => {
                         // Algorithm not found in registry - return helpful error
-                        Err(PipelineError::InvalidConfiguration(format!(
-                            "No StageService registered for algorithm '{}'. Available: {:?}",
-                            algorithm,
-                            self.stage_services.keys().collect::<Vec<_>>()
-                        )))
+                        Err(
+                            PipelineError::InvalidConfiguration(
+                                format!(
+                                    "No StageService registered for algorithm '{}'. Available: {:?}",
+                                    algorithm,
+                                    self.stage_services.keys().collect::<Vec<_>>()
+                                )
+                            )
+                        )
                     }
                 }
             }
@@ -403,7 +409,10 @@ impl BasicStageExecutor {
 
         // Record stage metrics for all stages
         let processing_time = start_time.elapsed();
-        let output_size = result.as_ref().map(|c| c.data().len()).unwrap_or(input_size);
+        let output_size = result
+            .as_ref()
+            .map(|c| c.data().len())
+            .unwrap_or(input_size);
 
         tracing::debug!(
             "Stage '{}' completed: {} bytes -> {} bytes in {:.2}ms",
@@ -419,12 +428,20 @@ impl BasicStageExecutor {
 
 #[async_trait]
 impl StageExecutor for BasicStageExecutor {
-    #[tracing::instrument(skip(self, chunk, context), fields(chunk_id = chunk.sequence_number(), stage = stage.name(), input_size = chunk.data().len(), output_size))]
+    #[tracing::instrument(
+        skip(self, chunk, context),
+        fields(
+            chunk_id = chunk.sequence_number(),
+            stage = stage.name(),
+            input_size = chunk.data().len(),
+            output_size
+        )
+    )]
     async fn execute(
         &self,
         stage: &PipelineStage,
         chunk: FileChunk,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         // Process stage based on its algorithm configuration, not stage name
         // This ensures all stages (built-in and user-created) are treated equally
@@ -440,9 +457,12 @@ impl StageExecutor for BasicStageExecutor {
         &self,
         stage: &PipelineStage,
         chunks: Vec<FileChunk>,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<Vec<FileChunk>, PipelineError> {
-        let total_bytes: usize = chunks.iter().map(|c| c.data().len()).sum();
+        let total_bytes: usize = chunks
+            .iter()
+            .map(|c| c.data().len())
+            .sum();
         tracing::debug!(
             "Processing {} chunks in parallel through stage '{}': {} total",
             chunks.len(),
@@ -487,7 +507,7 @@ impl StageExecutor for BasicStageExecutor {
     async fn estimate_processing_time(
         &self,
         stage: &PipelineStage,
-        data_size: u64,
+        data_size: u64
     ) -> Result<std::time::Duration, PipelineError> {
         // Basic estimation based on stage type and data size
         let base_time_ms = match stage.stage_type() {
@@ -519,7 +539,7 @@ impl StageExecutor for BasicStageExecutor {
     async fn get_resource_requirements(
         &self,
         stage: &PipelineStage,
-        data_size: u64,
+        data_size: u64
     ) -> Result<ResourceRequirements, PipelineError> {
         // Basic resource estimation
         let memory_mb = match stage.stage_type() {
@@ -546,21 +566,27 @@ impl StageExecutor for BasicStageExecutor {
             }
         };
 
-        Ok(ResourceRequirements::new(
-            memory_mb * 1024 * 1024, // Convert MB to bytes
-            1,                       // CPU cores
-            0,                       // Disk space (temporary)
-        ))
+        Ok(
+            ResourceRequirements::new(
+                memory_mb * 1024 * 1024, // Convert MB to bytes
+                1, // CPU cores
+                0 // Disk space (temporary)
+            )
+        )
     }
 
-    async fn prepare_stage(&self, stage: &PipelineStage, context: &ProcessingContext) -> Result<(), PipelineError> {
+    async fn prepare_stage(
+        &self,
+        stage: &PipelineStage,
+        context: &ProcessingContext
+    ) -> Result<(), PipelineError> {
         tracing::debug!("Preparing stage: {}", stage.name());
 
         // Basic preparation - validate configuration
         if stage.name().is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Stage name cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Stage name cannot be empty".to_string())
+            );
         }
 
         // In a real implementation, this would:
@@ -572,7 +598,11 @@ impl StageExecutor for BasicStageExecutor {
         Ok(())
     }
 
-    async fn cleanup_stage(&self, stage: &PipelineStage, context: &ProcessingContext) -> Result<(), PipelineError> {
+    async fn cleanup_stage(
+        &self,
+        stage: &PipelineStage,
+        context: &ProcessingContext
+    ) -> Result<(), PipelineError> {
         tracing::debug!("Cleaning up stage: {}", stage.name());
 
         // Basic cleanup
@@ -588,9 +618,9 @@ impl StageExecutor for BasicStageExecutor {
     async fn validate_configuration(&self, stage: &PipelineStage) -> Result<(), PipelineError> {
         // Basic validation
         if stage.name().is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Stage name cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Stage name cannot be empty".to_string())
+            );
         }
 
         // Validate that we have a StageService for this algorithm
@@ -603,11 +633,15 @@ impl StageExecutor for BasicStageExecutor {
 
         // For all other stages, check the registry
         if !self.stage_services.contains_key(algorithm) {
-            return Err(PipelineError::InvalidConfiguration(format!(
-                "No StageService registered for algorithm '{}'. Supported algorithms: {:?}",
-                algorithm,
-                self.supported_stage_types()
-            )));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    format!(
+                        "No StageService registered for algorithm '{}'. Supported algorithms: {:?}",
+                        algorithm,
+                        self.supported_stage_types()
+                    )
+                )
+            );
         }
 
         Ok(())
@@ -632,10 +666,15 @@ impl StageExecutor for BasicStageExecutor {
             let position = match self.stage_services.get(algorithm) {
                 Some(service) => service.position(),
                 None => {
-                    return Err(PipelineError::InvalidConfiguration(format!(
-                        "Cannot validate stage ordering: No StageService registered for algorithm '{}' at position {}",
-                        algorithm, index
-                    )));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            format!(
+                                "Cannot validate stage ordering: No StageService registered for algorithm '{}' at position {}",
+                                algorithm,
+                                index
+                            )
+                        )
+                    );
                 }
             };
 
@@ -643,13 +682,17 @@ impl StageExecutor for BasicStageExecutor {
             match position {
                 StagePosition::PreBinary => {
                     if seen_post_binary {
-                        return Err(PipelineError::InvalidConfiguration(format!(
-                            "Invalid stage ordering: PreBinary stage '{}' (algorithm: {}) at position {} cannot appear after PostBinary stages. \
+                        return Err(
+                            PipelineError::InvalidConfiguration(
+                                format!(
+                                    "Invalid stage ordering: PreBinary stage '{}' (algorithm: {}) at position {} cannot appear after PostBinary stages. \
                              PreBinary stages must execute before compression/encryption.",
-                            stage.name(),
-                            algorithm,
-                            index
-                        )));
+                                    stage.name(),
+                                    algorithm,
+                                    index
+                                )
+                            )
+                        );
                     }
                 }
                 StagePosition::PostBinary => {

@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -119,9 +119,9 @@
 //! - **JSON**: Object representation for API compatibility
 //! - **Database**: JSON column storage for flexible parameter persistence
 
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use std::collections::HashMap;
-use std::fmt::{self, Display};
+use std::fmt::{ self, Display };
 
 use crate::PipelineError;
 
@@ -216,8 +216,13 @@ impl StageParameters {
 
     /// Creates stage parameters from JSON string
     pub fn from_json(json: &str) -> Result<Self, PipelineError> {
-        let map: HashMap<String, serde_json::Value> = serde_json::from_str(json)
-            .map_err(|e| PipelineError::InvalidConfiguration(format!("Invalid JSON for stage parameters: {}", e)))?;
+        let map: HashMap<String, serde_json::Value> = serde_json
+            ::from_str(json)
+            .map_err(|e|
+                PipelineError::InvalidConfiguration(
+                    format!("Invalid JSON for stage parameters: {}", e)
+                )
+            )?;
 
         let mut params = HashMap::new();
         for (key, value) in map {
@@ -303,9 +308,7 @@ impl StageParameters {
         if value.is_finite() {
             self.set(name, ParameterValue::Float(value.to_string()))
         } else {
-            Err(PipelineError::InvalidConfiguration(
-                "Float parameter must be finite".to_string(),
-            ))
+            Err(PipelineError::InvalidConfiguration("Float parameter must be finite".to_string()))
         }
     }
 
@@ -360,51 +363,67 @@ impl StageParameters {
 
     /// Converts to JSON string
     pub fn to_json(&self) -> Result<String, PipelineError> {
-        let json_map: HashMap<String, serde_json::Value> =
-            self.0.iter().map(|(k, v)| (k.clone(), v.to_json_value())).collect();
+        let json_map: HashMap<String, serde_json::Value> = self.0
+            .iter()
+            .map(|(k, v)| (k.clone(), v.to_json_value()))
+            .collect();
 
-        serde_json::to_string(&json_map)
-            .map_err(|e| PipelineError::InvalidConfiguration(format!("Failed to serialize parameters to JSON: {}", e)))
+        serde_json
+            ::to_string(&json_map)
+            .map_err(|e|
+                PipelineError::InvalidConfiguration(
+                    format!("Failed to serialize parameters to JSON: {}", e)
+                )
+            )
     }
 
     /// Converts to pretty JSON string
     pub fn to_json_pretty(&self) -> Result<String, PipelineError> {
-        let json_map: HashMap<String, serde_json::Value> =
-            self.0.iter().map(|(k, v)| (k.clone(), v.to_json_value())).collect();
+        let json_map: HashMap<String, serde_json::Value> = self.0
+            .iter()
+            .map(|(k, v)| (k.clone(), v.to_json_value()))
+            .collect();
 
-        serde_json::to_string_pretty(&json_map).map_err(|e| {
-            PipelineError::InvalidConfiguration(format!("Failed to serialize parameters to pretty JSON: {}", e))
-        })
+        serde_json
+            ::to_string_pretty(&json_map)
+            .map_err(|e| {
+                PipelineError::InvalidConfiguration(
+                    format!("Failed to serialize parameters to pretty JSON: {}", e)
+                )
+            })
     }
 
     /// Validates parameter name
     fn validate_parameter_name(name: &str) -> Result<(), PipelineError> {
         if name.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Parameter name cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Parameter name cannot be empty".to_string())
+            );
         }
 
         if name.len() > 128 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Parameter name cannot exceed 128 characters".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Parameter name cannot exceed 128 characters".to_string()
+                )
+            );
         }
 
         // Parameter names should be valid identifiers
-        if !name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
-        {
-            return Err(PipelineError::InvalidConfiguration(
-                "Parameter name must contain only alphanumeric characters, underscores, hyphens, and dots".to_string(),
-            ));
+        if !name.chars().all(|c| (c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')) {
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Parameter name must contain only alphanumeric characters, underscores, hyphens, and dots".to_string()
+                )
+            );
         }
 
         if name.starts_with('-') || name.starts_with('.') {
-            return Err(PipelineError::InvalidConfiguration(
-                "Parameter name cannot start with hyphen or dot".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Parameter name cannot start with hyphen or dot".to_string()
+                )
+            );
         }
 
         Ok(())
@@ -413,9 +432,11 @@ impl StageParameters {
     /// Validates the stage parameters
     pub fn validate(&self) -> Result<(), PipelineError> {
         if self.0.len() > 1000 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Too many parameters (maximum 1000)".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Too many parameters (maximum 1000)".to_string()
+                )
+            );
         }
 
         for (name, value) in &self.0 {
@@ -438,9 +459,11 @@ impl ParameterValue {
                 } else if let Some(f) = n.as_f64() {
                     Ok(ParameterValue::Float(f.to_string()))
                 } else {
-                    Err(PipelineError::InvalidConfiguration(
-                        "Invalid number in parameter value".to_string(),
-                    ))
+                    Err(
+                        PipelineError::InvalidConfiguration(
+                            "Invalid number in parameter value".to_string()
+                        )
+                    )
                 }
             }
             serde_json::Value::Bool(b) => Ok(ParameterValue::Boolean(b)),
@@ -458,9 +481,12 @@ impl ParameterValue {
                 }
                 Ok(ParameterValue::Object(param_obj))
             }
-            serde_json::Value::Null => Err(PipelineError::InvalidConfiguration(
-                "Null values are not supported in parameters".to_string(),
-            )),
+            serde_json::Value::Null =>
+                Err(
+                    PipelineError::InvalidConfiguration(
+                        "Null values are not supported in parameters".to_string()
+                    )
+                ),
         }
     }
 
@@ -471,7 +497,8 @@ impl ParameterValue {
             ParameterValue::Integer(i) => serde_json::Value::Number((*i).into()),
             ParameterValue::Float(f) => {
                 if let Ok(parsed) = f.parse::<f64>() {
-                    serde_json::Number::from_f64(parsed)
+                    serde_json::Number
+                        ::from_f64(parsed)
                         .map(serde_json::Value::Number)
                         .unwrap_or_else(|| serde_json::Value::String(f.clone()))
                 } else {
@@ -479,10 +506,18 @@ impl ParameterValue {
                 }
             }
             ParameterValue::Boolean(b) => serde_json::Value::Bool(*b),
-            ParameterValue::Array(arr) => serde_json::Value::Array(arr.iter().map(|v| v.to_json_value()).collect()),
+            ParameterValue::Array(arr) =>
+                serde_json::Value::Array(
+                    arr
+                        .iter()
+                        .map(|v| v.to_json_value())
+                        .collect()
+                ),
             ParameterValue::Object(obj) => {
-                let json_obj: serde_json::Map<String, serde_json::Value> =
-                    obj.iter().map(|(k, v)| (k.clone(), v.to_json_value())).collect();
+                let json_obj: serde_json::Map<String, serde_json::Value> = obj
+                    .iter()
+                    .map(|(k, v)| (k.clone(), v.to_json_value()))
+                    .collect();
                 serde_json::Value::Object(json_obj)
             }
         }
@@ -505,16 +540,20 @@ impl ParameterValue {
         match self {
             ParameterValue::String(s) => {
                 if s.len() > 10_000 {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "String parameter value too long (maximum 10,000 characters)".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            "String parameter value too long (maximum 10,000 characters)".to_string()
+                        )
+                    );
                 }
             }
             ParameterValue::Array(arr) => {
                 if arr.len() > 1000 {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "Array parameter too large (maximum 1000 elements)".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            "Array parameter too large (maximum 1000 elements)".to_string()
+                        )
+                    );
                 }
                 for item in arr {
                     item.validate()?;
@@ -522,9 +561,11 @@ impl ParameterValue {
             }
             ParameterValue::Object(obj) => {
                 if obj.len() > 100 {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "Object parameter too large (maximum 100 properties)".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            "Object parameter too large (maximum 100 properties)".to_string()
+                        )
+                    );
                 }
                 for (key, value) in obj {
                     StageParameters::validate_parameter_name(key)?;
@@ -533,9 +574,11 @@ impl ParameterValue {
             }
             ParameterValue::Float(f) => {
                 if f.parse::<f64>().is_err() {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "Invalid float parameter value".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            "Invalid float parameter value".to_string()
+                        )
+                    );
                 }
             }
             _ => {} // Integer and Boolean are always valid
@@ -603,7 +646,9 @@ pub mod stage_parameters_utils {
     }
 
     /// Merges multiple parameter sets (later ones take precedence)
-    pub fn merge_multiple(params_list: Vec<StageParameters>) -> Result<StageParameters, PipelineError> {
+    pub fn merge_multiple(
+        params_list: Vec<StageParameters>
+    ) -> Result<StageParameters, PipelineError> {
         let mut result = StageParameters::new();
         for params in params_list {
             result.merge(params)?;
@@ -639,7 +684,7 @@ pub mod stage_parameters_utils {
     /// Finds parameters that differ between two sets
     pub fn find_differences(
         params1: &StageParameters,
-        params2: &StageParameters,
+        params2: &StageParameters
     ) -> (StageParameters, StageParameters) {
         let mut diff1 = HashMap::new();
         let mut diff2 = HashMap::new();
@@ -826,12 +871,8 @@ mod tests {
         assert!(params.set_string("".to_string(), "value".to_string()).is_err()); // Empty
         assert!(params.set_string("-invalid".to_string(), "value".to_string()).is_err()); // Starts with hyphen
         assert!(params.set_string(".invalid".to_string(), "value".to_string()).is_err()); // Starts with dot
-        assert!(params
-            .set_string("invalid name".to_string(), "value".to_string())
-            .is_err()); // Space
-        assert!(params
-            .set_string("invalid@name".to_string(), "value".to_string())
-            .is_err()); // Special char
+        assert!(params.set_string("invalid name".to_string(), "value".to_string()).is_err()); // Space
+        assert!(params.set_string("invalid@name".to_string(), "value".to_string()).is_err()); // Special char
 
         // Invalid float
         assert!(params.set_float("inf".to_string(), f64::INFINITY).is_err());
@@ -949,13 +990,9 @@ mod tests {
     #[test]
     fn test_stage_parameters_subset() {
         let mut params = StageParameters::new();
-        params
-            .set_string("db_host".to_string(), "localhost".to_string())
-            .unwrap();
+        params.set_string("db_host".to_string(), "localhost".to_string()).unwrap();
         params.set_integer("db_port".to_string(), 5432).unwrap();
-        params
-            .set_string("cache_host".to_string(), "redis".to_string())
-            .unwrap();
+        params.set_string("cache_host".to_string(), "redis".to_string()).unwrap();
         params.set_integer("cache_port".to_string(), 6379).unwrap();
 
         let db_params = params.subset_with_prefix("db_");

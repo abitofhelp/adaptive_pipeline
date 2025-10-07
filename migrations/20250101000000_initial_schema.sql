@@ -1,6 +1,5 @@
--- Initial database schema for Optimized Adaptive Pipeline
+-- Initial database schema for Adaptive Pipeline
 -- This migration creates all necessary tables for pipeline management
-
 -- Pipelines table: stores pipeline configurations
 CREATE TABLE IF NOT EXISTS pipelines (
     id TEXT PRIMARY KEY,
@@ -9,7 +8,6 @@ CREATE TABLE IF NOT EXISTS pipelines (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
-
 -- Pipeline configuration: key-value pairs for pipeline settings
 CREATE TABLE IF NOT EXISTS pipeline_configuration (
     pipeline_id TEXT NOT NULL,
@@ -21,7 +19,6 @@ CREATE TABLE IF NOT EXISTS pipeline_configuration (
     PRIMARY KEY (pipeline_id, key),
     FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
 );
-
 -- Pipeline stages: defines processing stages in a pipeline
 CREATE TABLE IF NOT EXISTS pipeline_stages (
     id TEXT PRIMARY KEY,
@@ -38,7 +35,6 @@ CREATE TABLE IF NOT EXISTS pipeline_stages (
     updated_at TEXT NOT NULL,
     FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
 );
-
 -- Stage parameters: configuration for individual stages
 CREATE TABLE IF NOT EXISTS stage_parameters (
     stage_id TEXT NOT NULL,
@@ -50,7 +46,6 @@ CREATE TABLE IF NOT EXISTS stage_parameters (
     PRIMARY KEY (stage_id, key),
     FOREIGN KEY (stage_id) REFERENCES pipeline_stages(id) ON DELETE CASCADE
 );
-
 -- Processing metrics: tracks pipeline execution metrics
 CREATE TABLE IF NOT EXISTS processing_metrics (
     pipeline_id TEXT PRIMARY KEY,
@@ -71,10 +66,10 @@ CREATE TABLE IF NOT EXISTS processing_metrics (
     output_file_checksum TEXT,
     FOREIGN KEY (pipeline_id) REFERENCES pipelines(id) ON DELETE CASCADE
 );
-
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_pipeline_stages_pipeline_id ON pipeline_stages(pipeline_id);
 CREATE INDEX IF NOT EXISTS idx_pipeline_stages_order ON pipeline_stages(pipeline_id, stage_order);
 CREATE INDEX IF NOT EXISTS idx_pipeline_configuration_pipeline_id ON pipeline_configuration(pipeline_id);
 CREATE INDEX IF NOT EXISTS idx_stage_parameters_stage_id ON stage_parameters(stage_id);
-CREATE INDEX IF NOT EXISTS idx_pipelines_name ON pipelines(name) WHERE archived = false;
+CREATE INDEX IF NOT EXISTS idx_pipelines_name ON pipelines(name)
+WHERE archived = false;

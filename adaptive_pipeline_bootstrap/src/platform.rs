@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -40,7 +40,7 @@
 //! ```
 
 use async_trait::async_trait;
-use std::path::{Path, PathBuf};
+use std::path::{ Path, PathBuf };
 use thiserror::Error;
 
 #[cfg(unix)]

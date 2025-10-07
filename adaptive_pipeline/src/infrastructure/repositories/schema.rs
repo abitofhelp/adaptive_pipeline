@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -12,7 +12,7 @@
 
 use sqlx::migrate::MigrateDatabase;
 use sqlx::SqlitePool;
-use tracing::{debug, info};
+use tracing::{ debug, info };
 
 /// Runs pending migrations against the provided SQLite pool.
 pub async fn ensure_schema(pool: &SqlitePool) -> Result<(), sqlx::Error> {
@@ -129,11 +129,12 @@ mod tests {
         let pool = initialize_database(&db_url).await.unwrap();
 
         // Verify tables were created by checking for pipelines table
-        let result: i32 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='pipelines'")
-                .fetch_one(&pool)
-                .await
-                .unwrap();
+        let result: i32 = sqlx
+            ::query_scalar(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='pipelines'"
+            )
+            .fetch_one(&pool).await
+            .unwrap();
 
         assert_eq!(result, 1, "Pipelines table should exist");
     }

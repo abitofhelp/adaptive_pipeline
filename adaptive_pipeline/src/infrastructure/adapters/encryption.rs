@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -114,22 +114,26 @@
 //! - **Pipeline Processing**: Chunk-based processing workflow
 //! - **Metrics Collection**: Performance monitoring and statistics
 
-use aes_gcm::{AeadInPlace, Aes256Gcm, Key, KeyInit, Nonce};
+use aes_gcm::{ AeadInPlace, Aes256Gcm, Key, KeyInit, Nonce };
 use argon2::password_hash::SaltString;
-use argon2::{Argon2, PasswordHasher};
-use base64::{engine::general_purpose, Engine as _};
-use chacha20poly1305::{ChaCha20Poly1305, Key as ChaChaKey, Nonce as ChaChaNonce};
-use ring::rand::{SecureRandom, SystemRandom};
+use argon2::{ Argon2, PasswordHasher };
+use base64::{ engine::general_purpose, Engine as _ };
+use chacha20poly1305::{ ChaCha20Poly1305, Key as ChaChaKey, Nonce as ChaChaNonce };
+use ring::rand::{ SecureRandom, SystemRandom };
 use scrypt::password_hash::SaltString as ScryptSalt;
 use scrypt::Scrypt;
 use std::collections::HashMap;
 use zeroize::Zeroize;
 
-use adaptive_pipeline_domain::entities::{ProcessingContext, SecurityContext};
+use adaptive_pipeline_domain::entities::{ ProcessingContext, SecurityContext };
 use adaptive_pipeline_domain::services::{
-    EncryptionAlgorithm, EncryptionConfig, EncryptionService, KeyDerivationFunction, KeyMaterial,
+    EncryptionAlgorithm,
+    EncryptionConfig,
+    EncryptionService,
+    KeyDerivationFunction,
+    KeyMaterial,
 };
-use adaptive_pipeline_domain::value_objects::{EncryptionBenchmark, FileChunk};
+use adaptive_pipeline_domain::value_objects::{ EncryptionBenchmark, FileChunk };
 use adaptive_pipeline_domain::PipelineError;
 
 // NOTE: Domain traits are now synchronous. This implementation is sync and
@@ -191,7 +195,9 @@ impl MultiAlgoEncryption {
         let mut key = vec![0u8; length];
         self.rng
             .fill(&mut key)
-            .map_err(|e| PipelineError::EncryptionError(format!("Failed to generate key: {:?}", e)))?;
+            .map_err(|e|
+                PipelineError::EncryptionError(format!("Failed to generate key: {:?}", e))
+            )?;
         Ok(key)
     }
 
@@ -200,23 +206,33 @@ impl MultiAlgoEncryption {
         let mut nonce = vec![0u8; length];
         self.rng
             .fill(&mut nonce)
-            .map_err(|e| PipelineError::EncryptionError(format!("Failed to generate nonce: {:?}", e)))?;
+            .map_err(|e|
+                PipelineError::EncryptionError(format!("Failed to generate nonce: {:?}", e))
+            )?;
         Ok(nonce)
     }
 
     /// Derives a key using Argon2
-    fn derive_key_argon2(&self, password: &[u8], salt: &[u8], key_length: usize) -> Result<Vec<u8>, PipelineError> {
+    fn derive_key_argon2(
+        &self,
+        password: &[u8],
+        salt: &[u8],
+        key_length: usize
+    ) -> Result<Vec<u8>, PipelineError> {
         let argon2 = Argon2::default();
-        let salt_string =
-            SaltString::encode_b64(salt).map_err(|e| PipelineError::EncryptionError(format!("Invalid salt: {}", e)))?;
+        let salt_string = SaltString::encode_b64(salt).map_err(|e|
+            PipelineError::EncryptionError(format!("Invalid salt: {}", e))
+        )?;
 
         let password_hash = argon2
             .hash_password(password, &salt_string)
-            .map_err(|e| PipelineError::EncryptionError(format!("Argon2 key derivation failed: {}", e)))?;
+            .map_err(|e|
+                PipelineError::EncryptionError(format!("Argon2 key derivation failed: {}", e))
+            )?;
 
-        let hash_string = password_hash
-            .hash
-            .ok_or_else(|| PipelineError::EncryptionError("Password hash missing".to_string()))?;
+        let hash_string = password_hash.hash.ok_or_else(||
+            PipelineError::EncryptionError("Password hash missing".to_string())
+        )?;
         let hash_bytes = hash_string.as_bytes();
         if hash_bytes.len() >= key_length {
             Ok(hash_bytes[..key_length].to_vec())
@@ -226,18 +242,26 @@ impl MultiAlgoEncryption {
     }
 
     /// Derives a key using scrypt
-    fn derive_key_scrypt(&self, password: &[u8], salt: &[u8], key_length: usize) -> Result<Vec<u8>, PipelineError> {
+    fn derive_key_scrypt(
+        &self,
+        password: &[u8],
+        salt: &[u8],
+        key_length: usize
+    ) -> Result<Vec<u8>, PipelineError> {
         let scrypt = Scrypt;
-        let salt_string =
-            ScryptSalt::encode_b64(salt).map_err(|e| PipelineError::EncryptionError(format!("Invalid salt: {}", e)))?;
+        let salt_string = ScryptSalt::encode_b64(salt).map_err(|e|
+            PipelineError::EncryptionError(format!("Invalid salt: {}", e))
+        )?;
 
         let password_hash = scrypt
             .hash_password(password, &salt_string)
-            .map_err(|e| PipelineError::EncryptionError(format!("Scrypt key derivation failed: {}", e)))?;
+            .map_err(|e|
+                PipelineError::EncryptionError(format!("Scrypt key derivation failed: {}", e))
+            )?;
 
-        let hash_string = password_hash
-            .hash
-            .ok_or_else(|| PipelineError::EncryptionError("Password hash missing".to_string()))?;
+        let hash_string = password_hash.hash.ok_or_else(||
+            PipelineError::EncryptionError("Password hash missing".to_string())
+        )?;
         let hash_bytes = hash_string.as_bytes();
         if hash_bytes.len() >= key_length {
             Ok(hash_bytes[..key_length].to_vec())
@@ -252,31 +276,37 @@ impl MultiAlgoEncryption {
         password: &[u8],
         salt: &[u8],
         iterations: u32,
-        key_length: usize,
+        key_length: usize
     ) -> Result<Vec<u8>, PipelineError> {
         let mut key = vec![0u8; key_length];
         ring::pbkdf2::derive(
             ring::pbkdf2::PBKDF2_HMAC_SHA256,
-            std::num::NonZeroU32::new(iterations)
-                .ok_or_else(|| PipelineError::EncryptionError("Invalid iteration count".to_string()))?,
+            std::num::NonZeroU32
+                ::new(iterations)
+                .ok_or_else(||
+                    PipelineError::EncryptionError("Invalid iteration count".to_string())
+                )?,
             salt,
             password,
-            &mut key,
+            &mut key
         );
         Ok(key)
     }
 
     /// Encrypts data using AES-256-GCM
-    fn encrypt_aes256_gcm(&self, data: &[u8], key: &[u8], nonce: &[u8]) -> Result<Vec<u8>, PipelineError> {
+    fn encrypt_aes256_gcm(
+        &self,
+        data: &[u8],
+        key: &[u8],
+        nonce: &[u8]
+    ) -> Result<Vec<u8>, PipelineError> {
         if key.len() != 32 {
-            return Err(PipelineError::EncryptionError(
-                "AES-256 requires 32-byte key".to_string(),
-            ));
+            return Err(PipelineError::EncryptionError("AES-256 requires 32-byte key".to_string()));
         }
         if nonce.len() != 12 {
-            return Err(PipelineError::EncryptionError(
-                "AES-GCM requires 12-byte nonce".to_string(),
-            ));
+            return Err(
+                PipelineError::EncryptionError("AES-GCM requires 12-byte nonce".to_string())
+            );
         }
 
         let cipher_key = Key::<Aes256Gcm>::from_slice(key);
@@ -286,7 +316,9 @@ impl MultiAlgoEncryption {
         let mut buffer = data.to_vec();
         cipher
             .encrypt_in_place(nonce_array, b"", &mut buffer)
-            .map_err(|e| PipelineError::EncryptionError(format!("AES-256-GCM encryption failed: {:?}", e)))?;
+            .map_err(|e|
+                PipelineError::EncryptionError(format!("AES-256-GCM encryption failed: {:?}", e))
+            )?;
 
         // Prepend nonce to encrypted data
         let mut result = nonce.to_vec();
@@ -297,9 +329,7 @@ impl MultiAlgoEncryption {
     /// Decrypts data using AES-256-GCM
     fn decrypt_aes256_gcm(&self, data: &[u8], key: &[u8]) -> Result<Vec<u8>, PipelineError> {
         if key.len() != 32 {
-            return Err(PipelineError::EncryptionError(
-                "AES-256 requires 32-byte key".to_string(),
-            ));
+            return Err(PipelineError::EncryptionError("AES-256 requires 32-byte key".to_string()));
         }
         if data.len() < 12 {
             return Err(PipelineError::EncryptionError("Encrypted data too short".to_string()));
@@ -313,22 +343,29 @@ impl MultiAlgoEncryption {
         let mut buffer = ciphertext.to_vec();
         cipher
             .decrypt_in_place(nonce_array, b"", &mut buffer)
-            .map_err(|e| PipelineError::EncryptionError(format!("AES-256-GCM decryption failed: {:?}", e)))?;
+            .map_err(|e|
+                PipelineError::EncryptionError(format!("AES-256-GCM decryption failed: {:?}", e))
+            )?;
 
         Ok(buffer)
     }
 
     /// Encrypts data using ChaCha20-Poly1305
-    fn encrypt_chacha20_poly1305(&self, data: &[u8], key: &[u8], nonce: &[u8]) -> Result<Vec<u8>, PipelineError> {
+    fn encrypt_chacha20_poly1305(
+        &self,
+        data: &[u8],
+        key: &[u8],
+        nonce: &[u8]
+    ) -> Result<Vec<u8>, PipelineError> {
         if key.len() != 32 {
-            return Err(PipelineError::EncryptionError(
-                "ChaCha20 requires 32-byte key".to_string(),
-            ));
+            return Err(PipelineError::EncryptionError("ChaCha20 requires 32-byte key".to_string()));
         }
         if nonce.len() != 12 {
-            return Err(PipelineError::EncryptionError(
-                "ChaCha20-Poly1305 requires 12-byte nonce".to_string(),
-            ));
+            return Err(
+                PipelineError::EncryptionError(
+                    "ChaCha20-Poly1305 requires 12-byte nonce".to_string()
+                )
+            );
         }
 
         let cipher_key = ChaChaKey::from_slice(key);
@@ -338,7 +375,11 @@ impl MultiAlgoEncryption {
         let mut buffer = data.to_vec();
         cipher
             .encrypt_in_place(nonce_array, b"", &mut buffer)
-            .map_err(|e| PipelineError::EncryptionError(format!("ChaCha20-Poly1305 encryption failed: {:?}", e)))?;
+            .map_err(|e|
+                PipelineError::EncryptionError(
+                    format!("ChaCha20-Poly1305 encryption failed: {:?}", e)
+                )
+            )?;
 
         // Prepend nonce to encrypted data
         let mut result = nonce.to_vec();
@@ -349,9 +390,7 @@ impl MultiAlgoEncryption {
     /// Decrypts data using ChaCha20-Poly1305
     fn decrypt_chacha20_poly1305(&self, data: &[u8], key: &[u8]) -> Result<Vec<u8>, PipelineError> {
         if key.len() != 32 {
-            return Err(PipelineError::EncryptionError(
-                "ChaCha20 requires 32-byte key".to_string(),
-            ));
+            return Err(PipelineError::EncryptionError("ChaCha20 requires 32-byte key".to_string()));
         }
         if data.len() < 12 {
             return Err(PipelineError::EncryptionError("Encrypted data too short".to_string()));
@@ -365,7 +404,11 @@ impl MultiAlgoEncryption {
         let mut buffer = ciphertext.to_vec();
         cipher
             .decrypt_in_place(nonce_array, b"", &mut buffer)
-            .map_err(|e| PipelineError::EncryptionError(format!("ChaCha20-Poly1305 decryption failed: {:?}", e)))?;
+            .map_err(|e|
+                PipelineError::EncryptionError(
+                    format!("ChaCha20-Poly1305 decryption failed: {:?}", e)
+                )
+            )?;
 
         Ok(buffer)
     }
@@ -382,7 +425,7 @@ impl EncryptionService for MultiAlgoEncryption {
         chunk: FileChunk,
         config: &EncryptionConfig,
         key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         let data = chunk.data().to_vec();
 
@@ -395,34 +438,40 @@ impl EncryptionService for MultiAlgoEncryption {
         // Encrypt based on algorithm
         let encrypted_data = match &config.algorithm {
             EncryptionAlgorithm::Aes256Gcm => self.encrypt_aes256_gcm(&data, &key.key, &nonce)?,
-            EncryptionAlgorithm::ChaCha20Poly1305 => self.encrypt_chacha20_poly1305(&data, &key.key, &nonce)?,
+            EncryptionAlgorithm::ChaCha20Poly1305 =>
+                self.encrypt_chacha20_poly1305(&data, &key.key, &nonce)?,
             EncryptionAlgorithm::Aes128Gcm => {
                 if key.len() != 16 {
-                    return Err(PipelineError::EncryptionError(
-                        "AES-128 requires 16-byte key".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::EncryptionError("AES-128 requires 16-byte key".to_string())
+                    );
                 }
                 // Similar implementation for AES-128
-                return Err(PipelineError::EncryptionError(
-                    "AES-128-GCM not yet fully implemented".to_string(),
-                ));
+                return Err(
+                    PipelineError::EncryptionError(
+                        "AES-128-GCM not yet fully implemented".to_string()
+                    )
+                );
             }
             EncryptionAlgorithm::Aes192Gcm => {
                 if key.len() != 24 {
-                    return Err(PipelineError::EncryptionError(
-                        "AES-192 requires 24-byte key".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::EncryptionError("AES-192 requires 24-byte key".to_string())
+                    );
                 }
                 // Similar implementation for AES-192
-                return Err(PipelineError::EncryptionError(
-                    "AES-192-GCM not yet fully implemented".to_string(),
-                ));
+                return Err(
+                    PipelineError::EncryptionError(
+                        "AES-192-GCM not yet fully implemented".to_string()
+                    )
+                );
             }
             EncryptionAlgorithm::Custom(name) => {
-                return Err(PipelineError::EncryptionError(format!(
-                    "Custom algorithm '{}' not implemented",
-                    name
-                )));
+                return Err(
+                    PipelineError::EncryptionError(
+                        format!("Custom algorithm '{}' not implemented", name)
+                    )
+                );
             }
         };
 
@@ -445,7 +494,7 @@ impl EncryptionService for MultiAlgoEncryption {
         chunk: FileChunk,
         config: &EncryptionConfig,
         key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         let data = chunk.data().to_vec();
 
@@ -455,22 +504,28 @@ impl EncryptionService for MultiAlgoEncryption {
         // Decrypt based on algorithm
         let decrypted_data = match &config.algorithm {
             EncryptionAlgorithm::Aes256Gcm => self.decrypt_aes256_gcm(&data, &key.key)?,
-            EncryptionAlgorithm::ChaCha20Poly1305 => self.decrypt_chacha20_poly1305(&data, &key.key)?,
+            EncryptionAlgorithm::ChaCha20Poly1305 =>
+                self.decrypt_chacha20_poly1305(&data, &key.key)?,
             EncryptionAlgorithm::Aes128Gcm => {
-                return Err(PipelineError::EncryptionError(
-                    "AES-128-GCM not yet fully implemented".to_string(),
-                ));
+                return Err(
+                    PipelineError::EncryptionError(
+                        "AES-128-GCM not yet fully implemented".to_string()
+                    )
+                );
             }
             EncryptionAlgorithm::Aes192Gcm => {
-                return Err(PipelineError::EncryptionError(
-                    "AES-192-GCM not yet fully implemented".to_string(),
-                ));
+                return Err(
+                    PipelineError::EncryptionError(
+                        "AES-192-GCM not yet fully implemented".to_string()
+                    )
+                );
             }
             EncryptionAlgorithm::Custom(name) => {
-                return Err(PipelineError::EncryptionError(format!(
-                    "Custom algorithm '{}' not implemented",
-                    name
-                )));
+                return Err(
+                    PipelineError::EncryptionError(
+                        format!("Custom algorithm '{}' not implemented", name)
+                    )
+                );
             }
         };
 
@@ -481,9 +536,9 @@ impl EncryptionService for MultiAlgoEncryption {
         if let Some(expected_hash) = context.get_metadata("integrity_hash") {
             let actual_hash = hex::encode(self.calculate_hash(chunk.data()));
             if actual_hash != *expected_hash {
-                return Err(PipelineError::EncryptionError(
-                    "Integrity verification failed".to_string(),
-                ));
+                return Err(
+                    PipelineError::EncryptionError("Integrity verification failed".to_string())
+                );
             }
         }
 
@@ -498,7 +553,7 @@ impl EncryptionService for MultiAlgoEncryption {
         &self,
         password: &str,
         config: &EncryptionConfig,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<KeyMaterial, PipelineError> {
         let password_bytes = password.as_bytes();
         let salt = self.generate_nonce(32)?; // 32-byte salt
@@ -514,16 +569,17 @@ impl EncryptionService for MultiAlgoEncryption {
         let kdf = &config.key_derivation;
 
         let key_bytes = match kdf {
-            KeyDerivationFunction::Argon2 => self.derive_key_argon2(password_bytes, &salt, key_length)?,
-            KeyDerivationFunction::Scrypt => self.derive_key_scrypt(password_bytes, &salt, key_length)?,
+            KeyDerivationFunction::Argon2 =>
+                self.derive_key_argon2(password_bytes, &salt, key_length)?,
+            KeyDerivationFunction::Scrypt =>
+                self.derive_key_scrypt(password_bytes, &salt, key_length)?,
             KeyDerivationFunction::Pbkdf2 => {
                 self.derive_key_pbkdf2(password_bytes, &salt, config.iterations, key_length)?
             }
             KeyDerivationFunction::Custom(name) => {
-                return Err(PipelineError::EncryptionError(format!(
-                    "Custom KDF '{}' not implemented",
-                    name
-                )));
+                return Err(
+                    PipelineError::EncryptionError(format!("Custom KDF '{}' not implemented", name))
+                );
             }
         };
 
@@ -535,7 +591,7 @@ impl EncryptionService for MultiAlgoEncryption {
     fn generate_key_material(
         &self,
         config: &EncryptionConfig,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<KeyMaterial, PipelineError> {
         let key_length = match &config.algorithm {
             EncryptionAlgorithm::Aes128Gcm => 16,
@@ -555,17 +611,18 @@ impl EncryptionService for MultiAlgoEncryption {
     fn validate_config(&self, config: &EncryptionConfig) -> Result<(), PipelineError> {
         // Validate algorithm
         match &config.algorithm {
-            EncryptionAlgorithm::Aes128Gcm
+            | EncryptionAlgorithm::Aes128Gcm
             | EncryptionAlgorithm::Aes192Gcm
             | EncryptionAlgorithm::Aes256Gcm
             | EncryptionAlgorithm::ChaCha20Poly1305 => {
                 // These are supported
             }
             EncryptionAlgorithm::Custom(name) => {
-                return Err(PipelineError::InvalidConfiguration(format!(
-                    "Custom algorithm '{}' not supported",
-                    name
-                )));
+                return Err(
+                    PipelineError::InvalidConfiguration(
+                        format!("Custom algorithm '{}' not supported", name)
+                    )
+                );
             }
         }
 
@@ -575,9 +632,11 @@ impl EncryptionService for MultiAlgoEncryption {
             KeyDerivationFunction::Scrypt => {}
             KeyDerivationFunction::Pbkdf2 => {
                 if config.iterations < 10_000 {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "PBKDF2 iterations should be at least 10,000".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            "PBKDF2 iterations should be at least 10,000".to_string()
+                        )
+                    );
                 }
             }
             KeyDerivationFunction::Custom(_) => {}
@@ -589,7 +648,7 @@ impl EncryptionService for MultiAlgoEncryption {
     fn benchmark_algorithm(
         &self,
         algorithm: &EncryptionAlgorithm,
-        test_data: &[u8],
+        test_data: &[u8]
     ) -> Result<EncryptionBenchmark, PipelineError> {
         let key_length = match algorithm {
             EncryptionAlgorithm::Aes128Gcm => 16,
@@ -606,11 +665,14 @@ impl EncryptionService for MultiAlgoEncryption {
         // Encrypt the data
         let encrypted = match algorithm {
             EncryptionAlgorithm::Aes256Gcm => self.encrypt_aes256_gcm(test_data, &key, &nonce)?,
-            EncryptionAlgorithm::ChaCha20Poly1305 => self.encrypt_chacha20_poly1305(test_data, &key, &nonce)?,
+            EncryptionAlgorithm::ChaCha20Poly1305 =>
+                self.encrypt_chacha20_poly1305(test_data, &key, &nonce)?,
             _ => {
-                return Err(PipelineError::EncryptionError(
-                    "Algorithm not supported for benchmarking".to_string(),
-                ))
+                return Err(
+                    PipelineError::EncryptionError(
+                        "Algorithm not supported for benchmarking".to_string()
+                    )
+                );
             }
         };
 
@@ -620,28 +682,33 @@ impl EncryptionService for MultiAlgoEncryption {
         let start = std::time::Instant::now();
         let _decrypted = match algorithm {
             EncryptionAlgorithm::Aes256Gcm => self.decrypt_aes256_gcm(&encrypted, &key)?,
-            EncryptionAlgorithm::ChaCha20Poly1305 => self.decrypt_chacha20_poly1305(&encrypted, &key)?,
+            EncryptionAlgorithm::ChaCha20Poly1305 =>
+                self.decrypt_chacha20_poly1305(&encrypted, &key)?,
             _ => {
-                return Err(PipelineError::EncryptionError(
-                    "Algorithm not supported for benchmarking".to_string(),
-                ))
+                return Err(
+                    PipelineError::EncryptionError(
+                        "Algorithm not supported for benchmarking".to_string()
+                    )
+                );
             }
         };
         let decryption_time = start.elapsed();
 
         // Calculate speeds in MB/s
-        let data_size_mb = test_data.len() as f64 / (1024.0 * 1024.0);
+        let data_size_mb = (test_data.len() as f64) / (1024.0 * 1024.0);
         let encryption_speed = data_size_mb / encryption_time.as_secs_f64();
         let _decryption_speed = data_size_mb / decryption_time.as_secs_f64();
 
-        Ok(EncryptionBenchmark::new(
-            algorithm.clone(),
-            encryption_speed,
-            encryption_time,
-            32.0, // Estimated memory usage
-            70.0, // Estimated CPU usage
-            data_size_mb,
-        ))
+        Ok(
+            EncryptionBenchmark::new(
+                algorithm.clone(),
+                encryption_speed,
+                encryption_time,
+                32.0, // Estimated memory usage
+                70.0, // Estimated CPU usage
+                data_size_mb
+            )
+        )
     }
 
     fn wipe_key_material(&self, key_material: &mut KeyMaterial) -> Result<(), PipelineError> {
@@ -654,7 +721,7 @@ impl EncryptionService for MultiAlgoEncryption {
         &self,
         key_material: &KeyMaterial,
         key_id: &str,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<(), PipelineError> {
         // In a real implementation, this would store in HSM or secure key vault
         // For now, just validate inputs
@@ -663,9 +730,7 @@ impl EncryptionService for MultiAlgoEncryption {
         }
 
         if key_material.key.is_empty() {
-            return Err(PipelineError::EncryptionError(
-                "Key material cannot be empty".to_string(),
-            ));
+            return Err(PipelineError::EncryptionError("Key material cannot be empty".to_string()));
         }
 
         // TODO: Implement actual secure storage
@@ -675,31 +740,27 @@ impl EncryptionService for MultiAlgoEncryption {
     fn retrieve_key_material(
         &self,
         key_id: &str,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<KeyMaterial, PipelineError> {
         // In a real implementation, this would retrieve from HSM or secure key vault
-        Err(PipelineError::EncryptionError(
-            "Key retrieval not yet implemented".to_string(),
-        ))
+        Err(PipelineError::EncryptionError("Key retrieval not yet implemented".to_string()))
     }
 
     fn rotate_keys(
         &self,
         old_key_id: &str,
         new_config: &EncryptionConfig,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<String, PipelineError> {
         // In a real implementation, this would generate new keys and update storage
-        Err(PipelineError::EncryptionError(
-            "Key rotation not yet implemented".to_string(),
-        ))
+        Err(PipelineError::EncryptionError("Key rotation not yet implemented".to_string()))
     }
 
     fn supported_algorithms(&self) -> Vec<EncryptionAlgorithm> {
         vec![
             EncryptionAlgorithm::Aes256Gcm,
             EncryptionAlgorithm::ChaCha20Poly1305,
-            EncryptionAlgorithm::Aes128Gcm,
+            EncryptionAlgorithm::Aes128Gcm
         ]
     }
 }
@@ -710,7 +771,7 @@ impl adaptive_pipeline_domain::services::StageService for MultiAlgoEncryption {
         &self,
         chunk: adaptive_pipeline_domain::FileChunk,
         config: &adaptive_pipeline_domain::entities::StageConfiguration,
-        context: &mut adaptive_pipeline_domain::ProcessingContext,
+        context: &mut adaptive_pipeline_domain::ProcessingContext
     ) -> Result<adaptive_pipeline_domain::FileChunk, adaptive_pipeline_domain::PipelineError> {
         use adaptive_pipeline_domain::services::FromParameters;
 
@@ -721,38 +782,48 @@ impl adaptive_pipeline_domain::services::StageService for MultiAlgoEncryption {
         // Expected format: base64-encoded key, nonce, salt
         let key_b64 = config.parameters
             .get("key")
-            .ok_or_else(|| adaptive_pipeline_domain::PipelineError::MissingParameter("key".into()))?;
+            .ok_or_else(||
+                adaptive_pipeline_domain::PipelineError::MissingParameter("key".into())
+            )?;
 
         let nonce_b64 = config.parameters
             .get("nonce")
-            .ok_or_else(|| adaptive_pipeline_domain::PipelineError::MissingParameter("nonce".into()))?;
+            .ok_or_else(||
+                adaptive_pipeline_domain::PipelineError::MissingParameter("nonce".into())
+            )?;
 
         let salt_b64 = config.parameters
             .get("salt")
-            .ok_or_else(|| adaptive_pipeline_domain::PipelineError::MissingParameter("salt".into()))?;
+            .ok_or_else(||
+                adaptive_pipeline_domain::PipelineError::MissingParameter("salt".into())
+            )?;
 
         // Decode base64 strings using Engine API
-        let key = general_purpose::STANDARD.decode(key_b64)
-            .map_err(|e| adaptive_pipeline_domain::PipelineError::InvalidParameter(
-                format!("Invalid base64 key: {}", e)
-            ))?;
+        let key = general_purpose::STANDARD
+            .decode(key_b64)
+            .map_err(|e|
+                adaptive_pipeline_domain::PipelineError::InvalidParameter(
+                    format!("Invalid base64 key: {}", e)
+                )
+            )?;
 
-        let nonce = general_purpose::STANDARD.decode(nonce_b64)
-            .map_err(|e| adaptive_pipeline_domain::PipelineError::InvalidParameter(
-                format!("Invalid base64 nonce: {}", e)
-            ))?;
+        let nonce = general_purpose::STANDARD
+            .decode(nonce_b64)
+            .map_err(|e|
+                adaptive_pipeline_domain::PipelineError::InvalidParameter(
+                    format!("Invalid base64 nonce: {}", e)
+                )
+            )?;
 
-        let salt = general_purpose::STANDARD.decode(salt_b64)
-            .map_err(|e| adaptive_pipeline_domain::PipelineError::InvalidParameter(
-                format!("Invalid base64 salt: {}", e)
-            ))?;
+        let salt = general_purpose::STANDARD
+            .decode(salt_b64)
+            .map_err(|e|
+                adaptive_pipeline_domain::PipelineError::InvalidParameter(
+                    format!("Invalid base64 salt: {}", e)
+                )
+            )?;
 
-        let key_material = KeyMaterial::new(
-            key,
-            nonce,
-            salt,
-            encryption_config.algorithm.clone(),
-        );
+        let key_material = KeyMaterial::new(key, nonce, salt, encryption_config.algorithm.clone());
 
         match config.operation {
             adaptive_pipeline_domain::entities::Operation::Forward => {

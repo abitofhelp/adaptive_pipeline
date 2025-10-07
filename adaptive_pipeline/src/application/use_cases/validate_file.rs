@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -53,7 +53,7 @@ use byte_unit::Byte;
 use std::path::PathBuf;
 use tracing::info;
 
-use crate::infrastructure::services::{BinaryFormatService, AdapipeFormat};
+use crate::infrastructure::services::{ BinaryFormatService, AdapipeFormat };
 
 /// Use case for validating .adapipe binary format files.
 ///
@@ -176,8 +176,7 @@ impl ValidateFileUseCase {
         // Step 1: Basic format validation
         println!("🔍 Validating .adapipe file format...");
         let validation_result = binary_format_service
-            .validate_file(&file_path)
-            .await
+            .validate_file(&file_path).await
             .map_err(|e| anyhow::anyhow!("Format validation failed: {}", e))?;
 
         if !validation_result.is_valid {
@@ -193,8 +192,7 @@ impl ValidateFileUseCase {
         // Step 2: Read and display metadata
         println!("\n📋 Reading file metadata...");
         let metadata = binary_format_service
-            .read_metadata(&file_path)
-            .await
+            .read_metadata(&file_path).await
             .map_err(|e| anyhow::anyhow!("Failed to read metadata: {}", e))?;
 
         println!("   Original filename: {}", metadata.original_filename);
@@ -215,10 +213,7 @@ impl ValidateFileUseCase {
         );
         println!("   Chunk count: {}", metadata.chunk_count);
         println!("   Pipeline ID: {}", metadata.pipeline_id);
-        println!(
-            "   Processed at: {}",
-            metadata.processed_at.format("%Y-%m-%d %H:%M:%S UTC")
-        );
+        println!("   Processed at: {}", metadata.processed_at.format("%Y-%m-%d %H:%M:%S UTC"));
 
         // Display compression info
         if metadata.is_compressed() {
@@ -230,20 +225,14 @@ impl ValidateFileUseCase {
 
         // Display encryption info
         if metadata.is_encrypted() {
-            println!(
-                "   🔒 Encryption: {}",
-                metadata.encryption_algorithm().unwrap_or("unknown")
-            );
+            println!("   🔒 Encryption: {}", metadata.encryption_algorithm().unwrap_or("unknown"));
         }
 
         // Display processing steps
         if metadata.processing_steps.is_empty() {
             println!("   📄 Pass-through file (no processing)");
         } else {
-            println!(
-                "   🔄 Processing steps: {}",
-                metadata.get_processing_summary()
-            );
+            println!("   🔄 Processing steps: {}", metadata.get_processing_summary());
         }
 
         // Step 3: Full streaming validation (if requested)
@@ -297,9 +286,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_missing_file() {
         let use_case = ValidateFileUseCase::new();
-        let result = use_case
-            .execute(PathBuf::from("/nonexistent/file.adapipe"), false)
-            .await;
+        let result = use_case.execute(PathBuf::from("/nonexistent/file.adapipe"), false).await;
         assert!(result.is_err());
     }
 }

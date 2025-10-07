@@ -14,7 +14,7 @@ skinparam actor {
     BorderColor BLUE
 }
 
-title Use Case Diagram - Optimized Adaptive Pipeline System
+title Use Case Diagram - Adaptive Pipeline System
 
 left to right direction
 
@@ -22,7 +22,7 @@ actor "User" as user
 actor "Developer" as dev
 actor "System Administrator" as admin
 
-rectangle "Optimized Adaptive Pipeline System" {
+rectangle "Adaptive Pipeline System" {
     usecase "Process File" as UC1
     usecase "Restore File" as UC2
     usecase "Create Pipeline Configuration" as UC3

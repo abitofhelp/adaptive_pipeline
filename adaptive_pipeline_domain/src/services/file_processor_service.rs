@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -146,7 +146,7 @@
 //! - **Adaptive Optimization**: Automatic optimization based on performance
 //! - **Advanced Scheduling**: Sophisticated chunk scheduling strategies
 
-use crate::{FileChunk, PipelineError};
+use crate::{ FileChunk, PipelineError };
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::path::Path;
@@ -194,7 +194,7 @@ impl Default for FileProcessorConfig {
     fn default() -> Self {
         Self {
             max_file_size: 10 * 1024 * 1024 * 1024, // 10GB
-            processing_chunk_size: 1024 * 1024,     // 1MB
+            processing_chunk_size: 1024 * 1024, // 1MB
             use_memory_mapping: true,
             max_concurrent_files: 4,
             verify_integrity: true,
@@ -251,25 +251,28 @@ pub trait FileProcessorService: Send + Sync {
         &self,
         input_path: &Path,
         output_path: Option<&Path>,
-        processor: Box<dyn ChunkProcessor>,
+        processor: Box<dyn ChunkProcessor>
     ) -> Result<FileProcessingResult, PipelineError>;
 
     /// Processes multiple files concurrently
     async fn process_files_batch(
         &self,
         file_pairs: Vec<(std::path::PathBuf, Option<std::path::PathBuf>)>,
-        processor: Box<dyn ChunkProcessor>,
+        processor: Box<dyn ChunkProcessor>
     ) -> Result<Vec<FileProcessingResult>, PipelineError>;
 
     /// Processes a file in-place (modifying the original)
     async fn process_file_in_place(
         &self,
         file_path: &Path,
-        processor: Box<dyn ChunkProcessor>,
+        processor: Box<dyn ChunkProcessor>
     ) -> Result<FileProcessingResult, PipelineError>;
 
     /// Validates file integrity before processing
-    async fn validate_file_before_processing(&self, file_path: &Path) -> Result<bool, PipelineError>;
+    async fn validate_file_before_processing(
+        &self,
+        file_path: &Path
+    ) -> Result<bool, PipelineError>;
 
     /// Gets processing statistics
     fn get_processing_stats(&self) -> FileProcessingStats;

@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -114,8 +114,8 @@
 //! - **JSON**: Positive integer representation for API compatibility
 //! - **Database**: INTEGER column with CHECK constraint for data integrity
 
-use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+use serde::{ Deserialize, Serialize };
+use std::fmt::{ self, Display };
 
 use crate::PipelineError;
 
@@ -198,9 +198,11 @@ impl StageOrder {
     /// # Examples
     pub fn new(order: u32) -> Result<Self, PipelineError> {
         if order == 0 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Stage order must be positive (greater than 0)".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Stage order must be positive (greater than 0)".to_string()
+                )
+            );
         }
         Ok(Self(order))
     }
@@ -252,9 +254,11 @@ impl StageOrder {
     /// # Examples
     pub fn next(&self) -> Result<StageOrder, PipelineError> {
         if self.0 == u32::MAX {
-            return Err(PipelineError::InvalidConfiguration(
-                "Cannot create next stage order: maximum value reached".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Cannot create next stage order: maximum value reached".to_string()
+                )
+            );
         }
         Ok(Self(self.0 + 1))
     }
@@ -282,9 +286,11 @@ impl StageOrder {
     /// # Examples
     pub fn previous(&self) -> Result<StageOrder, PipelineError> {
         if self.0 == 1 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Cannot create previous stage order: minimum value reached".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Cannot create previous stage order: minimum value reached".to_string()
+                )
+            );
         }
         Ok(Self(self.0 - 1))
     }
@@ -313,9 +319,9 @@ impl StageOrder {
     /// Validates the stage order
     pub fn validate(&self) -> Result<(), PipelineError> {
         if self.0 == 0 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Stage order must be positive".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Stage order must be positive".to_string())
+            );
         }
         Ok(())
     }
@@ -380,10 +386,11 @@ pub mod stage_order_utils {
         let mut seen = std::collections::HashSet::new();
         for order in orders {
             if !seen.insert(order.value()) {
-                return Err(PipelineError::InvalidConfiguration(format!(
-                    "Duplicate stage order found: {}",
-                    order
-                )));
+                return Err(
+                    PipelineError::InvalidConfiguration(
+                        format!("Duplicate stage order found: {}", order)
+                    )
+                );
             }
         }
         Ok(())
@@ -409,7 +416,7 @@ pub mod stage_order_utils {
             let current = sorted_orders[i].value();
             let previous = sorted_orders[i - 1].value();
 
-            for gap in (previous + 1)..current {
+            for gap in previous + 1..current {
                 gaps.push(gap);
             }
         }
@@ -699,7 +706,7 @@ mod tests {
         let orders = vec![
             StageOrder::new(1).unwrap(),
             StageOrder::new(2).unwrap(),
-            StageOrder::new(3).unwrap(),
+            StageOrder::new(3).unwrap()
         ];
 
         assert!(stage_order_utils::validate_unique_orders(&orders).is_ok());
@@ -707,7 +714,7 @@ mod tests {
         let duplicate_orders = vec![
             StageOrder::new(1).unwrap(),
             StageOrder::new(2).unwrap(),
-            StageOrder::new(1).unwrap(),
+            StageOrder::new(1).unwrap()
         ];
 
         assert!(stage_order_utils::validate_unique_orders(&duplicate_orders).is_err());
@@ -750,7 +757,7 @@ mod tests {
         let orders = vec![
             StageOrder::new(1).unwrap(),
             StageOrder::new(3).unwrap(),
-            StageOrder::new(6).unwrap(),
+            StageOrder::new(6).unwrap()
         ];
 
         let gaps = stage_order_utils::find_gaps(&orders);
@@ -794,7 +801,7 @@ mod tests {
         let orders = vec![
             StageOrder::new(1).unwrap(),
             StageOrder::new(3).unwrap(),
-            StageOrder::new(2).unwrap(),
+            StageOrder::new(2).unwrap()
         ];
 
         let next = stage_order_utils::suggest_next_order(&orders);

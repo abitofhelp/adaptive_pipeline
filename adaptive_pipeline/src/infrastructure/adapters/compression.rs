@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -93,15 +93,19 @@
 //! - **Configuration Management**: Dynamic configuration updates
 
 use brotli::Decompressor;
-use flate2::read::{GzDecoder, GzEncoder};
+use flate2::read::{ GzDecoder, GzEncoder };
 use flate2::Compression;
-use std::io::{Read, Write};
+use std::io::{ Read, Write };
 
 use adaptive_pipeline_domain::services::{
-    CompressionAlgorithm, CompressionBenchmark, CompressionConfig, CompressionLevel, CompressionPriority,
+    CompressionAlgorithm,
+    CompressionBenchmark,
+    CompressionConfig,
+    CompressionLevel,
+    CompressionPriority,
     CompressionService,
 };
-use adaptive_pipeline_domain::{FileChunk, PipelineError, ProcessingContext};
+use adaptive_pipeline_domain::{ FileChunk, PipelineError, ProcessingContext };
 
 // NOTE: Domain traits are now synchronous. This implementation is sync and
 // CPU-bound. For async contexts, wrap this implementation with
@@ -153,7 +157,9 @@ impl MultiAlgoCompression {
 
         compressor
             .write_all(data)
-            .map_err(|e| PipelineError::CompressionError(format!("Brotli compression failed: {}", e)))?;
+            .map_err(|e|
+                PipelineError::CompressionError(format!("Brotli compression failed: {}", e))
+            )?;
 
         compressor
             .flush()
@@ -170,7 +176,9 @@ impl MultiAlgoCompression {
 
         decompressor
             .read_to_end(&mut output)
-            .map_err(|e| PipelineError::CompressionError(format!("Brotli decompression failed: {}", e)))?;
+            .map_err(|e|
+                PipelineError::CompressionError(format!("Brotli decompression failed: {}", e))
+            )?;
 
         Ok(output)
     }
@@ -183,7 +191,9 @@ impl MultiAlgoCompression {
 
         encoder
             .read_to_end(&mut output)
-            .map_err(|e| PipelineError::CompressionError(format!("Gzip compression failed: {}", e)))?;
+            .map_err(|e|
+                PipelineError::CompressionError(format!("Gzip compression failed: {}", e))
+            )?;
 
         Ok(output)
     }
@@ -195,28 +205,34 @@ impl MultiAlgoCompression {
 
         decoder
             .read_to_end(&mut output)
-            .map_err(|e| PipelineError::CompressionError(format!("Gzip decompression failed: {}", e)))?;
+            .map_err(|e|
+                PipelineError::CompressionError(format!("Gzip decompression failed: {}", e))
+            )?;
 
         Ok(output)
     }
 
     /// Compresses data using Zstd algorithm
     fn compress_zstd(&self, data: &[u8], level: i32) -> Result<Vec<u8>, PipelineError> {
-        zstd::bulk::compress(data, level)
+        zstd::bulk
+            ::compress(data, level)
             .map_err(|e| PipelineError::CompressionError(format!("Zstd compression failed: {}", e)))
     }
 
     /// Decompresses data using Zstd algorithm
     fn decompress_zstd(&self, data: &[u8]) -> Result<Vec<u8>, PipelineError> {
-        zstd::bulk::decompress(data, 1024 * 1024) // 1MB max decompressed size
-            .map_err(|e| PipelineError::CompressionError(format!("Zstd decompression failed: {}", e)))
+        zstd::bulk
+            ::decompress(data, 1024 * 1024) // 1MB max decompressed size
+            .map_err(|e|
+                PipelineError::CompressionError(format!("Zstd decompression failed: {}", e))
+            )
     }
 
     /// Estimates compression ratio by sampling data
     fn estimate_ratio_from_sample(
         &self,
         sample: &[u8],
-        algorithm: &CompressionAlgorithm,
+        algorithm: &CompressionAlgorithm
     ) -> Result<f64, PipelineError> {
         if sample.is_empty() {
             return Ok(1.0);
@@ -236,13 +252,15 @@ impl MultiAlgoCompression {
                 compressed.len()
             }
             _ => {
-                return Err(PipelineError::CompressionError(
-                    "Unsupported algorithm for estimation".to_string(),
-                ))
+                return Err(
+                    PipelineError::CompressionError(
+                        "Unsupported algorithm for estimation".to_string()
+                    )
+                );
             }
         };
 
-        Ok(compressed_size as f64 / sample.len() as f64)
+        Ok((compressed_size as f64) / (sample.len() as f64))
     }
 }
 
@@ -251,7 +269,7 @@ impl CompressionService for MultiAlgoCompression {
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         let data = chunk.data().to_vec();
         let level = config.level.to_numeric(&config.algorithm);
@@ -264,10 +282,11 @@ impl CompressionService for MultiAlgoCompression {
                 return Err(PipelineError::CompressionError("LZ4 not yet implemented".to_string()));
             }
             CompressionAlgorithm::Custom(name) => {
-                return Err(PipelineError::CompressionError(format!(
-                    "Custom algorithm '{}' not implemented",
-                    name
-                )));
+                return Err(
+                    PipelineError::CompressionError(
+                        format!("Custom algorithm '{}' not implemented", name)
+                    )
+                );
             }
         };
 
@@ -276,7 +295,7 @@ impl CompressionService for MultiAlgoCompression {
         let chunk = compressed_chunk.with_calculated_checksum()?;
 
         // Update context metadata
-        let compression_ratio = chunk.data_len() as f64 / data.len() as f64;
+        let compression_ratio = (chunk.data_len() as f64) / (data.len() as f64);
         context.add_metadata("compression_algorithm".to_string(), config.algorithm.to_string());
         context.add_metadata("compression_ratio".to_string(), format!("{:.2}", compression_ratio));
 
@@ -287,7 +306,7 @@ impl CompressionService for MultiAlgoCompression {
         &self,
         chunk: FileChunk,
         config: &CompressionConfig,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         let data = chunk.data().to_vec();
 
@@ -299,10 +318,11 @@ impl CompressionService for MultiAlgoCompression {
                 return Err(PipelineError::CompressionError("LZ4 not yet implemented".to_string()));
             }
             CompressionAlgorithm::Custom(name) => {
-                return Err(PipelineError::CompressionError(format!(
-                    "Custom algorithm '{}' not implemented",
-                    name
-                )));
+                return Err(
+                    PipelineError::CompressionError(
+                        format!("Custom algorithm '{}' not implemented", name)
+                    )
+                );
             }
         };
 
@@ -319,7 +339,7 @@ impl CompressionService for MultiAlgoCompression {
     fn estimate_compression_ratio(
         &self,
         data_sample: &[u8],
-        algorithm: &CompressionAlgorithm,
+        algorithm: &CompressionAlgorithm
     ) -> Result<f64, PipelineError> {
         // Use a smaller sample for estimation if data is large
         let sample = if data_sample.len() > 64 * 1024 {
@@ -335,7 +355,7 @@ impl CompressionService for MultiAlgoCompression {
         &self,
         file_extension: &str,
         _data_sample: &[u8],
-        performance_priority: CompressionPriority,
+        performance_priority: CompressionPriority
     ) -> Result<CompressionConfig, PipelineError> {
         let algorithm = match file_extension.to_lowercase().as_str() {
             "txt" | "log" | "csv" | "json" | "xml" | "html" => CompressionAlgorithm::Brotli,
@@ -363,34 +383,42 @@ impl CompressionService for MultiAlgoCompression {
             CompressionAlgorithm::Brotli => {
                 let level = config.level.to_numeric(&config.algorithm);
                 if level > 11 {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "Brotli compression level must be between 0 and 11".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            "Brotli compression level must be between 0 and 11".to_string()
+                        )
+                    );
                 }
             }
             CompressionAlgorithm::Gzip => {
                 let level = config.level.to_numeric(&config.algorithm);
                 if level > 9 {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "Gzip compression level must be between 0 and 9".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            "Gzip compression level must be between 0 and 9".to_string()
+                        )
+                    );
                 }
             }
             CompressionAlgorithm::Zstd => {
                 let level = config.level.to_numeric(&config.algorithm);
                 if level > 22 {
-                    return Err(PipelineError::InvalidConfiguration(
-                        "Zstd compression level must be between 1 and 22".to_string(),
-                    ));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            "Zstd compression level must be between 1 and 22".to_string()
+                        )
+                    );
                 }
             }
             CompressionAlgorithm::Lz4 => {
                 return Err(PipelineError::CompressionError("LZ4 not yet implemented".to_string()));
             }
             CompressionAlgorithm::Custom(_) => {
-                return Err(PipelineError::CompressionError(
-                    "Custom algorithms not yet supported".to_string(),
-                ));
+                return Err(
+                    PipelineError::CompressionError(
+                        "Custom algorithms not yet supported".to_string()
+                    )
+                );
             }
         }
 
@@ -398,17 +426,13 @@ impl CompressionService for MultiAlgoCompression {
     }
 
     fn supported_algorithms(&self) -> Vec<CompressionAlgorithm> {
-        vec![
-            CompressionAlgorithm::Brotli,
-            CompressionAlgorithm::Gzip,
-            CompressionAlgorithm::Zstd,
-        ]
+        vec![CompressionAlgorithm::Brotli, CompressionAlgorithm::Gzip, CompressionAlgorithm::Zstd]
     }
 
     fn benchmark_algorithm(
         &self,
         algorithm: &CompressionAlgorithm,
-        test_data: &[u8],
+        test_data: &[u8]
     ) -> Result<CompressionBenchmark, PipelineError> {
         let start = std::time::Instant::now();
 
@@ -418,14 +442,16 @@ impl CompressionService for MultiAlgoCompression {
             CompressionAlgorithm::Gzip => self.compress_gzip(test_data, 6)?,
             CompressionAlgorithm::Zstd => self.compress_zstd(test_data, 3)?,
             _ => {
-                return Err(PipelineError::CompressionError(
-                    "Algorithm not supported for benchmarking".to_string(),
-                ))
+                return Err(
+                    PipelineError::CompressionError(
+                        "Algorithm not supported for benchmarking".to_string()
+                    )
+                );
             }
         };
 
         let compression_time = start.elapsed();
-        let compression_ratio = compressed.len() as f64 / test_data.len() as f64;
+        let compression_ratio = (compressed.len() as f64) / (test_data.len() as f64);
 
         // Benchmark decompression
         let start = std::time::Instant::now();
@@ -434,15 +460,17 @@ impl CompressionService for MultiAlgoCompression {
             CompressionAlgorithm::Gzip => self.decompress_gzip(&compressed)?,
             CompressionAlgorithm::Zstd => self.decompress_zstd(&compressed)?,
             _ => {
-                return Err(PipelineError::CompressionError(
-                    "Algorithm not supported for benchmarking".to_string(),
-                ))
+                return Err(
+                    PipelineError::CompressionError(
+                        "Algorithm not supported for benchmarking".to_string()
+                    )
+                );
             }
         };
         let decompression_time = start.elapsed();
 
         // Calculate speeds in MB/s
-        let data_size_mb = test_data.len() as f64 / (1024.0 * 1024.0);
+        let data_size_mb = (test_data.len() as f64) / (1024.0 * 1024.0);
         let compression_speed = data_size_mb / compression_time.as_secs_f64();
         let decompression_speed = data_size_mb / decompression_time.as_secs_f64();
 
@@ -451,7 +479,7 @@ impl CompressionService for MultiAlgoCompression {
             compression_ratio,
             compression_speed_mbps: compression_speed,
             decompression_speed_mbps: decompression_speed,
-            memory_usage_mb: 64.0,   // Estimated
+            memory_usage_mb: 64.0, // Estimated
             cpu_usage_percent: 80.0, // Estimated
         })
     }
@@ -463,7 +491,7 @@ impl adaptive_pipeline_domain::services::StageService for MultiAlgoCompression {
         &self,
         chunk: adaptive_pipeline_domain::FileChunk,
         config: &adaptive_pipeline_domain::entities::StageConfiguration,
-        context: &mut adaptive_pipeline_domain::ProcessingContext,
+        context: &mut adaptive_pipeline_domain::ProcessingContext
     ) -> Result<adaptive_pipeline_domain::FileChunk, adaptive_pipeline_domain::PipelineError> {
         use adaptive_pipeline_domain::services::FromParameters;
 

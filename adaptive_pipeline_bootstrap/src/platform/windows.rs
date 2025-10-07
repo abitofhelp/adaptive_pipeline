@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -21,9 +21,9 @@
 //! - `IsUserAnAdmin` - Privilege checking
 //! - File APIs via tokio (cross-platform)
 
-use super::{Platform, PlatformError};
+use super::{ Platform, PlatformError };
 use async_trait::async_trait;
-use std::path::{Path, PathBuf};
+use std::path::{ Path, PathBuf };
 
 /// Windows platform implementation
 ///
@@ -40,7 +40,7 @@ impl WindowsPlatform {
     #[cfg(windows)]
     fn get_memory_info_impl() -> Result<(u64, u64), PlatformError> {
         use std::mem;
-        use winapi::um::sysinfoapi::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+        use winapi::um::sysinfoapi::{ GlobalMemoryStatusEx, MEMORYSTATUSEX };
 
         unsafe {
             let mut mem_status: MEMORYSTATUSEX = mem::zeroed();
@@ -57,15 +57,13 @@ impl WindowsPlatform {
     #[cfg(not(windows))]
     fn get_memory_info_impl() -> Result<(u64, u64), PlatformError> {
         // Stub for cross-compilation
-        Err(PlatformError::NotSupported(
-            "Windows APIs not available on this platform".to_string(),
-        ))
+        Err(PlatformError::NotSupported("Windows APIs not available on this platform".to_string()))
     }
 
     #[cfg(windows)]
     fn get_page_size_impl() -> usize {
         use std::mem;
-        use winapi::um::sysinfoapi::{GetSystemInfo, SYSTEM_INFO};
+        use winapi::um::sysinfoapi::{ GetSystemInfo, SYSTEM_INFO };
 
         unsafe {
             let mut sys_info: SYSTEM_INFO = mem::zeroed();
@@ -83,7 +81,7 @@ impl WindowsPlatform {
     #[cfg(windows)]
     fn get_cpu_count_impl() -> usize {
         use std::mem;
-        use winapi::um::sysinfoapi::{GetSystemInfo, SYSTEM_INFO};
+        use winapi::um::sysinfoapi::{ GetSystemInfo, SYSTEM_INFO };
 
         unsafe {
             let mut sys_info: SYSTEM_INFO = mem::zeroed();

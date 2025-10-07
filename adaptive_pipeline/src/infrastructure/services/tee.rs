@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -60,9 +60,13 @@
 //! - **Latency**: Synchronous I/O (blocking writes)
 
 use adaptive_pipeline_domain::entities::{
-    Operation, ProcessingContext, StageConfiguration, StagePosition, StageType,
+    Operation,
+    ProcessingContext,
+    StageConfiguration,
+    StagePosition,
+    StageType,
 };
-use adaptive_pipeline_domain::services::{FromParameters, StageService};
+use adaptive_pipeline_domain::services::{ FromParameters, StageService };
 use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
 use adaptive_pipeline_domain::PipelineError;
 use std::collections::HashMap;
@@ -119,14 +123,18 @@ impl FromParameters for TeeConfig {
         // Optional: format (defaults to binary)
         let format = params
             .get("format")
-            .map(|s| match s.to_lowercase().as_str() {
-                "binary" => Ok(TeeFormat::Binary),
-                "hex" => Ok(TeeFormat::Hex),
-                "text" => Ok(TeeFormat::Text),
-                other => Err(PipelineError::InvalidParameter(format!(
-                    "Unknown tee format: {}. Valid: binary, hex, text",
-                    other
-                ))),
+            .map(|s| {
+                match s.to_lowercase().as_str() {
+                    "binary" => Ok(TeeFormat::Binary),
+                    "hex" => Ok(TeeFormat::Hex),
+                    "text" => Ok(TeeFormat::Text),
+                    other =>
+                        Err(
+                            PipelineError::InvalidParameter(
+                                format!("Unknown tee format: {}. Valid: binary, hex, text", other)
+                            )
+                        ),
+                }
             })
             .transpose()?
             .unwrap_or(TeeFormat::Binary);
@@ -173,7 +181,7 @@ impl TeeService {
         &self,
         data: &[u8],
         config: &TeeConfig,
-        chunk_seq: u64,
+        chunk_seq: u64
     ) -> Result<(), PipelineError> {
         if !config.enabled {
             return Ok(());
@@ -194,11 +202,7 @@ impl TeeService {
                         .join(" ");
                     let ascii = chunk
                         .iter()
-                        .map(|&b| if b.is_ascii_graphic() || b == b' ' {
-                            b as char
-                        } else {
-                            '.'
-                        })
+                        .map(|&b| if b.is_ascii_graphic() || b == b' ' { b as char } else { '.' })
                         .collect::<String>();
                     let line = format!("{:08x}  {:<48}  |{}|\n", offset, hex, ascii);
                     output.extend_from_slice(line.as_bytes());
@@ -214,27 +218,25 @@ impl TeeService {
             .append(true)
             .open(&config.output_path)
             .map_err(|e| {
-                PipelineError::ProcessingFailed(format!(
-                    "Failed to open tee output file '{}': {}",
-                    config.output_path.display(),
-                    e
-                ))
+                PipelineError::ProcessingFailed(
+                    format!(
+                        "Failed to open tee output file '{}': {}",
+                        config.output_path.display(),
+                        e
+                    )
+                )
             })?;
 
         // Write chunk separator for clarity
-        writeln!(
-            file,
-            "--- Chunk {} ({} bytes) ---",
-            chunk_seq,
-            data.len()
-        )
-        .map_err(|e| {
+        writeln!(file, "--- Chunk {} ({} bytes) ---", chunk_seq, data.len()).map_err(|e| {
             PipelineError::ProcessingFailed(format!("Failed to write tee separator: {}", e))
         })?;
 
-        file.write_all(&formatted).map_err(|e| {
-            PipelineError::ProcessingFailed(format!("Failed to write tee data: {}", e))
-        })?;
+        file
+            .write_all(&formatted)
+            .map_err(|e| {
+                PipelineError::ProcessingFailed(format!("Failed to write tee data: {}", e))
+            })?;
 
         writeln!(file).map_err(|e| {
             PipelineError::ProcessingFailed(format!("Failed to write tee newline: {}", e))
@@ -262,7 +264,7 @@ impl StageService for TeeService {
         &self,
         chunk: FileChunk,
         config: &StageConfiguration,
-        _context: &mut ProcessingContext,
+        _context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         // Type-safe config extraction using FromParameters trait
         let tee_config = TeeConfig::from_parameters(&config.parameters)?;
@@ -303,7 +305,7 @@ impl StageService for TeeService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use adaptive_pipeline_domain::entities::{SecurityContext, SecurityLevel};
+    use adaptive_pipeline_domain::entities::{ SecurityContext, SecurityLevel };
     use std::fs;
     use std::path::PathBuf;
     use tempfile::TempDir;
@@ -335,10 +337,7 @@ mod tests {
         let params = HashMap::new();
         let result = TeeConfig::from_parameters(&params);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("output_path"));
+        assert!(result.unwrap_err().to_string().contains("output_path"));
     }
 
     #[test]
@@ -455,7 +454,7 @@ mod tests {
             PathBuf::from("/tmp/input"),
             PathBuf::from("/tmp/output"),
             100,
-            SecurityContext::new(None, SecurityLevel::Public),
+            SecurityContext::new(None, SecurityLevel::Public)
         );
 
         let result = service.process_chunk(chunk, &config, &mut context).unwrap();

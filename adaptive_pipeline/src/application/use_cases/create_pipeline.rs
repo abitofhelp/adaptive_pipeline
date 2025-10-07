@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -74,7 +74,11 @@ use tracing::info;
 
 use crate::infrastructure::repositories::sqlite_pipeline::SqlitePipelineRepository;
 use adaptive_pipeline_domain::entities::pipeline::Pipeline;
-use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+use adaptive_pipeline_domain::entities::pipeline_stage::{
+    PipelineStage,
+    StageConfiguration,
+    StageType,
+};
 
 /// Use case for creating new processing pipelines.
 ///
@@ -188,7 +192,7 @@ impl CreatePipelineUseCase {
         &self,
         name: String,
         stages: String,
-        output: Option<PathBuf>,
+        output: Option<PathBuf>
     ) -> Result<()> {
         info!("Creating pipeline: {}", name);
         info!("Stages: {}", stages);
@@ -266,8 +270,12 @@ impl CreatePipelineUseCase {
                 ..Default::default()
             };
 
-            let stage =
-                PipelineStage::new(stage_name.trim().to_string(), stage_type, config, index as u32)?;
+            let stage = PipelineStage::new(
+                stage_name.trim().to_string(),
+                stage_type,
+                config,
+                index as u32
+            )?;
 
             pipeline_stages.push(stage);
         }
@@ -277,15 +285,10 @@ impl CreatePipelineUseCase {
 
         // Save pipeline to repository
         self.pipeline_repository
-            .save(&pipeline)
-            .await
+            .save(&pipeline).await
             .map_err(|e| anyhow::anyhow!("Failed to save pipeline: {}", e))?;
 
-        info!(
-            "Pipeline '{}' created successfully with ID: {}",
-            pipeline.name(),
-            pipeline.id()
-        );
+        info!("Pipeline '{}' created successfully with ID: {}", pipeline.name(), pipeline.id());
         info!("Pipeline saved to database");
 
         if output.is_some() {
@@ -323,15 +326,44 @@ impl CreatePipelineUseCase {
             // Replace common separators with hyphens
             .replace(
                 [
-                    ' ', '_', '.', '/', '\\', ':', ';', ',', '|', '&', '+', '=', '!', '?', '*',
-                    '%', '#', '@', '$', '^', '(', ')', '[', ']', '{', '}', '<', '>', '"', '\'',
-                    '`', '~',
+                    ' ',
+                    '_',
+                    '.',
+                    '/',
+                    '\\',
+                    ':',
+                    ';',
+                    ',',
+                    '|',
+                    '&',
+                    '+',
+                    '=',
+                    '!',
+                    '?',
+                    '*',
+                    '%',
+                    '#',
+                    '@',
+                    '$',
+                    '^',
+                    '(',
+                    ')',
+                    '[',
+                    ']',
+                    '{',
+                    '}',
+                    '<',
+                    '>',
+                    '"',
+                    '\'',
+                    '`',
+                    '~',
                 ],
-                "-",
+                "-"
             )
             // Remove any remaining non-alphanumeric, non-hyphen characters
             .chars()
-            .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+            .filter(|c| (c.is_ascii_alphanumeric() || *c == '-'))
             .collect::<String>()
             // Clean up multiple consecutive hyphens
             .split('-')
@@ -384,27 +416,35 @@ impl CreatePipelineUseCase {
 
         // Check minimum length after normalization
         if normalized.len() < 4 {
-            return Err(anyhow::anyhow!(
-                "Pipeline name must be at least 4 characters long"
-            ));
+            return Err(anyhow::anyhow!("Pipeline name must be at least 4 characters long"));
         }
 
         // Reserved names
         let reserved_names = [
-            "help", "version", "list", "show", "create", "delete", "update", "config",
+            "help",
+            "version",
+            "list",
+            "show",
+            "create",
+            "delete",
+            "update",
+            "config",
         ];
         if reserved_names.contains(&normalized.as_str()) {
-            return Err(anyhow::anyhow!(
-                "Pipeline name '{}' is reserved. Please choose a different name.",
-                name
-            ));
+            return Err(
+                anyhow::anyhow!(
+                    "Pipeline name '{}' is reserved. Please choose a different name.",
+                    name
+                )
+            );
         }
 
         // Inform user if name was normalized
         if normalized != name {
             info!(
                 "Pipeline name normalized from '{}' to '{}' (kebab-case standard)",
-                name, normalized
+                name,
+                normalized
             );
         }
 
@@ -418,14 +458,8 @@ mod tests {
 
     #[test]
     fn test_normalize_pipeline_name() {
-        assert_eq!(
-            CreatePipelineUseCase::normalize_pipeline_name("My Pipeline"),
-            "my-pipeline"
-        );
-        assert_eq!(
-            CreatePipelineUseCase::normalize_pipeline_name("data_backup"),
-            "data-backup"
-        );
+        assert_eq!(CreatePipelineUseCase::normalize_pipeline_name("My Pipeline"), "my-pipeline");
+        assert_eq!(CreatePipelineUseCase::normalize_pipeline_name("data_backup"), "data-backup");
         assert_eq!(
             CreatePipelineUseCase::normalize_pipeline_name("Test::Pipeline!"),
             "test-pipeline"

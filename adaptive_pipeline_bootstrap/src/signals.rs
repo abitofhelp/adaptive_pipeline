@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -72,7 +72,10 @@ pub trait SystemSignals: Send + Sync {
     ///
     /// When a signal is received, the provided callback is invoked to
     /// initiate graceful shutdown.
-    fn wait_for_signal(&self, on_shutdown: ShutdownCallback) -> Pin<Box<dyn Future<Output = ()> + Send + '_>>;
+    fn wait_for_signal(
+        &self,
+        on_shutdown: ShutdownCallback
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + '_>>;
 }
 
 /// Unix signal handler implementation
@@ -98,9 +101,12 @@ impl Default for UnixSignalHandler {
 
 #[cfg(unix)]
 impl SystemSignals for UnixSignalHandler {
-    fn wait_for_signal(&self, on_shutdown: ShutdownCallback) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
+    fn wait_for_signal(
+        &self,
+        on_shutdown: ShutdownCallback
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
         Box::pin(async move {
-            use tokio::signal::unix::{signal, SignalKind};
+            use tokio::signal::unix::{ signal, SignalKind };
 
             // Attempt to register signal handlers
             // If registration fails, log error and exit gracefully (no shutdown triggered)
@@ -166,7 +172,10 @@ impl Default for WindowsSignalHandler {
 
 #[cfg(windows)]
 impl SystemSignals for WindowsSignalHandler {
-    fn wait_for_signal(&self, on_shutdown: ShutdownCallback) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
+    fn wait_for_signal(
+        &self,
+        on_shutdown: ShutdownCallback
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
         Box::pin(async move {
             // On Windows, tokio provides ctrl_c signal
             if let Err(e) = tokio::signal::ctrl_c().await {
@@ -199,7 +208,10 @@ impl Default for NoOpSignalHandler {
 }
 
 impl SystemSignals for NoOpSignalHandler {
-    fn wait_for_signal(&self, _on_shutdown: ShutdownCallback) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
+    fn wait_for_signal(
+        &self,
+        _on_shutdown: ShutdownCallback
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + '_>> {
         // Never completes - perfect for testing
         Box::pin(async move {
             std::future::pending::<()>().await;
@@ -232,7 +244,7 @@ pub fn create_signal_handler() -> Box<dyn SystemSignals> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::atomic::{ AtomicBool, Ordering };
     use std::sync::Arc;
 
     #[tokio::test]

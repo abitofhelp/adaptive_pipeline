@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -111,7 +111,7 @@
 //! - Compare algorithm performance across versions
 use crate::services::datetime_serde;
 use crate::services::encryption_service::EncryptionAlgorithm;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use std::time::Duration;
 
 /// Encryption performance benchmark results for algorithm comparison and
@@ -240,7 +240,7 @@ impl EncryptionBenchmark {
         latency: Duration,
         memory_usage_mb: f64,
         cpu_usage_percent: f64,
-        file_size_mb: f64,
+        file_size_mb: f64
     ) -> Self {
         Self {
             algorithm,

@@ -1,4 +1,4 @@
-# Rust Coding Conventions for Optimized Adaptive Pipeline
+# Rust Coding Conventions for Adaptive Pipeline
 
 This document captures Rust-specific coding conventions and architectural decisions for this project.
 

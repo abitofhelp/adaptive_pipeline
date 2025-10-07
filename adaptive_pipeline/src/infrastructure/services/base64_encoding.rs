@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -49,11 +49,15 @@
 //! - **Memory**: Constant overhead, no buffering required
 //! - **Latency**: Minimal, single-pass algorithm
 
-use base64::{engine::general_purpose, Engine as _};
+use base64::{ engine::general_purpose, Engine as _ };
 use adaptive_pipeline_domain::entities::{
-    Operation, ProcessingContext, StageConfiguration, StagePosition, StageType,
+    Operation,
+    ProcessingContext,
+    StageConfiguration,
+    StagePosition,
+    StageType,
 };
-use adaptive_pipeline_domain::services::{FromParameters, StageService};
+use adaptive_pipeline_domain::services::{ FromParameters, StageService };
 use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
 use adaptive_pipeline_domain::PipelineError;
 use std::collections::HashMap;
@@ -99,13 +103,17 @@ impl FromParameters for Base64Config {
         // Optional: variant (defaults to Standard)
         let variant = params
             .get("variant")
-            .map(|s| match s.to_lowercase().as_str() {
-                "standard" => Ok(Base64Variant::Standard),
-                "url_safe" | "urlsafe" => Ok(Base64Variant::UrlSafe),
-                other => Err(PipelineError::InvalidParameter(format!(
-                    "Unknown Base64 variant: {}. Valid: standard, url_safe",
-                    other
-                ))),
+            .map(|s| {
+                match s.to_lowercase().as_str() {
+                    "standard" => Ok(Base64Variant::Standard),
+                    "url_safe" | "urlsafe" => Ok(Base64Variant::UrlSafe),
+                    other =>
+                        Err(
+                            PipelineError::InvalidParameter(
+                                format!("Unknown Base64 variant: {}. Valid: standard, url_safe", other)
+                            )
+                        ),
+                }
             })
             .transpose()?
             .unwrap_or(Base64Variant::Standard);
@@ -148,13 +156,12 @@ impl Base64EncodingService {
 
     /// Decodes Base64 text to binary data.
     fn decode(&self, data: &[u8], variant: Base64Variant) -> Result<Vec<u8>, PipelineError> {
-        match variant {
-            Base64Variant::Standard => general_purpose::STANDARD.decode(data),
-            Base64Variant::UrlSafe => general_purpose::URL_SAFE_NO_PAD.decode(data),
-        }
-        .map_err(|e| {
-            PipelineError::ProcessingFailed(format!("Base64 decode failed: {}", e))
-        })
+        (
+            match variant {
+                Base64Variant::Standard => general_purpose::STANDARD.decode(data),
+                Base64Variant::UrlSafe => general_purpose::URL_SAFE_NO_PAD.decode(data),
+            }
+        ).map_err(|e| { PipelineError::ProcessingFailed(format!("Base64 decode failed: {}", e)) })
     }
 }
 
@@ -177,7 +184,7 @@ impl StageService for Base64EncodingService {
         &self,
         chunk: FileChunk,
         config: &StageConfiguration,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         // Type-safe config extraction using FromParameters trait
         let base64_config = Base64Config::from_parameters(&config.parameters)?;

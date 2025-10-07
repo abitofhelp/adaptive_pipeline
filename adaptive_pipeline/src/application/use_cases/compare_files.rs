@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -52,7 +52,7 @@
 
 use anyhow::Result;
 use adaptive_pipeline_domain::value_objects::binary_file_format::FileHeader;
-use sha2::{Digest, Sha256};
+use sha2::{ Digest, Sha256 };
 use std::path::PathBuf;
 use tracing::info;
 
@@ -175,38 +175,24 @@ impl CompareFilesUseCase {
     ///    ❌ Files differ - changes detected
     ///    💡 Use 'restore' command to restore from .adapipe if needed
     /// ```
-    pub async fn execute(
-        &self,
-        original: PathBuf,
-        adapipe: PathBuf,
-        detailed: bool,
-    ) -> Result<()> {
-        info!(
-            "Comparing file against .adapipe: {} vs {}",
-            original.display(),
-            adapipe.display()
-        );
+    pub async fn execute(&self, original: PathBuf, adapipe: PathBuf, detailed: bool) -> Result<()> {
+        info!("Comparing file against .adapipe: {} vs {}", original.display(), adapipe.display());
 
         // Validate both files exist
         if !original.exists() {
-            return Err(anyhow::anyhow!(
-                "Original file does not exist: {}",
-                original.display()
-            ));
+            return Err(anyhow::anyhow!("Original file does not exist: {}", original.display()));
         }
 
         if !adapipe.exists() {
-            return Err(anyhow::anyhow!(
-                ".adapipe file does not exist: {}",
-                adapipe.display()
-            ));
+            return Err(anyhow::anyhow!(".adapipe file does not exist: {}", adapipe.display()));
         }
 
         // Read .adapipe metadata
         println!("🔍 Reading .adapipe file metadata...");
         let file_data = std::fs::read(&adapipe)?;
-        let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data)
-            .map_err(|e| anyhow::anyhow!("Failed to read .adapipe metadata: {}", e))?;
+        let (metadata, _footer_size) = FileHeader::from_footer_bytes(&file_data).map_err(|e|
+            anyhow::anyhow!("Failed to read .adapipe metadata: {}", e)
+        )?;
 
         // Get original file info
         let original_metadata = std::fs::metadata(&original)?;
@@ -220,26 +206,20 @@ impl CompareFilesUseCase {
         // Compare file sizes
         println!("📏 Size Comparison:");
         println!("   Current file size: {} bytes", original_size);
-        println!(
-            "   Expected size (from .adapipe): {} bytes",
-            metadata.original_size
-        );
+        println!("   Expected size (from .adapipe): {} bytes", metadata.original_size);
 
         if original_size == metadata.original_size {
             println!("   ✅ Size matches");
         } else {
             println!(
                 "   ❌ Size differs by {} bytes",
-                (original_size as i64 - metadata.original_size as i64).abs()
+                ((original_size as i64) - (metadata.original_size as i64)).abs()
             );
         }
 
         // Compare checksums
         println!("\n🔐 Checksum Comparison:");
-        println!(
-            "   Expected checksum (from .adapipe): {}",
-            metadata.original_checksum
-        );
+        println!("   Expected checksum (from .adapipe): {}", metadata.original_checksum);
 
         // Calculate current file checksum
         println!("   🔄 Calculating current file checksum...");
@@ -275,23 +255,23 @@ impl CompareFilesUseCase {
             }
 
             if metadata.is_encrypted() {
-                println!(
-                    "   Encryption: {}",
-                    metadata.encryption_algorithm().unwrap_or("unknown")
-                );
+                println!("   Encryption: {}", metadata.encryption_algorithm().unwrap_or("unknown"));
             }
 
             let current_modified = original_metadata.modified()?;
             println!(
                 "   Current file modified: {}",
-                chrono::DateTime::<chrono::Utc>::from(current_modified)
+                chrono::DateTime::<chrono::Utc>
+                    ::from(current_modified)
                     .format("%Y-%m-%d %H:%M:%S UTC")
             );
         }
 
         // Summary
         println!("\n🎯 Comparison Summary:");
-        if original_size == metadata.original_size && current_checksum == metadata.original_checksum
+        if
+            original_size == metadata.original_size &&
+            current_checksum == metadata.original_checksum
         {
             println!("   ✅ Files are identical - no changes detected");
         } else {
@@ -332,13 +312,11 @@ mod tests {
     #[tokio::test]
     async fn test_compare_missing_original() {
         let use_case = CompareFilesUseCase::new();
-        let result = use_case
-            .execute(
-                PathBuf::from("/nonexistent/file.txt"),
-                PathBuf::from("/some/file.adapipe"),
-                false,
-            )
-            .await;
+        let result = use_case.execute(
+            PathBuf::from("/nonexistent/file.txt"),
+            PathBuf::from("/some/file.adapipe"),
+            false
+        ).await;
         assert!(result.is_err());
     }
 
@@ -350,9 +328,11 @@ mod tests {
         std::fs::write(&original, b"test data").unwrap();
 
         let use_case = CompareFilesUseCase::new();
-        let result = use_case
-            .execute(original, PathBuf::from("/nonexistent/file.adapipe"), false)
-            .await;
+        let result = use_case.execute(
+            original,
+            PathBuf::from("/nonexistent/file.adapipe"),
+            false
+        ).await;
         assert!(result.is_err());
     }
 }

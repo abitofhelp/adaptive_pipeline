@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -236,7 +236,7 @@
 //! - Follow Domain-Driven Design principles
 //! - Include comprehensive rustdoc documentation
 
-use crate::entities::{ProcessingContext, StageConfiguration, StagePosition, StageType};
+use crate::entities::{ ProcessingContext, StageConfiguration, StagePosition, StageType };
 use crate::value_objects::file_chunk::FileChunk;
 use crate::PipelineError;
 use std::collections::HashMap;
@@ -468,7 +468,7 @@ pub trait StageService: Send + Sync {
         &self,
         chunk: FileChunk,
         config: &StageConfiguration,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError>;
 
     /// Returns the position where this stage can execute in the pipeline.

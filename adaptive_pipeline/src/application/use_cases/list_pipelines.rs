@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -145,10 +145,8 @@ impl ListPipelinesUseCase {
         info!("Listing available pipelines:");
 
         // Query all pipelines from repository
-        let pipelines = self
-            .pipeline_repository
-            .list_all()
-            .await
+        let pipelines = self.pipeline_repository
+            .list_all().await
             .map_err(|e| anyhow::anyhow!("Failed to query pipelines: {}", e))?;
 
         // Handle empty result set with helpful message

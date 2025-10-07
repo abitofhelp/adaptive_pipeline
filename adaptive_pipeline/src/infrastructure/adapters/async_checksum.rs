@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -73,14 +73,16 @@ impl<T: ChecksumService + 'static> AsyncChecksumAdapter<T> {
         &self,
         chunk: FileChunk,
         context: &mut ProcessingContext,
-        stage_name: &str,
+        stage_name: &str
     ) -> Result<FileChunk, PipelineError> {
         let service = self.inner.clone();
         let mut context_clone = context.clone();
         let stage_name = stage_name.to_string();
 
-        tokio::task::spawn_blocking(move || service.process_chunk(chunk, &mut context_clone, &stage_name))
-            .await
+        tokio::task
+            ::spawn_blocking(move ||
+                service.process_chunk(chunk, &mut context_clone, &stage_name)
+            ).await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
@@ -92,7 +94,7 @@ impl<T: ChecksumService + 'static> AsyncChecksumAdapter<T> {
         &self,
         chunks: Vec<FileChunk>,
         context: &mut ProcessingContext,
-        stage_name: &str,
+        stage_name: &str
     ) -> Result<Vec<FileChunk>, PipelineError> {
         let mut tasks = Vec::new();
 
@@ -101,17 +103,18 @@ impl<T: ChecksumService + 'static> AsyncChecksumAdapter<T> {
             let mut context_clone = context.clone();
             let stage_name = stage_name.to_string();
 
-            let task =
-                tokio::task::spawn_blocking(move || service.process_chunk(chunk, &mut context_clone, &stage_name));
+            let task = tokio::task::spawn_blocking(move ||
+                service.process_chunk(chunk, &mut context_clone, &stage_name)
+            );
 
             tasks.push(task);
         }
 
         let mut results = Vec::new();
         for task in tasks {
-            let result = task
-                .await
-                .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))??;
+            let result = task.await.map_err(|e|
+                PipelineError::InternalError(format!("Task join error: {}", e))
+            )??;
             results.push(result);
         }
 
@@ -144,7 +147,7 @@ mod tests {
             &self,
             chunk: FileChunk,
             _context: &mut ProcessingContext,
-            _stage_name: &str,
+            _stage_name: &str
         ) -> Result<FileChunk, PipelineError> {
             Ok(chunk) // Fake: just return the same chunk
         }
@@ -156,19 +159,26 @@ mod tests {
 
     #[tokio::test]
     async fn test_async_adapter_pattern() {
-        use adaptive_pipeline_domain::entities::{ProcessingContext, SecurityContext, SecurityLevel};
+        use adaptive_pipeline_domain::entities::{
+            ProcessingContext,
+            SecurityContext,
+            SecurityLevel,
+        };
         use std::path::PathBuf;
 
         let sync_service = Arc::new(FakeChecksumService);
         let async_adapter = AsyncChecksumAdapter::new(sync_service);
 
         // Test that we can call sync methods
-        let security_context = SecurityContext::new(Some("test".to_string()), SecurityLevel::Internal);
+        let security_context = SecurityContext::new(
+            Some("test".to_string()),
+            SecurityLevel::Internal
+        );
         let context = ProcessingContext::new(
             PathBuf::from("/tmp/test"),
             PathBuf::from("/tmp/test_out"),
             1024,
-            security_context,
+            security_context
         );
         let checksum = async_adapter.get_checksum(&context, "test_stage");
         assert_eq!(checksum, Some("fake_checksum".to_string()));

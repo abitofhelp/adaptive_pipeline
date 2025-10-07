@@ -14,7 +14,7 @@
 
 ### 1.1 Purpose
 
-This Software Design Document (SDD) describes the architectural and detailed design of the Optimized Adaptive Pipeline system. It provides technical specifications for developers implementing, maintaining, and extending the system.
+This Software Design Document (SDD) describes the architectural and detailed design of the Adaptive Pipeline system. It provides technical specifications for developers implementing, maintaining, and extending the system.
 
 **Intended Audience:**
 - Software developers implementing features

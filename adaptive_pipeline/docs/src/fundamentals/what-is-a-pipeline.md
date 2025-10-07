@@ -70,7 +70,7 @@ Pipelines can process data efficiently:
 
 ## Our Pipeline System
 
-The Optimized Adaptive Pipeline provides:
+The Adaptive Pipeline provides:
 
 **File Processing**: Transform files through configurable stages
 - Input: Any file type

@@ -1,6 +1,6 @@
 # Adaptive Pipeline Grafana Dashboards
 
-This directory contains pre-configured Grafana dashboards for monitoring the Optimized Adaptive Pipeline Rust application.
+This directory contains pre-configured Grafana dashboards for monitoring the Adaptive Pipeline Rust application.
 
 ## Dashboard Overview
 

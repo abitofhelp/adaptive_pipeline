@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -83,11 +83,11 @@
 //! - **JSON**: String representation of ULID for API compatibility
 //! - **Database**: TEXT column with ULID string storage
 
-use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+use serde::{ Deserialize, Serialize };
+use std::fmt::{ self, Display };
 use ulid::Ulid;
 
-use super::generic_id::{GenericId, IdCategory};
+use super::generic_id::{ GenericId, IdCategory };
 use crate::PipelineError;
 
 /// Pipeline entity identifier value object for type-safe pipeline management
@@ -146,9 +146,9 @@ impl IdCategory for PipelineMarker {
     fn validate_id(ulid: &Ulid) -> Result<(), PipelineError> {
         // Common validation: not nil, reasonable timestamp
         if ulid.0 == 0 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Pipeline ID cannot be nil ULID".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Pipeline ID cannot be nil ULID".to_string())
+            );
         }
 
         // Check if timestamp is reasonable (not more than 1 day in the future)
@@ -157,9 +157,11 @@ impl IdCategory for PipelineMarker {
         let one_day_ms = 24 * 60 * 60 * 1000;
 
         if id_timestamp > now + one_day_ms {
-            return Err(PipelineError::InvalidConfiguration(
-                "Pipeline ID timestamp is too far in the future".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Pipeline ID timestamp is too far in the future".to_string()
+                )
+            );
         }
 
         Ok(())
@@ -403,7 +405,8 @@ pub mod pipeline_id_utils {
     /// - Testing with multiple pipelines
     /// - Pre-allocation for performance
     pub fn generate_batch(count: usize) -> Vec<PipelineId> {
-        generic_id_utils::generate_batch::<PipelineMarker>(count)
+        generic_id_utils
+            ::generate_batch::<PipelineMarker>(count)
             .into_iter()
             .map(PipelineId)
             .collect()
@@ -416,7 +419,8 @@ pub mod pipeline_id_utils {
     /// - Bulk operations with same creation time
     /// - Migration scenarios
     pub fn generate_batch_at_time(count: usize, timestamp_ms: u64) -> Vec<PipelineId> {
-        generic_id_utils::generate_batch_at_time::<PipelineMarker>(count, timestamp_ms)
+        generic_id_utils
+            ::generate_batch_at_time::<PipelineMarker>(count, timestamp_ms)
             .into_iter()
             .map(PipelineId)
             .collect()
@@ -449,7 +453,10 @@ pub mod pipeline_id_utils {
     /// - `Ok(())` if all IDs are valid and unique
     /// - `Err(PipelineError)` if any validation fails
     pub fn validate_batch(ids: &[PipelineId]) -> Result<(), PipelineError> {
-        let generic_ids: Vec<GenericId<PipelineMarker>> = ids.iter().map(|id| id.0.clone()).collect();
+        let generic_ids: Vec<GenericId<PipelineMarker>> = ids
+            .iter()
+            .map(|id| id.0.clone())
+            .collect();
         generic_id_utils::validate_batch(&generic_ids)
     }
 }

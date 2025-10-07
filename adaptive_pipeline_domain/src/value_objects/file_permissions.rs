@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -209,7 +209,9 @@ impl FilePermissions {
     /// - If required.execute is true, self.execute must be true
     /// - All conditions must be met for satisfaction
     pub fn satisfies(&self, required: &FilePermissions) -> bool {
-        (!required.read || self.read) && (!required.write || self.write) && (!required.execute || self.execute)
+        (!required.read || self.read) &&
+            (!required.write || self.write) &&
+            (!required.execute || self.execute)
     }
 }
 
@@ -221,7 +223,7 @@ impl FileRestorationPermissionRules {
     /// Validates if a file can be restored to the given path
     pub fn validate_restoration_permissions(
         target_path: &Path,
-        overwrite_allowed: bool,
+        overwrite_allowed: bool
     ) -> Result<FileRestorationPermissionValidation, PipelineError> {
         let mut validation = FileRestorationPermissionValidation::new(target_path.to_path_buf());
 
@@ -231,7 +233,7 @@ impl FileRestorationPermissionRules {
             if !overwrite_allowed {
                 validation.add_violation(
                     PermissionViolationType::FileExists,
-                    "Target file already exists and overwrite is not allowed".to_string(),
+                    "Target file already exists and overwrite is not allowed".to_string()
                 );
             }
         }
@@ -243,7 +245,7 @@ impl FileRestorationPermissionRules {
                 validation.parent_directory_exists = false;
                 validation.add_violation(
                     PermissionViolationType::DirectoryMissing,
-                    format!("Parent directory does not exist: {}", parent.display()),
+                    format!("Parent directory does not exist: {}", parent.display())
                 );
             }
         }
@@ -298,7 +300,10 @@ impl FileRestorationPermissionValidation {
 
     /// Returns all violation messages
     pub fn violation_messages(&self) -> Vec<&str> {
-        self.violations.iter().map(|v| v.message.as_str()).collect()
+        self.violations
+            .iter()
+            .map(|v| v.message.as_str())
+            .collect()
     }
 }
 

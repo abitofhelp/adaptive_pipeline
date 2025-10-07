@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -152,7 +152,14 @@ pub mod value_objects;
 
 // Re-export commonly used types for convenient access
 // These exports provide a clean API surface for consumers of the domain layer
-pub use entities::{Pipeline, PipelineStage, ProcessingContext, ProcessingMetrics, SecurityContext, SecurityLevel};
+pub use entities::{
+    Pipeline,
+    PipelineStage,
+    ProcessingContext,
+    ProcessingMetrics,
+    SecurityContext,
+    SecurityLevel,
+};
 pub use error::PipelineError;
 pub use events::*;
-pub use value_objects::{ChunkSize, FileChunk};
+pub use value_objects::{ ChunkSize, FileChunk };

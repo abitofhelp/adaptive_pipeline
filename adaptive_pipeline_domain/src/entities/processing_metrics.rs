@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -39,9 +39,9 @@
 //! Metrics are calculated and updated in real-time as processing progresses,
 //! providing immediate feedback on performance characteristics.
 
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
+use chrono::{ DateTime, Utc };
+use serde::{ Deserialize, Serialize };
+use std::time::{ Duration, Instant };
 
 /// Processing metrics entity for comprehensive performance tracking and
 /// analysis.
@@ -308,16 +308,20 @@ impl ProcessingMetrics {
 
     /// Gets start time as `DateTime<Utc>`
     pub fn start_time(&self) -> Option<DateTime<Utc>> {
-        self.start_time_rfc3339
-            .as_ref()
-            .and_then(|s| DateTime::parse_from_rfc3339(s).ok().map(|dt| dt.with_timezone(&Utc)))
+        self.start_time_rfc3339.as_ref().and_then(|s|
+            DateTime::parse_from_rfc3339(s)
+                .ok()
+                .map(|dt| dt.with_timezone(&Utc))
+        )
     }
 
     /// Gets end time as `DateTime<Utc>`
     pub fn end_time(&self) -> Option<DateTime<Utc>> {
-        self.end_time_rfc3339
-            .as_ref()
-            .and_then(|s| DateTime::parse_from_rfc3339(s).ok().map(|dt| dt.with_timezone(&Utc)))
+        self.end_time_rfc3339.as_ref().and_then(|s|
+            DateTime::parse_from_rfc3339(s)
+                .ok()
+                .map(|dt| dt.with_timezone(&Utc))
+        )
     }
 
     /// Gets throughput in bytes per second
@@ -362,12 +366,12 @@ impl ProcessingMetrics {
 
     /// Gets input file size in MiB
     pub fn input_file_size_mib(&self) -> f64 {
-        self.input_file_size_bytes as f64 / (1024.0 * 1024.0)
+        (self.input_file_size_bytes as f64) / (1024.0 * 1024.0)
     }
 
     /// Gets output file size in MiB
     pub fn output_file_size_mib(&self) -> f64 {
-        self.output_file_size_bytes as f64 / (1024.0 * 1024.0)
+        (self.output_file_size_bytes as f64) / (1024.0 * 1024.0)
     }
 
     /// Gets input file checksum
@@ -385,7 +389,7 @@ impl ProcessingMetrics {
         if self.bytes_total == 0 {
             return 0.0;
         }
-        (self.bytes_processed as f64 / self.bytes_total as f64) * 100.0
+        ((self.bytes_processed as f64) / (self.bytes_total as f64)) * 100.0
     }
 
     /// Calculates chunk progress as percentage
@@ -393,7 +397,7 @@ impl ProcessingMetrics {
         if self.chunks_total == 0 {
             return 0.0;
         }
-        (self.chunks_processed as f64 / self.chunks_total as f64) * 100.0
+        ((self.chunks_processed as f64) / (self.chunks_total as f64)) * 100.0
     }
 
     /// Estimates remaining time
@@ -403,7 +407,7 @@ impl ProcessingMetrics {
         }
 
         let remaining_bytes = self.bytes_total.saturating_sub(self.bytes_processed);
-        let remaining_seconds = remaining_bytes as f64 / self.throughput_bytes_per_second;
+        let remaining_seconds = (remaining_bytes as f64) / self.throughput_bytes_per_second;
         Some(Duration::from_secs_f64(remaining_seconds))
     }
 
@@ -418,7 +422,7 @@ impl ProcessingMetrics {
             return 0.0;
         }
         let successful_chunks = self.chunks_processed.saturating_sub(self.error_count);
-        successful_chunks as f64 / self.chunks_processed as f64
+        (successful_chunks as f64) / (self.chunks_processed as f64)
     }
 
     /// Sets input file size and checksum
@@ -438,13 +442,13 @@ impl ProcessingMetrics {
         if let Some(duration) = self.processing_duration {
             let seconds = duration.as_secs_f64();
             if seconds > 0.0 {
-                self.throughput_bytes_per_second = self.bytes_processed as f64 / seconds;
+                self.throughput_bytes_per_second = (self.bytes_processed as f64) / seconds;
             }
         } else if let Some(start) = self.start_time {
             let elapsed = start.elapsed();
             let seconds = elapsed.as_secs_f64();
             if seconds > 0.0 {
-                self.throughput_bytes_per_second = self.bytes_processed as f64 / seconds;
+                self.throughput_bytes_per_second = (self.bytes_processed as f64) / seconds;
             }
         }
     }
@@ -488,7 +492,7 @@ impl StageMetrics {
 
         let seconds = processing_time.as_secs_f64();
         if seconds > 0.0 {
-            self.throughput = bytes_processed as f64 / seconds;
+            self.throughput = (bytes_processed as f64) / seconds;
         }
     }
 
@@ -511,7 +515,7 @@ impl StageMetrics {
     pub fn calculate_success_rate(&mut self, total_operations: u64) {
         if total_operations > 0 {
             let successful_operations = total_operations.saturating_sub(self.error_count);
-            self.success_rate = successful_operations as f64 / total_operations as f64;
+            self.success_rate = (successful_operations as f64) / (total_operations as f64);
         }
     }
 }

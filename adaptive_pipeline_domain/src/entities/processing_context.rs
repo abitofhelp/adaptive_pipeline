@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -50,9 +50,9 @@
 //! - Custom metadata and annotations
 
 use crate::services::datetime_serde;
-use crate::value_objects::{ChunkSize, ProcessingContextId, WorkerCount};
-use crate::{ProcessingMetrics, SecurityContext};
-use serde::{Deserialize, Serialize};
+use crate::value_objects::{ ChunkSize, ProcessingContextId, WorkerCount };
+use crate::{ ProcessingMetrics, SecurityContext };
+use serde::{ Deserialize, Serialize };
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -171,7 +171,12 @@ impl ProcessingContext {
     /// A new `ProcessingContext` with initialized state
     ///
     /// # Examples
-    pub fn new(input_path: PathBuf, output_path: PathBuf, file_size: u64, security_context: SecurityContext) -> Self {
+    pub fn new(
+        input_path: PathBuf,
+        output_path: PathBuf,
+        file_size: u64,
+        security_context: SecurityContext
+    ) -> Self {
         let now = chrono::Utc::now();
 
         ProcessingContext {
@@ -410,7 +415,7 @@ impl ProcessingContext {
         if self.file_size == 0 {
             return 0.0;
         }
-        (self.processed_bytes as f64 / self.file_size as f64) * 100.0
+        ((self.processed_bytes as f64) / (self.file_size as f64)) * 100.0
     }
 
     /// Checks if processing is complete

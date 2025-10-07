@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -12,13 +12,13 @@
 //! This module defines the CLI structure and handles argument parsing.
 //! Security validation happens in the validator module after parsing.
 
-use clap::{Parser, Subcommand};
+use clap::{ Parser, Subcommand };
 use std::path::PathBuf;
 
 /// Main CLI structure
 #[derive(Parser, Debug, Clone)]
 #[command(name = "pipeline")]
-#[command(about = concat!("Optimized Adaptive Pipeline RS v", env!("CARGO_PKG_VERSION")))]
+#[command(about = concat!("Adaptive Pipeline RS v", env!("CARGO_PKG_VERSION")))]
 #[command(version)]
 pub struct Cli {
     #[command(subcommand)]

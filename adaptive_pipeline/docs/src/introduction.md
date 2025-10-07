@@ -10,7 +10,7 @@
 
 ## Welcome
 
-This is the comprehensive technical guide for the Optimized Adaptive Pipeline. Whether you're learning advanced Rust patterns, contributing to the project, or using the pipeline in production, this guide provides the depth you need.
+This is the comprehensive technical guide for the Adaptive Pipeline. Whether you're learning advanced Rust patterns, contributing to the project, or using the pipeline in production, this guide provides the depth you need.
 
 ## How to Use This Guide
 

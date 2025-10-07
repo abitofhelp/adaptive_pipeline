@@ -1,11 +1,11 @@
-# Makefile for Optimized Adaptive Pipeline Rust Project
+# Makefile for Adaptive Pipeline Rust Project
 # Best practices for Rust development workflow
 
 # Default shell
 SHELL := /bin/bash
 
 # Project configuration
-PROJECT_NAME := optimized_adaptive_pipeline_rs
+PROJECT_NAME := adaptive_pipeline_rs
 RUST_VERSION := stable
 CARGO := cargo
 

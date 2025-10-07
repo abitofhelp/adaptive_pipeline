@@ -4,7 +4,7 @@
 [![crates.io](https://img.shields.io/crates/v/adaptive-pipeline-bootstrap.svg)](https://crates.io/crates/adaptive-pipeline-bootstrap)
 [![Documentation](https://docs.rs/adaptive-pipeline-bootstrap/badge.svg)](https://docs.rs/adaptive-pipeline-bootstrap)
 
-**Bootstrap and platform abstraction layer for the Optimized Adaptive Pipeline** - Handles application entry points, dependency injection, signal handling, and cross-platform operations.
+**Bootstrap and platform abstraction layer for the Adaptive Pipeline** - Handles application entry points, dependency injection, signal handling, and cross-platform operations.
 
 ## 🎯 Overview
 

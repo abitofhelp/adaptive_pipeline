@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -104,14 +104,14 @@ impl ValidateConfigUseCase {
 
         // Validate file exists
         if !config_path.exists() {
-            return Err(anyhow::anyhow!(
-                "Configuration file does not exist: {}",
-                config_path.display()
-            ));
+            return Err(
+                anyhow::anyhow!("Configuration file does not exist: {}", config_path.display())
+            );
         }
 
         // Read configuration file
-        let config_content = std::fs::read_to_string(&config_path)
+        let config_content = std::fs
+            ::read_to_string(&config_path)
             .map_err(|e| anyhow::anyhow!("Failed to read configuration file: {}", e))?;
 
         println!("🔍 Validating configuration file: {}", config_path.display());
@@ -148,16 +148,14 @@ impl ValidateConfigUseCase {
         println!("   Format: TOML");
 
         // Parse TOML
-        let parsed: toml::Value = toml::from_str(content)
+        let parsed: toml::Value = toml
+            ::from_str(content)
             .map_err(|e| anyhow::anyhow!("Invalid TOML syntax: {}", e))?;
 
         // Validate pipeline definitions
         if let Some(pipelines) = parsed.get("pipelines") {
             if let Some(pipeline_table) = pipelines.as_table() {
-                println!(
-                    "   Found {} pipeline(s) in configuration",
-                    pipeline_table.len()
-                );
+                println!("   Found {} pipeline(s) in configuration", pipeline_table.len());
 
                 for (name, config) in pipeline_table {
                     Self::validate_pipeline_config_entry(name, config)?;
@@ -179,16 +177,14 @@ impl ValidateConfigUseCase {
         println!("   Format: JSON");
 
         // Parse JSON
-        let parsed: serde_json::Value = serde_json::from_str(content)
+        let parsed: serde_json::Value = serde_json
+            ::from_str(content)
             .map_err(|e| anyhow::anyhow!("Invalid JSON syntax: {}", e))?;
 
         // Validate pipeline definitions
         if let Some(pipelines) = parsed.get("pipelines") {
             if let Some(pipeline_obj) = pipelines.as_object() {
-                println!(
-                    "   Found {} pipeline(s) in configuration",
-                    pipeline_obj.len()
-                );
+                println!("   Found {} pipeline(s) in configuration", pipeline_obj.len());
 
                 for (name, config) in pipeline_obj {
                     Self::validate_json_pipeline_entry(name, config)?;
@@ -218,10 +214,12 @@ impl ValidateConfigUseCase {
                 let indent = line.len() - line.trim_start().len();
                 // Basic indentation validation (should be multiple of 2)
                 if indent % 2 != 0 {
-                    return Err(anyhow::anyhow!(
-                        "Invalid YAML indentation at line {}: should be multiple of 2",
-                        line_num + 1
-                    ));
+                    return Err(
+                        anyhow::anyhow!(
+                            "Invalid YAML indentation at line {}: should be multiple of 2",
+                            line_num + 1
+                        )
+                    );
                 }
             }
         }

@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -166,14 +166,22 @@ use async_trait::async_trait;
 use futures::future::try_join_all;
 use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::{ Path, PathBuf };
 use std::sync::Arc;
 
-use adaptive_pipeline_domain::services::file_io_service::{FileIOService, ReadOptions, WriteOptions};
-use adaptive_pipeline_domain::services::file_processor_service::{
-    ChunkProcessor, FileProcessingResult, FileProcessingStats, FileProcessorConfig, FileProcessorService,
+use adaptive_pipeline_domain::services::file_io_service::{
+    FileIOService,
+    ReadOptions,
+    WriteOptions,
 };
-use adaptive_pipeline_domain::{FileChunk, PipelineError};
+use adaptive_pipeline_domain::services::file_processor_service::{
+    ChunkProcessor,
+    FileProcessingResult,
+    FileProcessingStats,
+    FileProcessorConfig,
+    FileProcessorService,
+};
+use adaptive_pipeline_domain::{ FileChunk, PipelineError };
 
 /// Implementation of FileProcessorService
 ///
@@ -221,10 +229,7 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
     }
 
     /// Updates statistics
-    fn update_stats<F>(&self, update_fn: F)
-    where
-        F: FnOnce(&mut FileProcessingStats),
-    {
+    fn update_stats<F>(&self, update_fn: F) where F: FnOnce(&mut FileProcessingStats) {
         let mut stats = self.stats.write();
         update_fn(&mut stats);
     }
@@ -234,7 +239,7 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
         if time_ms == 0 {
             0.0
         } else {
-            (bytes as f64 * 1000.0) / time_ms as f64 // bytes per second
+            ((bytes as f64) * 1000.0) / (time_ms as f64) // bytes per second
         }
     }
 
@@ -253,7 +258,7 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
     fn process_chunks_with_processor(
         &self,
         chunks: &mut Vec<FileChunk>,
-        processor: &dyn ChunkProcessor,
+        processor: &dyn ChunkProcessor
     ) -> Result<(), PipelineError> {
         use rayon::prelude::*;
 
@@ -295,7 +300,7 @@ impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
         &self,
         input_path: &Path,
         output_path: Option<&Path>,
-        processor: Box<dyn ChunkProcessor>,
+        processor: Box<dyn ChunkProcessor>
     ) -> Result<FileProcessingResult, PipelineError> {
         let start_time = std::time::Instant::now();
 
@@ -312,10 +317,15 @@ impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
         };
 
         if file_info.size > max_file_size {
-            return Err(PipelineError::ResourceExhausted(format!(
-                "File size {} exceeds maximum allowed size {}",
-                file_info.size, max_file_size
-            )));
+            return Err(
+                PipelineError::ResourceExhausted(
+                    format!(
+                        "File size {} exceeds maximum allowed size {}",
+                        file_info.size,
+                        max_file_size
+                    )
+                )
+            );
         }
 
         // Validate file integrity if required
@@ -336,7 +346,10 @@ impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
             ..Default::default()
         };
 
-        let mut read_result = self.file_io_service.read_file_chunks(input_path, read_options).await?;
+        let mut read_result = self.file_io_service.read_file_chunks(
+            input_path,
+            read_options
+        ).await?;
         let used_memory_mapping = read_result.file_info.is_memory_mapped;
 
         // Process chunks
@@ -351,9 +364,11 @@ impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
                 ..Default::default()
             };
 
-            self.file_io_service
-                .write_file_chunks(output_path, &read_result.chunks, write_options)
-                .await?;
+            self.file_io_service.write_file_chunks(
+                output_path,
+                &read_result.chunks,
+                write_options
+            ).await?;
             Some(output_path.to_path_buf())
         } else {
             // If processor modifies data but no output path specified, write back to
@@ -367,14 +382,14 @@ impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
                 ..Default::default()
             };
 
-            self.file_io_service
-                .write_file_chunks(&temp_path, &read_result.chunks, write_options)
-                .await?;
+            self.file_io_service.write_file_chunks(
+                &temp_path,
+                &read_result.chunks,
+                write_options
+            ).await?;
 
             // Replace original file with processed version
-            self.file_io_service
-                .move_file(&temp_path, input_path, WriteOptions::default())
-                .await?;
+            self.file_io_service.move_file(&temp_path, input_path, WriteOptions::default()).await?;
             Some(input_path.to_path_buf())
         };
 
@@ -411,7 +426,8 @@ impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
             stats.avg_processing_speed = if stats.files_processed == 1 {
                 speed
             } else {
-                (stats.avg_processing_speed * (stats.files_processed - 1) as f64 + speed) / stats.files_processed as f64
+                (stats.avg_processing_speed * ((stats.files_processed - 1) as f64) + speed) /
+                    (stats.files_processed as f64)
             };
         });
 
@@ -421,7 +437,7 @@ impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
     async fn process_files_batch(
         &self,
         file_pairs: Vec<(std::path::PathBuf, Option<std::path::PathBuf>)>,
-        processor: Box<dyn ChunkProcessor>,
+        processor: Box<dyn ChunkProcessor>
     ) -> Result<Vec<FileProcessingResult>, PipelineError> {
         let max_concurrent = {
             let config = self.config.read();
@@ -442,12 +458,15 @@ impl<T: FileIOService> FileProcessorService for StreamingFileProcessor<T> {
     async fn process_file_in_place(
         &self,
         file_path: &Path,
-        processor: Box<dyn ChunkProcessor>,
+        processor: Box<dyn ChunkProcessor>
     ) -> Result<FileProcessingResult, PipelineError> {
         self.process_file(file_path, None, processor).await
     }
 
-    async fn validate_file_before_processing(&self, file_path: &Path) -> Result<bool, PipelineError> {
+    async fn validate_file_before_processing(
+        &self,
+        file_path: &Path
+    ) -> Result<bool, PipelineError> {
         // Check if file exists and is readable
         // if !self.file_io_service.file_exists(file_path).await.unwrap() {
         //     return Err(PipelineError::IoError(format!(
@@ -491,14 +510,17 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
     async fn process_batch_concurrent(
         &self,
         file_pairs: &[(std::path::PathBuf, Option<std::path::PathBuf>)],
-        processor: &dyn ChunkProcessor,
+        processor: &dyn ChunkProcessor
     ) -> Result<Vec<FileProcessingResult>, PipelineError> {
         // Create futures for each file in the batch
         let futures: Vec<_> = file_pairs
             .iter()
             .map(|(input_path, output_path)| async move {
-                self.process_single_file_with_processor(input_path, output_path.as_deref(), processor)
-                    .await
+                self.process_single_file_with_processor(
+                    input_path,
+                    output_path.as_deref(),
+                    processor
+                ).await
             })
             .collect();
 
@@ -512,7 +534,7 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
         &self,
         input_path: &Path,
         output_path: Option<&Path>,
-        processor: &dyn ChunkProcessor,
+        processor: &dyn ChunkProcessor
     ) -> Result<FileProcessingResult, PipelineError> {
         let start_time = std::time::Instant::now();
 
@@ -529,10 +551,15 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
         };
 
         if file_info.size > max_file_size {
-            return Err(PipelineError::ResourceExhausted(format!(
-                "File size {} exceeds maximum allowed size {}",
-                file_info.size, max_file_size
-            )));
+            return Err(
+                PipelineError::ResourceExhausted(
+                    format!(
+                        "File size {} exceeds maximum allowed size {}",
+                        file_info.size,
+                        max_file_size
+                    )
+                )
+            );
         }
 
         // Validate file integrity if required
@@ -561,10 +588,10 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
         };
 
         // Stream processing: Read chunk -> Process chunk -> Write chunk
-        let mut chunk_stream = self
-            .file_io_service
-            .stream_file_chunks(input_path, read_options)
-            .await?;
+        let mut chunk_stream = self.file_io_service.stream_file_chunks(
+            input_path,
+            read_options
+        ).await?;
         let mut chunks_processed = 0u64;
         let mut bytes_processed = 0u64;
         let mut is_first_chunk = true;
@@ -588,9 +615,12 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
 
             // Write the processed chunk if we have an output path
             if let Some(ref output_path) = final_output_path {
-                self.file_io_service
-                    .write_chunk_to_file(output_path, &chunk, write_options.clone(), is_first_chunk)
-                    .await?;
+                self.file_io_service.write_chunk_to_file(
+                    output_path,
+                    &chunk,
+                    write_options.clone(),
+                    is_first_chunk
+                ).await?;
                 is_first_chunk = false;
             }
 
@@ -600,9 +630,11 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
         // If we wrote to a temp file, replace the original
         if let Some(ref temp_path) = final_output_path {
             if output_path.is_none() {
-                self.file_io_service
-                    .move_file(temp_path, input_path, WriteOptions::default())
-                    .await?;
+                self.file_io_service.move_file(
+                    temp_path,
+                    input_path,
+                    WriteOptions::default()
+                ).await?;
             }
         }
 
@@ -634,7 +666,8 @@ impl<T: FileIOService> StreamingFileProcessor<T> {
             stats.avg_processing_speed = if stats.files_processed == 1 {
                 speed
             } else {
-                (stats.avg_processing_speed * (stats.files_processed - 1) as f64 + speed) / stats.files_processed as f64
+                (stats.avg_processing_speed * ((stats.files_processed - 1) as f64) + speed) /
+                    (stats.files_processed as f64)
             };
         });
 
@@ -720,8 +753,7 @@ mod tests {
         // Process the file
         let processor = Box::new(ChecksumProcessor::sha256_processor(false));
         let result = processor_service
-            .process_file(temp_file.path(), Some(output_path), processor)
-            .await
+            .process_file(temp_file.path(), Some(output_path), processor).await
             .unwrap();
 
         assert_eq!(result.bytes_processed, test_data.len() as u64);

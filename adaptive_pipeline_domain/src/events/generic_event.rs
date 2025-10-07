@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -210,7 +210,7 @@
 //! - **Encrypt at rest**: Ensure event storage is properly encrypted
 
 use crate::services::datetime_serde;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use uuid::Uuid;
 
 /// Generic domain event wrapper that provides consistent event metadata
@@ -287,7 +287,11 @@ impl<T> DomainEvent<T> {
     ///
     /// # Returns
     /// A new domain event with correlation information
-    pub fn new_with_correlation(payload: T, correlation_id: Option<Uuid>, causation_id: Option<Uuid>) -> Self {
+    pub fn new_with_correlation(
+        payload: T,
+        correlation_id: Option<Uuid>,
+        causation_id: Option<Uuid>
+    ) -> Self {
         Self {
             event_id: Uuid::new_v4(),
             payload,
@@ -571,7 +575,11 @@ mod tests {
         let correlation_id = Uuid::new_v4();
         let causation_id = Uuid::new_v4();
 
-        let event = DomainEvent::new_with_correlation(payload, Some(correlation_id), Some(causation_id));
+        let event = DomainEvent::new_with_correlation(
+            payload,
+            Some(correlation_id),
+            Some(causation_id)
+        );
 
         assert_eq!(event.correlation_id, Some(correlation_id));
         assert_eq!(event.causation_id, Some(causation_id));
@@ -720,10 +728,7 @@ mod tests {
         assert_eq!(EventCategory::Processing.to_string(), "Processing");
         assert_eq!(EventCategory::Security.to_string(), "Security");
         assert_eq!(EventCategory::System.to_string(), "System");
-        assert_eq!(
-            EventCategory::Custom("MyEvent".to_string()).to_string(),
-            "Custom(MyEvent)"
-        );
+        assert_eq!(EventCategory::Custom("MyEvent".to_string()).to_string(), "Custom(MyEvent)");
     }
 
     /// Tests event serialization and deserialization for persistence.
@@ -768,7 +773,10 @@ mod tests {
             value: 300,
         };
 
-        let event = DomainEvent::new(payload).with_metadata("test".to_string(), "value".to_string());
+        let event = DomainEvent::new(payload).with_metadata(
+            "test".to_string(),
+            "value".to_string()
+        );
 
         // Test serialization to JSON
         let json = serde_json::to_string(&event).expect("Failed to serialize event");
@@ -776,8 +784,9 @@ mod tests {
         assert!(json.contains("occurred_at"));
 
         // Test deserialization from JSON
-        let deserialized: DomainEvent<TestEventPayload> =
-            serde_json::from_str(&json).expect("Failed to deserialize event");
+        let deserialized: DomainEvent<TestEventPayload> = serde_json
+            ::from_str(&json)
+            .expect("Failed to deserialize event");
 
         assert_eq!(deserialized.event_id, event.event_id);
         assert_eq!(deserialized.payload.message, event.payload.message);

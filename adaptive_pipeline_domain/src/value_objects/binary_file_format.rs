@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -193,8 +193,8 @@
 //! - **Metadata Extensions**: Extended metadata capabilities
 //! - **Performance Optimizations**: Further performance improvements
 
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use serde::{ Deserialize, Serialize };
+use sha2::{ Digest, Sha256 };
 use std::collections::HashMap;
 
 use crate::PipelineError;
@@ -308,7 +308,7 @@ pub struct ProcessingStep {
 pub enum ProcessingStepType {
     /// Compression step
     Compression,
-    /// Encryption step  
+    /// Encryption step
     Encryption,
     /// Checksum/integrity verification step
     Checksum,
@@ -416,7 +416,7 @@ impl FileHeader {
         algorithm: &str,
         key_derivation: &str,
         key_size: u32,
-        nonce_size: u32,
+        nonce_size: u32
     ) -> Self {
         let mut parameters = HashMap::new();
         parameters.insert("key_derivation".to_string(), key_derivation.to_string());
@@ -433,7 +433,12 @@ impl FileHeader {
     }
 
     /// Adds a custom processing step
-    pub fn add_custom_step(mut self, step_name: &str, algorithm: &str, parameters: HashMap<String, String>) -> Self {
+    pub fn add_custom_step(
+        mut self,
+        step_name: &str,
+        algorithm: &str,
+        parameters: HashMap<String, String>
+    ) -> Self {
         self.processing_steps.push(ProcessingStep {
             step_type: ProcessingStepType::Custom(step_name.to_string()),
             algorithm: algorithm.to_string(),
@@ -447,7 +452,7 @@ impl FileHeader {
     /// This is the preferred method that respects DIP and uses Value Objects
     pub fn add_processing_step(
         mut self,
-        descriptor: super::processing_step_descriptor::ProcessingStepDescriptor,
+        descriptor: super::processing_step_descriptor::ProcessingStepDescriptor
     ) -> Self {
         self.processing_steps.push(ProcessingStep {
             step_type: descriptor.step_type().clone(),
@@ -533,8 +538,11 @@ impl FileHeader {
     /// # Examples
     pub fn to_footer_bytes(&self) -> Result<Vec<u8>, PipelineError> {
         // Serialize header to JSON
-        let header_json = serde_json::to_string(self)
-            .map_err(|e| PipelineError::SerializationError(format!("Failed to serialize header: {}", e)))?;
+        let header_json = serde_json
+            ::to_string(self)
+            .map_err(|e|
+                PipelineError::SerializationError(format!("Failed to serialize header: {}", e))
+            )?;
 
         let header_bytes = header_json.as_bytes();
         let header_length = header_bytes.len() as u32;
@@ -604,42 +612,59 @@ impl FileHeader {
         // Check magic bytes
         let magic_bytes = &file_data[magic_start..];
         if magic_bytes != MAGIC_BYTES {
-            return Err(PipelineError::ValidationError(
-                "Invalid magic bytes - not an Adaptive Pipeline file".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError(
+                    "Invalid magic bytes - not an Adaptive Pipeline file".to_string()
+                )
+            );
         }
 
         // Read format version
         let version_bytes = &file_data[version_start..version_start + 2];
         let format_version = u16::from_le_bytes([version_bytes[0], version_bytes[1]]);
         if format_version > CURRENT_FORMAT_VERSION {
-            return Err(PipelineError::ValidationError(format!(
-                "Unsupported format version: {} (current: {})",
-                format_version, CURRENT_FORMAT_VERSION
-            )));
+            return Err(
+                PipelineError::ValidationError(
+                    format!(
+                        "Unsupported format version: {} (current: {})",
+                        format_version,
+                        CURRENT_FORMAT_VERSION
+                    )
+                )
+            );
         }
 
         // Read header length
         let length_bytes = &file_data[length_start..length_start + 4];
-        let header_length =
-            u32::from_le_bytes([length_bytes[0], length_bytes[1], length_bytes[2], length_bytes[3]]) as usize;
+        let header_length = u32::from_le_bytes([
+            length_bytes[0],
+            length_bytes[1],
+            length_bytes[2],
+            length_bytes[3],
+        ]) as usize;
 
         // Calculate total footer size
         let footer_size = header_length + 14; // JSON + length + version + magic
         if file_size < footer_size {
-            return Err(PipelineError::ValidationError(
-                "File too short for complete footer".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError("File too short for complete footer".to_string())
+            );
         }
 
         // Extract and parse header JSON
         let header_start = file_size - footer_size;
         let header_json = &file_data[header_start..header_start + header_length];
-        let header_str = std::str::from_utf8(header_json)
-            .map_err(|e| PipelineError::ValidationError(format!("Invalid UTF-8 in header: {}", e)))?;
+        let header_str = std::str
+            ::from_utf8(header_json)
+            .map_err(|e|
+                PipelineError::ValidationError(format!("Invalid UTF-8 in header: {}", e))
+            )?;
 
-        let header: FileHeader = serde_json::from_str(header_str)
-            .map_err(|e| PipelineError::SerializationError(format!("Failed to deserialize header: {}", e)))?;
+        let header: FileHeader = serde_json
+            ::from_str(header_str)
+            .map_err(|e|
+                PipelineError::SerializationError(format!("Failed to deserialize header: {}", e))
+            )?;
 
         Ok((header, footer_size))
     }
@@ -671,9 +696,11 @@ impl FileHeader {
     /// # Examples
     pub fn verify_output_integrity(&self, file_data: &[u8]) -> Result<bool, PipelineError> {
         if self.output_checksum.is_empty() {
-            return Err(PipelineError::ValidationError(
-                "No output checksum available for verification".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError(
+                    "No output checksum available for verification".to_string()
+                )
+            );
         }
 
         // Calculate checksum of entire file
@@ -731,7 +758,7 @@ impl FileHeader {
     /// # Examples
     pub fn validate_restored_file(&self, restored_data: &[u8]) -> Result<bool, PipelineError> {
         // Check size
-        if restored_data.len() as u64 != self.original_size {
+        if (restored_data.len() as u64) != self.original_size {
             return Ok(false);
         }
 
@@ -750,15 +777,17 @@ impl FileHeader {
             return "No processing applied (pass-through)".to_string();
         }
 
-        let steps: Vec<String> = self
-            .processing_steps
+        let steps: Vec<String> = self.processing_steps
             .iter()
-            .map(|step| match &step.step_type {
-                ProcessingStepType::Compression => format!("Compression ({})", step.algorithm),
-                ProcessingStepType::Encryption => format!("Encryption ({})", step.algorithm),
-                ProcessingStepType::Checksum => format!("Checksum ({})", step.algorithm),
-                ProcessingStepType::PassThrough => format!("PassThrough ({})", step.algorithm),
-                ProcessingStepType::Custom(name) => format!("Custom ({}: {})", name, step.algorithm),
+            .map(|step| {
+                match &step.step_type {
+                    ProcessingStepType::Compression => format!("Compression ({})", step.algorithm),
+                    ProcessingStepType::Encryption => format!("Encryption ({})", step.algorithm),
+                    ProcessingStepType::Checksum => format!("Checksum ({})", step.algorithm),
+                    ProcessingStepType::PassThrough => format!("PassThrough ({})", step.algorithm),
+                    ProcessingStepType::Custom(name) =>
+                        format!("Custom ({}: {})", name, step.algorithm),
+                }
             })
             .collect();
 
@@ -802,15 +831,13 @@ impl FileHeader {
         }
 
         if self.app_version.is_empty() {
-            return Err(PipelineError::ValidationError(
-                "App version cannot be empty".to_string(),
-            ));
+            return Err(PipelineError::ValidationError("App version cannot be empty".to_string()));
         }
 
         if self.original_filename.is_empty() {
-            return Err(PipelineError::ValidationError(
-                "Original filename cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError("Original filename cannot be empty".to_string())
+            );
         }
 
         if self.chunk_size == 0 {
@@ -818,29 +845,33 @@ impl FileHeader {
         }
 
         if self.chunk_size < 1024 {
-            return Err(PipelineError::ValidationError(
-                "Chunk size must be at least 1KB".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError("Chunk size must be at least 1KB".to_string())
+            );
         }
 
         if self.original_size > 0 && self.chunk_count == 0 {
-            return Err(PipelineError::ValidationError(
-                "Non-empty file must have chunks".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError("Non-empty file must have chunks".to_string())
+            );
         }
 
         if self.original_checksum.is_empty() && self.original_size > 0 {
-            return Err(PipelineError::ValidationError(
-                "Non-empty file must have original checksum".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError(
+                    "Non-empty file must have original checksum".to_string()
+                )
+            );
         }
 
         // Validate processing steps
         for step in &self.processing_steps {
             if step.algorithm.is_empty() {
-                return Err(PipelineError::ValidationError(
-                    "Processing step algorithm cannot be empty".to_string(),
-                ));
+                return Err(
+                    PipelineError::ValidationError(
+                        "Processing step algorithm cannot be empty".to_string()
+                    )
+                );
             }
         }
 
@@ -894,9 +925,9 @@ impl ChunkFormat {
     pub fn from_bytes(data: &[u8]) -> Result<(Self, usize), PipelineError> {
         if data.len() < 16 {
             // 12 + 4 = minimum chunk header size
-            return Err(PipelineError::ValidationError(
-                "Data too short for chunk header".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError("Data too short for chunk header".to_string())
+            );
         }
 
         // Read nonce
@@ -927,7 +958,7 @@ impl ChunkFormat {
 
     /// Validates the chunk format
     pub fn validate(&self) -> Result<(), PipelineError> {
-        if self.data_length as usize != self.payload.len() {
+        if (self.data_length as usize) != self.payload.len() {
             return Err(PipelineError::ValidationError("Chunk data length mismatch".to_string()));
         }
 
@@ -1104,7 +1135,7 @@ mod tests {
     #[test]
     fn test_chunk_format_roundtrip() {
         let nonce = [1u8; 12];
-        let data = vec![0xDE, 0xAD, 0xBE, 0xEF];
+        let data = vec![0xde, 0xad, 0xbe, 0xef];
         let original_chunk = ChunkFormat::new(nonce, data);
 
         let chunk_bytes = original_chunk.to_bytes();
@@ -1218,8 +1249,11 @@ mod tests {
     /// - Pass-through files are handled correctly
     #[test]
     fn test_pass_through_file() {
-        let header = FileHeader::new("test.txt".to_string(), 1024, "abc123".to_string())
-            .with_output_checksum("def456".to_string());
+        let header = FileHeader::new(
+            "test.txt".to_string(),
+            1024,
+            "abc123".to_string()
+        ).with_output_checksum("def456".to_string());
 
         assert!(!header.is_compressed());
         assert!(!header.is_encrypted());

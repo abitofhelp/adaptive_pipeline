@@ -11,7 +11,7 @@
 
 ## Overview
 
-The Optimized Adaptive Pipeline uses **structured logging** via the [tracing](https://docs.rs/tracing) crate to provide comprehensive observability throughout the system. This chapter details the logging architecture, implementation patterns, and best practices.
+The Adaptive Pipeline uses **structured logging** via the [tracing](https://docs.rs/tracing) crate to provide comprehensive observability throughout the system. This chapter details the logging architecture, implementation patterns, and best practices.
 
 ### Key Features
 

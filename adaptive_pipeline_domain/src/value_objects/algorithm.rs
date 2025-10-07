@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -203,9 +203,9 @@
 //! - **Security Analysis**: Automated security analysis
 //! - **Plugin System**: Plugin system for custom algorithms
 
-use serde::{Deserialize, Serialize};
-use std::cmp::{Ord, PartialOrd};
-use std::fmt::{self, Display};
+use serde::{ Deserialize, Serialize };
+use std::cmp::{ Ord, PartialOrd };
+use std::fmt::{ self, Display };
 
 use crate::PipelineError;
 
@@ -342,10 +342,7 @@ impl Algorithm {
     /// recommended for security-critical applications.
     /// # Examples
     pub fn is_hashing(&self) -> bool {
-        matches!(
-            self.0.as_str(),
-            "sha256" | "sha512" | "sha3-256" | "blake3" | "md5" | "sha1"
-        )
+        matches!(self.0.as_str(), "sha256" | "sha512" | "sha3-256" | "blake3" | "md5" | "sha1")
     }
 
     /// Checks if this is a custom algorithm
@@ -361,7 +358,8 @@ impl Algorithm {
     /// * `false` - Algorithm is a predefined standard algorithm
     /// # Examples
     pub fn is_custom(&self) -> bool {
-        self.0.starts_with("custom-") || (!self.is_compression() && !self.is_encryption() && !self.is_hashing())
+        self.0.starts_with("custom-") ||
+            (!self.is_compression() && !self.is_encryption() && !self.is_hashing())
     }
 
     /// Gets the algorithm category
@@ -390,46 +388,58 @@ impl Algorithm {
     /// Validates the algorithm name format
     fn validate_name(name: &str) -> Result<(), PipelineError> {
         if name.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Algorithm name cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Algorithm name cannot be empty".to_string())
+            );
         }
 
         if name.len() > 64 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Algorithm name cannot exceed 64 characters".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Algorithm name cannot exceed 64 characters".to_string()
+                )
+            );
         }
 
         // Algorithm names should be lowercase with hyphens and numbers
-        if !name
-            .chars()
-            .all(|c| c.is_ascii_lowercase() || c == '-' || c.is_ascii_digit())
-        {
-            return Err(PipelineError::InvalidConfiguration(
-                "Algorithm name must contain only lowercase letters, hyphens, and digits".to_string(),
-            ));
+        if !name.chars().all(|c| (c.is_ascii_lowercase() || c == '-' || c.is_ascii_digit())) {
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Algorithm name must contain only lowercase letters, hyphens, and digits".to_string()
+                )
+            );
         }
 
         // Cannot start or end with hyphen
         if name.starts_with('-') || name.ends_with('-') {
-            return Err(PipelineError::InvalidConfiguration(
-                "Algorithm name cannot start or end with hyphen".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Algorithm name cannot start or end with hyphen".to_string()
+                )
+            );
         }
 
         // Cannot start with a digit
-        if name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-            return Err(PipelineError::InvalidConfiguration(
-                "Algorithm name cannot start with a digit".to_string(),
-            ));
+        if
+            name
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_digit())
+        {
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Algorithm name cannot start with a digit".to_string()
+                )
+            );
         }
 
         // Cannot have consecutive hyphens
         if name.contains("--") {
-            return Err(PipelineError::InvalidConfiguration(
-                "Algorithm name cannot contain consecutive hyphens".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Algorithm name cannot contain consecutive hyphens".to_string()
+                )
+            );
         }
 
         Ok(())
@@ -624,12 +634,7 @@ pub mod algorithm_utils {
     /// Vector containing: brotli, gzip, zstd, lz4
     /// # Examples
     pub fn compression_algorithms() -> Vec<Algorithm> {
-        vec![
-            Algorithm::brotli(),
-            Algorithm::gzip(),
-            Algorithm::zstd(),
-            Algorithm::lz4(),
-        ]
+        vec![Algorithm::brotli(), Algorithm::gzip(), Algorithm::zstd(), Algorithm::lz4()]
     }
 
     /// Gets all supported encryption algorithms
@@ -679,40 +684,47 @@ pub mod algorithm_utils {
     /// - Algorithm doesn't match required stage type category
     /// - Stage type is unknown/unsupported
     /// # Examples
-    pub fn validate_compatibility(algorithm: &Algorithm, stage_type: &str) -> Result<(), PipelineError> {
+    pub fn validate_compatibility(
+        algorithm: &Algorithm,
+        stage_type: &str
+    ) -> Result<(), PipelineError> {
         match stage_type.to_lowercase().as_str() {
             "compression" => {
                 if !algorithm.is_compression() {
-                    return Err(PipelineError::InvalidConfiguration(format!(
-                        "Algorithm '{}' is not compatible with compression stage",
-                        algorithm
-                    )));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            format!("Algorithm '{}' is not compatible with compression stage", algorithm)
+                        )
+                    );
                 }
             }
             "encryption" => {
                 if !algorithm.is_encryption() {
-                    return Err(PipelineError::InvalidConfiguration(format!(
-                        "Algorithm '{}' is not compatible with encryption stage",
-                        algorithm
-                    )));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            format!("Algorithm '{}' is not compatible with encryption stage", algorithm)
+                        )
+                    );
                 }
             }
             "hashing" => {
                 if !algorithm.is_hashing() {
-                    return Err(PipelineError::InvalidConfiguration(format!(
-                        "Algorithm '{}' is not compatible with hashing stage",
-                        algorithm
-                    )));
+                    return Err(
+                        PipelineError::InvalidConfiguration(
+                            format!("Algorithm '{}' is not compatible with hashing stage", algorithm)
+                        )
+                    );
                 }
             }
             "custom" => {
                 // Custom stages can use any algorithm
             }
             _ => {
-                return Err(PipelineError::InvalidConfiguration(format!(
-                    "Unknown stage type: {}",
-                    stage_type
-                )));
+                return Err(
+                    PipelineError::InvalidConfiguration(
+                        format!("Unknown stage type: {}", stage_type)
+                    )
+                );
             }
         }
         Ok(())
@@ -730,7 +742,7 @@ mod tests {
     use crate::value_objects::Algorithm;
     use serde_json;
     use std::collections::HashMap;
-    use std::path::{Path, PathBuf};
+    use std::path::{ Path, PathBuf };
 
     /// Tests Algorithm creation with valid input values.
     /// Validates that:
@@ -763,7 +775,7 @@ mod tests {
             "custom-algo-v2",
             "algo123",
             "a", // Single character
-            "very-long-algorithm-name-with-many-hyphens-and-numbers123",
+            "very-long-algorithm-name-with-many-hyphens-and-numbers123"
         ];
 
         for name in valid_algorithms {
@@ -805,7 +817,7 @@ mod tests {
             ("has\"doublequotes", "contains double quotes"),
             ("\t\n\r", "whitespace characters"),
             ("--double-hyphen", "consecutive hyphens"),
-            ("123-starts-with-number", "starts with number"),
+            ("123-starts-with-number", "starts with number")
         ];
 
         for (name, reason) in invalid_algorithms {
@@ -1042,15 +1054,11 @@ mod tests {
             Algorithm::brotli(),
             Algorithm::gzip(),
             Algorithm::lz4(),
-            Algorithm::zstd(),
+            Algorithm::zstd()
         ];
 
         for algo in compression_algos {
-            assert!(
-                algo.is_compression(),
-                "Algorithm '{}' should be compression",
-                algo.name()
-            );
+            assert!(algo.is_compression(), "Algorithm '{}' should be compression", algo.name());
             assert_eq!(algo.category(), AlgorithmCategory::Compression);
         }
 
@@ -1058,7 +1066,7 @@ mod tests {
         let encryption_algos = vec![
             Algorithm::aes_128_cbc(),
             Algorithm::aes_256_gcm(),
-            Algorithm::chacha20_poly1305(),
+            Algorithm::chacha20_poly1305()
         ];
 
         for algo in encryption_algos {
@@ -1123,10 +1131,10 @@ mod tests {
 
         // Test edge cases for validation
         let edge_cases = vec![
-            "a",          // Single character
-            "algo1",      // Ends with number
-            "1algo",      // Starts with number (should be invalid)
-            "algo-1-2-3", // Multiple numbers with hyphens
+            "a", // Single character
+            "algo1", // Ends with number
+            "1algo", // Starts with number (should be invalid)
+            "algo-1-2-3" // Multiple numbers with hyphens
         ];
 
         for case in edge_cases {

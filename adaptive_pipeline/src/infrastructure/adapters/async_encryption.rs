@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -36,11 +36,14 @@
 //! let result = async_service.encrypt_chunk_async(chunk, &config, &key, &mut context).await?;
 //! ```
 
-use adaptive_pipeline_domain::entities::{ProcessingContext, SecurityContext};
+use adaptive_pipeline_domain::entities::{ ProcessingContext, SecurityContext };
 use adaptive_pipeline_domain::services::encryption_service::{
-    EncryptionAlgorithm, EncryptionConfig, EncryptionService, KeyMaterial,
+    EncryptionAlgorithm,
+    EncryptionConfig,
+    EncryptionService,
+    KeyMaterial,
 };
-use adaptive_pipeline_domain::value_objects::{EncryptionBenchmark, FileChunk};
+use adaptive_pipeline_domain::value_objects::{ EncryptionBenchmark, FileChunk };
 use adaptive_pipeline_domain::PipelineError;
 use std::sync::Arc;
 
@@ -76,15 +79,17 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         chunk: FileChunk,
         config: &EncryptionConfig,
         key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         let service = self.inner.clone();
         let config = config.clone();
         let key_material = key_material.clone();
         let mut context_clone = context.clone();
 
-        tokio::task::spawn_blocking(move || service.encrypt_chunk(chunk, &config, &key_material, &mut context_clone))
-            .await
+        tokio::task
+            ::spawn_blocking(move ||
+                service.encrypt_chunk(chunk, &config, &key_material, &mut context_clone)
+            ).await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
@@ -94,15 +99,17 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         chunk: FileChunk,
         config: &EncryptionConfig,
         key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         let service = self.inner.clone();
         let config = config.clone();
         let key_material = key_material.clone();
         let mut context_clone = context.clone();
 
-        tokio::task::spawn_blocking(move || service.decrypt_chunk(chunk, &config, &key_material, &mut context_clone))
-            .await
+        tokio::task
+            ::spawn_blocking(move ||
+                service.decrypt_chunk(chunk, &config, &key_material, &mut context_clone)
+            ).await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
@@ -119,7 +126,7 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         chunks: Vec<FileChunk>,
         config: &EncryptionConfig,
         key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<Vec<FileChunk>, PipelineError> {
         use crate::infrastructure::config::rayon_config::RAYON_POOLS;
         use rayon::prelude::*;
@@ -130,21 +137,21 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         let context_clone = context.clone();
 
         // Use spawn_blocking to run entire Rayon batch on blocking thread pool
-        tokio::task::spawn_blocking(move || {
-            // Use CPU-bound pool for encryption
-            RAYON_POOLS.cpu_bound_pool().install(|| {
-                // Parallel encryption using Rayon
-                chunks
-                    .into_par_iter()
-                    .map(|chunk| {
-                        let mut local_context = context_clone.clone();
-                        service.encrypt_chunk(chunk, &config, &key_material, &mut local_context)
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            })
-        })
-        .await
-        .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+        tokio::task
+            ::spawn_blocking(move || {
+                // Use CPU-bound pool for encryption
+                RAYON_POOLS.cpu_bound_pool().install(|| {
+                    // Parallel encryption using Rayon
+                    chunks
+                        .into_par_iter()
+                        .map(|chunk| {
+                            let mut local_context = context_clone.clone();
+                            service.encrypt_chunk(chunk, &config, &key_material, &mut local_context)
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                })
+            }).await
+            .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
     /// Decrypts multiple chunks in parallel using Rayon (infrastructure
@@ -157,7 +164,7 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         chunks: Vec<FileChunk>,
         config: &EncryptionConfig,
         key_material: &KeyMaterial,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<Vec<FileChunk>, PipelineError> {
         use crate::infrastructure::config::rayon_config::RAYON_POOLS;
         use rayon::prelude::*;
@@ -168,21 +175,21 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         let context_clone = context.clone();
 
         // Use spawn_blocking to run entire Rayon batch on blocking thread pool
-        tokio::task::spawn_blocking(move || {
-            // Use CPU-bound pool for decryption
-            RAYON_POOLS.cpu_bound_pool().install(|| {
-                // Parallel decryption using Rayon
-                chunks
-                    .into_par_iter()
-                    .map(|chunk| {
-                        let mut local_context = context_clone.clone();
-                        service.decrypt_chunk(chunk, &config, &key_material, &mut local_context)
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            })
-        })
-        .await
-        .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
+        tokio::task
+            ::spawn_blocking(move || {
+                // Use CPU-bound pool for decryption
+                RAYON_POOLS.cpu_bound_pool().install(|| {
+                    // Parallel decryption using Rayon
+                    chunks
+                        .into_par_iter()
+                        .map(|chunk| {
+                            let mut local_context = context_clone.clone();
+                            service.decrypt_chunk(chunk, &config, &key_material, &mut local_context)
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                })
+            }).await
+            .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
     /// Derives key material from password asynchronously
@@ -192,15 +199,17 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         &self,
         password: &str,
         config: &EncryptionConfig,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<KeyMaterial, PipelineError> {
         let service = self.inner.clone();
         let password = password.to_string();
         let config = config.clone();
         let security_context = security_context.clone();
 
-        tokio::task::spawn_blocking(move || service.derive_key_material(&password, &config, &security_context))
-            .await
+        tokio::task
+            ::spawn_blocking(move ||
+                service.derive_key_material(&password, &config, &security_context)
+            ).await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
@@ -208,14 +217,16 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
     pub async fn generate_key_material_async(
         &self,
         config: &EncryptionConfig,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<KeyMaterial, PipelineError> {
         let service = self.inner.clone();
         let config = config.clone();
         let security_context = security_context.clone();
 
-        tokio::task::spawn_blocking(move || service.generate_key_material(&config, &security_context))
-            .await
+        tokio::task
+            ::spawn_blocking(move ||
+                service.generate_key_material(&config, &security_context)
+            ).await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
@@ -233,14 +244,14 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
     pub async fn benchmark_algorithm_async(
         &self,
         algorithm: &EncryptionAlgorithm,
-        test_data: &[u8],
+        test_data: &[u8]
     ) -> Result<EncryptionBenchmark, PipelineError> {
         let service = self.inner.clone();
         let algorithm = algorithm.clone();
         let test_data = test_data.to_vec();
 
-        tokio::task::spawn_blocking(move || service.benchmark_algorithm(&algorithm, &test_data))
-            .await
+        tokio::task
+            ::spawn_blocking(move || service.benchmark_algorithm(&algorithm, &test_data)).await
             .map_err(|e| PipelineError::InternalError(format!("Task join error: {}", e)))?
     }
 
@@ -255,7 +266,7 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         &self,
         key_material: &KeyMaterial,
         key_id: &str,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<(), PipelineError> {
         self.inner.store_key_material(key_material, key_id, security_context)
     }
@@ -264,7 +275,7 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
     pub fn retrieve_key_material(
         &self,
         key_id: &str,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<KeyMaterial, PipelineError> {
         self.inner.retrieve_key_material(key_id, security_context)
     }
@@ -274,7 +285,7 @@ impl<T: EncryptionService + 'static> AsyncEncryptionAdapter<T> {
         &self,
         old_key_id: &str,
         new_config: &EncryptionConfig,
-        security_context: &SecurityContext,
+        security_context: &SecurityContext
     ) -> Result<String, PipelineError> {
         self.inner.rotate_keys(old_key_id, new_config, security_context)
     }
@@ -301,7 +312,7 @@ mod tests {
             chunk: FileChunk,
             _config: &EncryptionConfig,
             _key_material: &KeyMaterial,
-            _context: &mut ProcessingContext,
+            _context: &mut ProcessingContext
         ) -> Result<FileChunk, PipelineError> {
             Ok(chunk) // Fake: just return the same chunk
         }
@@ -311,7 +322,7 @@ mod tests {
             chunk: FileChunk,
             _config: &EncryptionConfig,
             _key_material: &KeyMaterial,
-            _context: &mut ProcessingContext,
+            _context: &mut ProcessingContext
         ) -> Result<FileChunk, PipelineError> {
             Ok(chunk) // Fake: just return the same chunk
         }
@@ -320,27 +331,31 @@ mod tests {
             &self,
             _password: &str,
             config: &EncryptionConfig,
-            _security_context: &SecurityContext,
+            _security_context: &SecurityContext
         ) -> Result<KeyMaterial, PipelineError> {
-            Ok(KeyMaterial::new(
-                vec![0u8; 32],
-                vec![0u8; 12],
-                vec![0u8; 16],
-                config.algorithm.clone(),
-            ))
+            Ok(
+                KeyMaterial::new(
+                    vec![0u8; 32],
+                    vec![0u8; 12],
+                    vec![0u8; 16],
+                    config.algorithm.clone()
+                )
+            )
         }
 
         fn generate_key_material(
             &self,
             config: &EncryptionConfig,
-            _security_context: &SecurityContext,
+            _security_context: &SecurityContext
         ) -> Result<KeyMaterial, PipelineError> {
-            Ok(KeyMaterial::new(
-                vec![0u8; 32],
-                vec![0u8; 12],
-                vec![0u8; 16],
-                config.algorithm.clone(),
-            ))
+            Ok(
+                KeyMaterial::new(
+                    vec![0u8; 32],
+                    vec![0u8; 12],
+                    vec![0u8; 16],
+                    config.algorithm.clone()
+                )
+            )
         }
 
         fn validate_config(&self, _config: &EncryptionConfig) -> Result<(), PipelineError> {
@@ -354,17 +369,19 @@ mod tests {
         fn benchmark_algorithm(
             &self,
             algorithm: &EncryptionAlgorithm,
-            _test_data: &[u8],
+            _test_data: &[u8]
         ) -> Result<EncryptionBenchmark, PipelineError> {
             use std::time::Duration;
-            Ok(EncryptionBenchmark::new(
-                algorithm.clone(),
-                100.0,                     // throughput_mbps
-                Duration::from_millis(10), // latency
-                64.0,                      // memory_usage_mb
-                50.0,                      // cpu_usage_percent
-                1.0,                       // file_size_mb
-            ))
+            Ok(
+                EncryptionBenchmark::new(
+                    algorithm.clone(),
+                    100.0, // throughput_mbps
+                    Duration::from_millis(10), // latency
+                    64.0, // memory_usage_mb
+                    50.0, // cpu_usage_percent
+                    1.0 // file_size_mb
+                )
+            )
         }
 
         fn wipe_key_material(&self, key_material: &mut KeyMaterial) -> Result<(), PipelineError> {
@@ -376,7 +393,7 @@ mod tests {
             &self,
             _key_material: &KeyMaterial,
             _key_id: &str,
-            _security_context: &SecurityContext,
+            _security_context: &SecurityContext
         ) -> Result<(), PipelineError> {
             Ok(())
         }
@@ -384,21 +401,23 @@ mod tests {
         fn retrieve_key_material(
             &self,
             _key_id: &str,
-            _security_context: &SecurityContext,
+            _security_context: &SecurityContext
         ) -> Result<KeyMaterial, PipelineError> {
-            Ok(KeyMaterial::new(
-                vec![0u8; 32],
-                vec![0u8; 12],
-                vec![0u8; 16],
-                EncryptionAlgorithm::Aes256Gcm,
-            ))
+            Ok(
+                KeyMaterial::new(
+                    vec![0u8; 32],
+                    vec![0u8; 12],
+                    vec![0u8; 16],
+                    EncryptionAlgorithm::Aes256Gcm
+                )
+            )
         }
 
         fn rotate_keys(
             &self,
             _old_key_id: &str,
             _new_config: &EncryptionConfig,
-            _security_context: &SecurityContext,
+            _security_context: &SecurityContext
         ) -> Result<String, PipelineError> {
             Ok("new_key_id".to_string())
         }
@@ -409,7 +428,7 @@ mod tests {
             &self,
             chunk: FileChunk,
             config: &adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration,
-            context: &mut ProcessingContext,
+            context: &mut ProcessingContext
         ) -> Result<FileChunk, PipelineError> {
             use adaptive_pipeline_domain::services::FromParameters;
             let encryption_config = EncryptionConfig::from_parameters(&config.parameters)?;
@@ -419,7 +438,7 @@ mod tests {
                 vec![0u8; 32],
                 vec![0u8; 12],
                 vec![0u8; 16],
-                encryption_config.algorithm.clone(),
+                encryption_config.algorithm.clone()
             );
 
             match config.operation {

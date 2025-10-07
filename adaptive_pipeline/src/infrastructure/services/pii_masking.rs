@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -61,9 +61,13 @@
 
 use once_cell::sync::Lazy;
 use adaptive_pipeline_domain::entities::{
-    Operation, ProcessingContext, StageConfiguration, StagePosition, StageType,
+    Operation,
+    ProcessingContext,
+    StageConfiguration,
+    StagePosition,
+    StageType,
 };
-use adaptive_pipeline_domain::services::{FromParameters, StageService};
+use adaptive_pipeline_domain::services::{ FromParameters, StageService };
 use adaptive_pipeline_domain::value_objects::file_chunk::FileChunk;
 use adaptive_pipeline_domain::PipelineError;
 use regex::Regex;
@@ -72,12 +76,12 @@ use std::collections::HashMap;
 /// Compiled regex patterns for PII detection.
 /// These are computed once at startup and reused for all masking operations.
 static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
-        .expect("Invalid email regex")
+    Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b").expect("Invalid email regex")
 });
 
-static SSN_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").expect("Invalid SSN regex"));
+static SSN_REGEX: Lazy<Regex> = Lazy::new(||
+    Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").expect("Invalid SSN regex")
+);
 
 static PHONE_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b").expect("Invalid phone regex")
@@ -103,12 +107,7 @@ pub enum PiiPattern {
 impl PiiPattern {
     /// Returns all available PII patterns.
     fn all() -> Vec<PiiPattern> {
-        vec![
-            PiiPattern::Email,
-            PiiPattern::Ssn,
-            PiiPattern::Phone,
-            PiiPattern::CreditCard,
-        ]
+        vec![PiiPattern::Email, PiiPattern::Ssn, PiiPattern::Phone, PiiPattern::CreditCard]
     }
 
     /// Returns the regex pattern for this PII type.
@@ -161,11 +160,7 @@ impl PiiPattern {
                     // 1234-5678-9012-3456 → ****-****-****-****
                     text.chars()
                         .map(|c| {
-                            if c.is_ascii_digit() {
-                                mask_char
-                            } else {
-                                c
-                            }
+                            if c.is_ascii_digit() { mask_char } else { c }
                         })
                         .collect()
                 }
@@ -212,15 +207,19 @@ impl FromParameters for PiiMaskingConfig {
                     Ok(PiiPattern::all())
                 } else {
                     s.split(',')
-                        .map(|p| match p.trim().to_lowercase().as_str() {
-                            "email" => Ok(PiiPattern::Email),
-                            "ssn" => Ok(PiiPattern::Ssn),
-                            "phone" => Ok(PiiPattern::Phone),
-                            "credit_card" | "creditcard" => Ok(PiiPattern::CreditCard),
-                            other => Err(PipelineError::InvalidParameter(format!(
-                                "Unknown PII pattern: {}. Valid: email, ssn, phone, credit_card, all",
-                                other
-                            ))),
+                        .map(|p| {
+                            match p.trim().to_lowercase().as_str() {
+                                "email" => Ok(PiiPattern::Email),
+                                "ssn" => Ok(PiiPattern::Ssn),
+                                "phone" => Ok(PiiPattern::Phone),
+                                "credit_card" | "creditcard" => Ok(PiiPattern::CreditCard),
+                                other =>
+                                    Err(
+                                        PipelineError::InvalidParameter(
+                                            format!("Unknown PII pattern: {}. Valid: email, ssn, phone, credit_card, all", other)
+                                        )
+                                    ),
+                            }
                         })
                         .collect::<Result<Vec<_>, _>>()
                 }
@@ -310,7 +309,7 @@ impl StageService for PiiMaskingService {
         &self,
         chunk: FileChunk,
         config: &StageConfiguration,
-        context: &mut ProcessingContext,
+        context: &mut ProcessingContext
     ) -> Result<FileChunk, PipelineError> {
         // Type-safe config extraction using FromParameters trait
         let pii_config = PiiMaskingConfig::from_parameters(&config.parameters)?;
@@ -330,9 +329,11 @@ impl StageService for PiiMaskingService {
             }
             Operation::Reverse => {
                 // Reverse: Not supported (non-reversible operation)
-                return Err(PipelineError::ProcessingFailed(
-                    "PII masking is not reversible - cannot recover original data".to_string(),
-                ));
+                return Err(
+                    PipelineError::ProcessingFailed(
+                        "PII masking is not reversible - cannot recover original data".to_string()
+                    )
+                );
             }
         };
 
@@ -395,10 +396,7 @@ mod tests {
         let mut params = HashMap::new();
         params.insert("patterns".to_string(), "email,ssn,phone".to_string());
         let config = PiiMaskingConfig::from_parameters(&params).unwrap();
-        assert_eq!(
-            config.patterns,
-            vec![PiiPattern::Email, PiiPattern::Ssn, PiiPattern::Phone]
-        );
+        assert_eq!(config.patterns, vec![PiiPattern::Email, PiiPattern::Ssn, PiiPattern::Phone]);
     }
 
     #[test]
@@ -488,7 +486,7 @@ mod tests {
     #[test]
     fn test_reverse_operation_fails() {
         use adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration;
-        use adaptive_pipeline_domain::entities::{SecurityContext, SecurityLevel};
+        use adaptive_pipeline_domain::entities::{ SecurityContext, SecurityLevel };
         use std::path::PathBuf;
 
         let service = PiiMaskingService::new();
@@ -504,15 +502,12 @@ mod tests {
             PathBuf::from("/tmp/input"),
             PathBuf::from("/tmp/output"),
             100,
-            SecurityContext::new(None, SecurityLevel::Public),
+            SecurityContext::new(None, SecurityLevel::Public)
         );
 
         let result = service.process_chunk(chunk, &config, &mut context);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("not reversible"));
+        assert!(result.unwrap_err().to_string().contains("not reversible"));
     }
 
     #[test]

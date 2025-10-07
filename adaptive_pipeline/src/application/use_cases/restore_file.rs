@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -116,7 +116,11 @@
 
 use chrono::Utc;
 use adaptive_pipeline_domain::entities::pipeline::Pipeline;
-use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
+use adaptive_pipeline_domain::entities::pipeline_stage::{
+    PipelineStage,
+    StageConfiguration,
+    StageType,
+};
 use adaptive_pipeline_domain::value_objects::binary_file_format::FileHeader;
 use adaptive_pipeline_domain::PipelineError;
 use tracing::info;
@@ -220,7 +224,11 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
     let mut stages = Vec::new();
 
     // Generate unique pipeline ID for restoration
-    let pipeline_name = format!("__restore__{}_{}", metadata.pipeline_id, Utc::now().timestamp_millis());
+    let pipeline_name = format!(
+        "__restore__{}_{}",
+        metadata.pipeline_id,
+        Utc::now().timestamp_millis()
+    );
 
     // Note: Pipeline::new will automatically add input_checksum and output_checksum
     // stages So we only need to create the user-defined stages
@@ -234,7 +242,8 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
         if step_name.contains("checksum") {
             info!(
                 "Skipping checksum step: {} (from step order {}) - used for validation only",
-                step.algorithm, step.order
+                step.algorithm,
+                step.order
             );
             continue;
         }
@@ -247,11 +256,16 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
             StageType::Encryption
         } else {
             // For custom algorithms, infer type from algorithm name
-            if step.algorithm.contains("brotli") || step.algorithm.contains("gzip") || step.algorithm.contains("lz4") {
+            if
+                step.algorithm.contains("brotli") ||
+                step.algorithm.contains("gzip") ||
+                step.algorithm.contains("lz4")
+            {
                 StageType::Compression
-            } else if step.algorithm.contains("aes")
-                || step.algorithm.contains("chacha")
-                || step.algorithm.contains("xchacha")
+            } else if
+                step.algorithm.contains("aes") ||
+                step.algorithm.contains("chacha") ||
+                step.algorithm.contains("xchacha")
             {
                 StageType::Encryption
             } else {
@@ -276,7 +290,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
                 parallel_processing: false, // Sequential for restoration
                 parameters: Default::default(),
             },
-            0, // Order will be set by Pipeline::new
+            0 // Order will be set by Pipeline::new
         )?;
 
         stages.push(stage);
@@ -293,7 +307,7 @@ pub async fn create_restoration_pipeline(metadata: &FileHeader) -> Result<Pipeli
             parallel_processing: false,
             parameters: Default::default(),
         },
-        0, // Order will be set by Pipeline::new
+        0 // Order will be set by Pipeline::new
     )?;
     stages.push(verification_stage);
 

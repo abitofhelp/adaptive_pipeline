@@ -8,7 +8,7 @@
 
 ## 🎯 Overview
 
-This crate provides the **application and infrastructure layers** for the Optimized Adaptive Pipeline system - including use cases, services, adapters, repositories, and a production-ready CLI.
+This crate provides the **application and infrastructure layers** for the Adaptive Pipeline system - including use cases, services, adapters, repositories, and a production-ready CLI.
 
 ### Key Features
 

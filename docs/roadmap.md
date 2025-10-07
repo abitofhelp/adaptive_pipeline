@@ -1,4 +1,4 @@
-# Optimized Adaptive Pipeline - Development Roadmap
+# Adaptive Pipeline - Development Roadmap
 
 **Last Updated**: 2025-10-06
 **Version**: 1.0.1

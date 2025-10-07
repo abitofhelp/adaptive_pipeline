@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -13,12 +13,12 @@
 //! principles with unique identity, business rule enforcement, and repository
 //! support. See mdBook for usage examples and architecture details.
 
-use crate::entities::{PipelineStage, ProcessingMetrics};
+use crate::entities::{ PipelineStage, ProcessingMetrics };
 use crate::services::datetime_serde;
 use crate::value_objects::PipelineId;
 use crate::PipelineError;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::{ DateTime, Utc };
+use serde::{ Deserialize, Serialize };
 use std::collections::HashMap;
 
 // Import for generic repository support
@@ -251,9 +251,9 @@ impl Pipeline {
             crate::entities::pipeline_stage::StageConfiguration::new(
                 "sha256".to_string(),
                 HashMap::new(),
-                false, // not parallel
+                false // not parallel
             ),
-            0, // order: first
+            0 // order: first
         )
     }
 
@@ -272,9 +272,9 @@ impl Pipeline {
             crate::entities::pipeline_stage::StageConfiguration::new(
                 "sha256".to_string(),
                 HashMap::new(),
-                false, // not parallel
+                false // not parallel
             ),
-            order, // order: last
+            order // order: last
         )
     }
     /// Creates a new pipeline with the given name and user-defined stages.
@@ -327,15 +327,17 @@ impl Pipeline {
     /// * `InvalidConfiguration` - If name is empty or no user stages provided
     pub fn new(name: String, user_stages: Vec<PipelineStage>) -> Result<Self, PipelineError> {
         if name.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Pipeline name cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Pipeline name cannot be empty".to_string())
+            );
         }
 
         if user_stages.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Pipeline must have at least one user-defined stage".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Pipeline must have at least one user-defined stage".to_string()
+                )
+            );
         }
 
         let now = chrono::Utc::now();
@@ -359,13 +361,15 @@ impl Pipeline {
                 stage.name().to_string(),
                 *stage.stage_type(),
                 stage.configuration().clone(),
-                (index + 1) as u32, // order: 1, 2, 3...
+                (index + 1) as u32 // order: 1, 2, 3...
             )?;
             complete_stages.push(user_stage);
         }
 
         // 3. Create and add output_checksum stage (order: last)
-        let output_checksum_stage = Self::create_output_checksum_stage((user_stage_count + 1) as u32)?;
+        let output_checksum_stage = Self::create_output_checksum_stage(
+            (user_stage_count + 1) as u32
+        )?;
         complete_stages.push(output_checksum_stage);
 
         Ok(Pipeline {
@@ -535,11 +539,7 @@ impl Pipeline {
     /// For real-time operational status (running, idle, error states),
     /// query your monitoring system (Prometheus/Grafana) instead.
     pub fn status(&self) -> &'static str {
-        if self.archived {
-            "Archived"
-        } else {
-            "Active"
-        }
+        if self.archived { "Archived" } else { "Active" }
     }
 
     /// Checks if the pipeline is archived (soft-deleted)
@@ -640,11 +640,15 @@ impl Pipeline {
         // Validate stage compatibility
         if let Some(last_stage) = self.stages.last() {
             if !last_stage.is_compatible_with(&stage) {
-                return Err(PipelineError::IncompatibleStage(format!(
-                    "Stage {} is not compatible with {}",
-                    stage.name(),
-                    last_stage.name()
-                )));
+                return Err(
+                    PipelineError::IncompatibleStage(
+                        format!(
+                            "Stage {} is not compatible with {}",
+                            stage.name(),
+                            last_stage.name()
+                        )
+                    )
+                );
             }
         }
 
@@ -691,15 +695,15 @@ impl Pipeline {
     /// # Examples
     pub fn remove_stage(&mut self, index: usize) -> Result<PipelineStage, PipelineError> {
         if index >= self.stages.len() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Stage index out of bounds".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Stage index out of bounds".to_string())
+            );
         }
 
         if self.stages.len() == 1 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Cannot remove the last stage".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Cannot remove the last stage".to_string())
+            );
         }
 
         self.updated_at = chrono::Utc::now();
@@ -780,19 +784,25 @@ impl Pipeline {
     /// which is O(n) where n is the number of stages.
     pub fn validate(&self) -> Result<(), PipelineError> {
         if self.stages.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Pipeline must have at least one stage".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Pipeline must have at least one stage".to_string()
+                )
+            );
         }
 
         // Validate stage sequence
         for window in self.stages.windows(2) {
             if !window[0].is_compatible_with(&window[1]) {
-                return Err(PipelineError::IncompatibleStage(format!(
-                    "Stages {} and {} are not compatible",
-                    window[0].name(),
-                    window[1].name()
-                )));
+                return Err(
+                    PipelineError::IncompatibleStage(
+                        format!(
+                            "Stages {} and {} are not compatible",
+                            window[0].name(),
+                            window[1].name()
+                        )
+                    )
+                );
             }
         }
 
@@ -816,15 +826,17 @@ impl Pipeline {
     ///   provided
     pub fn from_database(data: PipelineData) -> Result<Self, PipelineError> {
         if data.name.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Pipeline name cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Pipeline name cannot be empty".to_string())
+            );
         }
 
         if data.stages.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Pipeline must have at least one stage".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Pipeline must have at least one stage".to_string()
+                )
+            );
         }
 
         Ok(Pipeline {

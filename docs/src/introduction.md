@@ -10,11 +10,11 @@
 
 ## Welcome
 
-Welcome to the **Optimized Adaptive Pipeline** documentation. This project is a high-performance, educational file processing pipeline built in Rust, demonstrating advanced software architecture patterns and modern Rust idioms.
+Welcome to the **Adaptive Pipeline** documentation. This project is a high-performance, educational file processing pipeline built in Rust, demonstrating advanced software architecture patterns and modern Rust idioms.
 
 ## What is This Project?
 
-The Optimized Adaptive Pipeline is:
+The Adaptive Pipeline is:
 
 - **A File Processing System** - Transform files through configurable stages (compression, encryption, integrity checking)
 - **An Educational Resource** - Learn advanced Rust patterns, DDD, Clean Architecture, and Hexagonal Architecture

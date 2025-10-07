@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -12,10 +12,10 @@
 //! transactions, connection pooling, and parameterized queries for security.
 //! See mdBook for detailed schema documentation and usage examples.
 
-use adaptive_pipeline_domain::entities::pipeline_stage::{StageConfiguration, StageType};
+use adaptive_pipeline_domain::entities::pipeline_stage::{ StageConfiguration, StageType };
 use adaptive_pipeline_domain::value_objects::PipelineId;
-use adaptive_pipeline_domain::{Pipeline, PipelineError, PipelineStage, ProcessingMetrics};
-use sqlx::{Row, SqlitePool};
+use adaptive_pipeline_domain::{ Pipeline, PipelineError, PipelineStage, ProcessingMetrics };
+use sqlx::{ Row, SqlitePool };
 use std::collections::HashMap;
 use tracing::debug;
 // REMOVED: Generic Repository import - violates DIP
@@ -122,10 +122,12 @@ impl SqlitePipelineRepository {
         };
 
         // Use schema initialization which handles database creation and migrations
-        let pool = crate::infrastructure::repositories::schema::initialize_database(&database_url)
-            .await
+        let pool = crate::infrastructure::repositories::schema
+            ::initialize_database(&database_url).await
             .map_err(|e| {
-                PipelineError::database_error(format!("Failed to initialize database '{}': {}", database_path, e))
+                PipelineError::database_error(
+                    format!("Failed to initialize database '{}': {}", database_path, e)
+                )
             })?;
 
         debug!("Successfully connected to structured SQLite database");
@@ -198,55 +200,59 @@ impl SqlitePipelineRepository {
     /// - **Network**: Single round-trip for transaction commit
     /// - **Locking**: Row-level locks acquired during transaction
     pub async fn save(&self, entity: &Pipeline) -> Result<(), PipelineError> {
-        println!(
-            "DEBUG: SqlitePipelineRepository::save called for pipeline: {}",
-            entity.name()
-        );
+        println!("DEBUG: SqlitePipelineRepository::save called for pipeline: {}", entity.name());
 
         // Start database transaction for ACID compliance
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to start transaction: {}", e)))?;
+        let mut tx = self.pool
+            .begin().await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to start transaction: {}", e))
+            )?;
 
         // Insert main pipeline record
-        let pipeline_query = r#"
+        let pipeline_query =
+            r#"
             INSERT INTO pipelines (id, name, archived, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?)
         "#;
 
-        sqlx::query(pipeline_query)
+        sqlx
+            ::query(pipeline_query)
             .bind(entity.id().to_string())
             .bind(entity.name())
             .bind(entity.archived())
             .bind(entity.created_at().to_rfc3339())
             .bind(entity.updated_at().to_rfc3339())
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to insert pipeline: {}", e)))?;
+            .execute(&mut *tx).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to insert pipeline: {}", e))
+            )?;
 
         // Insert pipeline configuration
         for (key, value) in entity.configuration() {
-            let config_query = r#"
+            let config_query =
+                r#"
                 INSERT INTO pipeline_configuration (pipeline_id, key, value, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?)
             "#;
 
-            sqlx::query(config_query)
+            sqlx
+                ::query(config_query)
                 .bind(entity.id().to_string())
                 .bind(key)
                 .bind(value)
                 .bind(entity.created_at().to_rfc3339())
                 .bind(entity.updated_at().to_rfc3339())
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to insert configuration: {}", e)))?;
+                .execute(&mut *tx).await
+                .map_err(|e|
+                    PipelineError::database_error(format!("Failed to insert configuration: {}", e))
+                )?;
         }
 
         // Insert pipeline stages
         for (index, stage) in entity.stages().iter().enumerate() {
-            let stage_query = r#"
+            let stage_query =
+                r#"
                 INSERT INTO pipeline_stages (
                     id, pipeline_id, name, stage_type, enabled, stage_order, 
                     algorithm, parallel_processing, chunk_size, created_at, updated_at
@@ -254,7 +260,8 @@ impl SqlitePipelineRepository {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#;
 
-            sqlx::query(stage_query)
+            sqlx
+                ::query(stage_query)
                 .bind(stage.id().to_string())
                 .bind(entity.id().to_string())
                 .bind(stage.name())
@@ -266,26 +273,32 @@ impl SqlitePipelineRepository {
                 .bind(stage.configuration().chunk_size.map(|s| s as i64))
                 .bind(stage.created_at().to_rfc3339())
                 .bind(stage.updated_at().to_rfc3339())
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to insert stage: {}", e)))?;
+                .execute(&mut *tx).await
+                .map_err(|e|
+                    PipelineError::database_error(format!("Failed to insert stage: {}", e))
+                )?;
 
             // Insert stage parameters
             for (param_key, param_value) in &stage.configuration().parameters {
-                let param_query = r#"
+                let param_query =
+                    r#"
                     INSERT INTO stage_parameters (stage_id, key, value, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?)
                 "#;
 
-                sqlx::query(param_query)
+                sqlx
+                    ::query(param_query)
                     .bind(stage.id().to_string())
                     .bind(param_key)
                     .bind(param_value)
                     .bind(stage.created_at().to_rfc3339())
                     .bind(stage.updated_at().to_rfc3339())
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|e| PipelineError::database_error(format!("Failed to insert stage parameter: {}", e)))?;
+                    .execute(&mut *tx).await
+                    .map_err(|e|
+                        PipelineError::database_error(
+                            format!("Failed to insert stage parameter: {}", e)
+                        )
+                    )?;
             }
         }
 
@@ -294,14 +307,13 @@ impl SqlitePipelineRepository {
         // This keeps the database focused on core pipeline data only
 
         // Commit transaction - ensures ACID compliance
-        tx.commit()
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to commit transaction: {}", e)))?;
+        tx
+            .commit().await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to commit transaction: {}", e))
+            )?;
 
-        println!(
-            "DEBUG: Successfully saved pipeline with ACID transaction: {}",
-            entity.name()
-        );
+        println!("DEBUG: Successfully saved pipeline with ACID transaction: {}", entity.name());
         Ok(())
     }
 
@@ -324,35 +336,39 @@ impl SqlitePipelineRepository {
     pub async fn delete(&self, id: PipelineId) -> Result<bool, PipelineError> {
         println!("DEBUG: Starting delete for pipeline: {}", id);
 
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to begin transaction: {}", e)))?;
+        let mut tx = self.pool
+            .begin().await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to begin transaction: {}", e))
+            )?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let id_str = id.to_string();
 
         println!("DEBUG: Archiving pipeline stages...");
         // Archive pipeline stages first
-        let stages_query = r#"
+        let stages_query =
+            r#"
             UPDATE pipeline_stages 
             SET archived = true, updated_at = ?
             WHERE pipeline_id = ? AND archived = false
         "#;
 
-        let stages_result = sqlx::query(stages_query)
+        let stages_result = sqlx
+            ::query(stages_query)
             .bind(&now)
             .bind(&id_str)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline stages: {}", e)))?;
+            .execute(&mut *tx).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to archive pipeline stages: {}", e))
+            )?;
 
         println!("DEBUG: Archived {} stages", stages_result.rows_affected());
 
         println!("DEBUG: Archiving stage parameters...");
         // Archive stage parameters
-        let params_query = r#"
+        let params_query =
+            r#"
             UPDATE stage_parameters 
             SET archived = true, updated_at = ?
             WHERE stage_id IN (
@@ -361,46 +377,56 @@ impl SqlitePipelineRepository {
             ) AND archived = false
         "#;
 
-        let params_result = sqlx::query(params_query)
+        let params_result = sqlx
+            ::query(params_query)
             .bind(&now)
             .bind(&id_str)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to archive stage parameters: {}", e)))?;
+            .execute(&mut *tx).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to archive stage parameters: {}", e))
+            )?;
 
         println!("DEBUG: Archived {} stage parameters", params_result.rows_affected());
 
         println!("DEBUG: Archiving pipeline configuration...");
         // Archive pipeline configuration
-        let config_query = r#"
+        let config_query =
+            r#"
             UPDATE pipeline_configuration 
             SET archived = true, updated_at = ?
             WHERE pipeline_id = ? AND archived = false
         "#;
 
-        let config_result = sqlx::query(config_query)
+        let config_result = sqlx
+            ::query(config_query)
             .bind(&now)
             .bind(&id_str)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline configuration: {}", e)))?;
+            .execute(&mut *tx).await
+            .map_err(|e|
+                PipelineError::database_error(
+                    format!("Failed to archive pipeline configuration: {}", e)
+                )
+            )?;
 
         println!("DEBUG: Archived {} config entries", config_result.rows_affected());
 
         println!("DEBUG: Archiving main pipeline...");
         // Finally, archive the main pipeline record
-        let pipeline_query = r#"
+        let pipeline_query =
+            r#"
             UPDATE pipelines 
             SET archived = true, updated_at = ?
             WHERE id = ? AND archived = false
         "#;
 
-        let result = sqlx::query(pipeline_query)
+        let result = sqlx
+            ::query(pipeline_query)
             .bind(&now)
             .bind(&id_str)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline: {}", e)))?;
+            .execute(&mut *tx).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to archive pipeline: {}", e))
+            )?;
 
         let success = result.rows_affected() > 0;
         println!(
@@ -410,14 +436,22 @@ impl SqlitePipelineRepository {
         );
 
         if success {
-            tx.commit()
-                .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to commit archive transaction: {}", e)))?;
+            tx
+                .commit().await
+                .map_err(|e|
+                    PipelineError::database_error(
+                        format!("Failed to commit archive transaction: {}", e)
+                    )
+                )?;
             println!("DEBUG: Transaction committed successfully");
         } else {
-            tx.rollback()
-                .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to rollback archive transaction: {}", e)))?;
+            tx
+                .rollback().await
+                .map_err(|e|
+                    PipelineError::database_error(
+                        format!("Failed to rollback archive transaction: {}", e)
+                    )
+                )?;
             println!("DEBUG: Transaction rolled back");
         }
 
@@ -430,10 +464,12 @@ impl SqlitePipelineRepository {
 
         // Get all non-archived pipelines
         let query = "SELECT id FROM pipelines WHERE archived = false ORDER BY name";
-        let rows = sqlx::query(query)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to query pipelines: {}", e)))?;
+        let rows = sqlx
+            ::query(query)
+            .fetch_all(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to query pipelines: {}", e))
+            )?;
 
         let mut pipelines = Vec::new();
         for row in rows {
@@ -461,17 +497,24 @@ impl SqlitePipelineRepository {
 
         // Get all archived pipelines
         let query = "SELECT id FROM pipelines WHERE archived = true ORDER BY name";
-        let rows = sqlx::query(query)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to query pipelines: {}", e)))?;
+        let rows = sqlx
+            ::query(query)
+            .fetch_all(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to query pipelines: {}", e))
+            )?;
 
         let mut pipelines = Vec::new();
         for row in rows {
             let id_str: String = row.get("id");
             let pipeline_id = PipelineId::from_string(&id_str)?;
 
-            if let Some(pipeline) = self.load_pipeline_from_db_with_archived(pipeline_id, true).await? {
+            if
+                let Some(pipeline) = self.load_pipeline_from_db_with_archived(
+                    pipeline_id,
+                    true
+                ).await?
+            {
                 pipelines.push(pipeline);
             }
         }
@@ -483,11 +526,13 @@ impl SqlitePipelineRepository {
     /// PUBLIC: Domain interface - Check if pipeline exists
     pub async fn exists(&self, id: PipelineId) -> Result<bool, PipelineError> {
         let query = "SELECT 1 FROM pipelines WHERE id = ? AND archived = false";
-        let result = sqlx::query(query)
+        let result = sqlx
+            ::query(query)
             .bind(id.to_string())
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to check pipeline existence: {}", e)))?;
+            .fetch_optional(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to check pipeline existence: {}", e))
+            )?;
 
         Ok(result.is_some())
     }
@@ -497,11 +542,13 @@ impl SqlitePipelineRepository {
         debug!("SqlitePipelineRepository::find_by_name called for: {}", name);
 
         let query = "SELECT id FROM pipelines WHERE name = ? AND archived = false";
-        let row = sqlx::query(query)
+        let row = sqlx
+            ::query(query)
             .bind(name)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to find pipeline by name: {}", e)))?;
+            .fetch_optional(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to find pipeline by name: {}", e))
+            )?;
 
         if let Some(row) = row {
             let id_str: String = row.get("id");
@@ -514,14 +561,21 @@ impl SqlitePipelineRepository {
     }
 
     /// PUBLIC: Domain interface - List pipelines with pagination
-    pub async fn list_paginated(&self, offset: usize, limit: usize) -> Result<Vec<Pipeline>, PipelineError> {
-        let query = "SELECT id FROM pipelines WHERE archived = false ORDER BY name LIMIT ? OFFSET ?";
-        let rows = sqlx::query(query)
+    pub async fn list_paginated(
+        &self,
+        offset: usize,
+        limit: usize
+    ) -> Result<Vec<Pipeline>, PipelineError> {
+        let query =
+            "SELECT id FROM pipelines WHERE archived = false ORDER BY name LIMIT ? OFFSET ?";
+        let rows = sqlx
+            ::query(query)
             .bind(limit as i64)
             .bind(offset as i64)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to query paginated pipelines: {}", e)))?;
+            .fetch_all(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to query paginated pipelines: {}", e))
+            )?;
 
         let mut pipelines = Vec::new();
         for row in rows {
@@ -538,34 +592,44 @@ impl SqlitePipelineRepository {
 
     /// PUBLIC: Domain interface - Count active pipelines
     pub async fn count(&self) -> Result<usize, PipelineError> {
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM pipelines WHERE archived = false")
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to count pipelines: {}", e)))?;
+        let count: i64 = sqlx
+            ::query_scalar("SELECT COUNT(*) FROM pipelines WHERE archived = false")
+            .fetch_one(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to count pipelines: {}", e))
+            )?;
 
         Ok(count as usize)
     }
 
     /// PUBLIC: Domain interface - Find pipelines by configuration parameter
-    pub async fn find_by_config(&self, key: &str, value: &str) -> Result<Vec<Pipeline>, PipelineError> {
+    pub async fn find_by_config(
+        &self,
+        key: &str,
+        value: &str
+    ) -> Result<Vec<Pipeline>, PipelineError> {
         println!(
             "DEBUG: SqlitePipelineRepository::find_by_config called for key: {}, value: {}",
-            key, value
+            key,
+            value
         );
 
-        let query = r#"
+        let query =
+            r#"
             SELECT DISTINCT p.id 
             FROM pipelines p 
             JOIN pipeline_configuration pc ON p.id = pc.pipeline_id 
             WHERE pc.key = ? AND pc.value = ? AND p.archived = false AND pc.archived = false
         "#;
 
-        let rows = sqlx::query(query)
+        let rows = sqlx
+            ::query(query)
             .bind(key)
             .bind(value)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to find pipelines by config: {}", e)))?;
+            .fetch_all(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to find pipelines by config: {}", e))
+            )?;
 
         let mut pipelines = Vec::new();
         for row in rows {
@@ -577,12 +641,7 @@ impl SqlitePipelineRepository {
             }
         }
 
-        println!(
-            "DEBUG: Found {} pipelines with config {}={}",
-            pipelines.len(),
-            key,
-            value
-        );
+        println!("DEBUG: Found {} pipelines with config {}={}", pipelines.len(), key, value);
         Ok(pipelines)
     }
 
@@ -593,32 +652,38 @@ impl SqlitePipelineRepository {
 
     /// PUBLIC: Domain interface - Restore an archived pipeline
     pub async fn restore(&self, id: PipelineId) -> Result<bool, PipelineError> {
-        let query = r#"
+        let query =
+            r#"
             UPDATE pipelines 
             SET archived = false, updated_at = ?
             WHERE id = ? AND archived = true
         "#;
 
         let now = chrono::Utc::now().to_rfc3339();
-        let result = sqlx::query(query)
+        let result = sqlx
+            ::query(query)
             .bind(now)
             .bind(id.to_string())
-            .execute(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to restore pipeline: {}", e)))?;
+            .execute(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to restore pipeline: {}", e))
+            )?;
 
         Ok(result.rows_affected() > 0)
     }
 
     // PRIVATE: Internal helper methods
-    async fn load_pipeline_from_db(&self, id: PipelineId) -> Result<Option<Pipeline>, PipelineError> {
+    async fn load_pipeline_from_db(
+        &self,
+        id: PipelineId
+    ) -> Result<Option<Pipeline>, PipelineError> {
         self.load_pipeline_from_db_with_archived(id, false).await
     }
 
     async fn load_pipeline_from_db_with_archived(
         &self,
         id: PipelineId,
-        include_archived: bool,
+        include_archived: bool
     ) -> Result<Option<Pipeline>, PipelineError> {
         debug!("Loading pipeline from structured DB: {}", id);
 
@@ -628,15 +693,17 @@ impl SqlitePipelineRepository {
         } else {
             "SELECT id, name, archived, created_at, updated_at FROM pipelines WHERE id = ? AND archived = false"
         };
-        let pipeline_row = sqlx::query(pipeline_query)
+        let pipeline_row = sqlx
+            ::query(pipeline_query)
             .bind(id.to_string())
-            .fetch_optional(&self.pool)
-            .await
+            .fetch_optional(&self.pool).await
             .map_err(|e| PipelineError::database_error(format!("Failed to load pipeline: {}", e)))?;
 
         let pipeline_row = match pipeline_row {
             Some(row) => row,
-            None => return Ok(None),
+            None => {
+                return Ok(None);
+            }
         };
 
         // Parse pipeline data
@@ -645,20 +712,28 @@ impl SqlitePipelineRepository {
         let created_at_str: String = pipeline_row.get("created_at");
         let updated_at_str: String = pipeline_row.get("updated_at");
 
-        let created_at = chrono::DateTime::parse_from_rfc3339(&created_at_str)
-            .map_err(|e| PipelineError::SerializationError(format!("Invalid created_at format: {}", e)))?
+        let created_at = chrono::DateTime
+            ::parse_from_rfc3339(&created_at_str)
+            .map_err(|e|
+                PipelineError::SerializationError(format!("Invalid created_at format: {}", e))
+            )?
             .with_timezone(&chrono::Utc);
-        let updated_at = chrono::DateTime::parse_from_rfc3339(&updated_at_str)
-            .map_err(|e| PipelineError::SerializationError(format!("Invalid updated_at format: {}", e)))?
+        let updated_at = chrono::DateTime
+            ::parse_from_rfc3339(&updated_at_str)
+            .map_err(|e|
+                PipelineError::SerializationError(format!("Invalid updated_at format: {}", e))
+            )?
             .with_timezone(&chrono::Utc);
 
         // Load configuration
         let config_query = "SELECT key, value FROM pipeline_configuration WHERE pipeline_id = ?";
-        let config_rows = sqlx::query(config_query)
+        let config_rows = sqlx
+            ::query(config_query)
             .bind(id.to_string())
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| PipelineError::database_error(format!("Failed to load configuration: {}", e)))?;
+            .fetch_all(&self.pool).await
+            .map_err(|e|
+                PipelineError::database_error(format!("Failed to load configuration: {}", e))
+            )?;
 
         let mut configuration = HashMap::new();
         for row in config_rows {
@@ -668,17 +743,18 @@ impl SqlitePipelineRepository {
         }
 
         // Load stages
-        let stage_query = r#"
+        let stage_query =
+            r#"
             SELECT id, name, stage_type, enabled, stage_order, algorithm, 
                    parallel_processing, chunk_size, created_at, updated_at 
             FROM pipeline_stages 
             WHERE pipeline_id = ?
             ORDER BY stage_order
         "#;
-        let stage_rows = sqlx::query(stage_query)
+        let stage_rows = sqlx
+            ::query(stage_query)
             .bind(id.to_string())
-            .fetch_all(&self.pool)
-            .await
+            .fetch_all(&self.pool).await
             .map_err(|e| PipelineError::database_error(format!("Failed to load stages: {}", e)))?;
 
         let mut stages = Vec::new();
@@ -697,15 +773,19 @@ impl SqlitePipelineRepository {
             // Parse stage type
             let stage_type = stage_type_str
                 .parse::<StageType>()
-                .map_err(|e| PipelineError::SerializationError(format!("Invalid stage type: {}", e)))?;
+                .map_err(|e|
+                    PipelineError::SerializationError(format!("Invalid stage type: {}", e))
+                )?;
 
             // Load stage parameters from stage_parameters table
             let params_query = "SELECT key, value FROM stage_parameters WHERE stage_id = ?";
-            let params_rows = sqlx::query(params_query)
+            let params_rows = sqlx
+                ::query(params_query)
                 .bind(&stage_id_str)
-                .fetch_all(&self.pool)
-                .await
-                .map_err(|e| PipelineError::database_error(format!("Failed to load stage parameters: {}", e)))?;
+                .fetch_all(&self.pool).await
+                .map_err(|e|
+                    PipelineError::database_error(format!("Failed to load stage parameters: {}", e))
+                )?;
 
             let mut parameters = std::collections::HashMap::new();
             for param_row in params_rows {
@@ -724,15 +804,30 @@ impl SqlitePipelineRepository {
             };
 
             // Parse timestamps
-            let _created_at = chrono::DateTime::parse_from_rfc3339(&created_at_str)
-                .map_err(|e| PipelineError::SerializationError(format!("Invalid stage created_at format: {}", e)))?
+            let _created_at = chrono::DateTime
+                ::parse_from_rfc3339(&created_at_str)
+                .map_err(|e|
+                    PipelineError::SerializationError(
+                        format!("Invalid stage created_at format: {}", e)
+                    )
+                )?
                 .with_timezone(&chrono::Utc);
-            let _updated_at = chrono::DateTime::parse_from_rfc3339(&updated_at_str)
-                .map_err(|e| PipelineError::SerializationError(format!("Invalid stage updated_at format: {}", e)))?
+            let _updated_at = chrono::DateTime
+                ::parse_from_rfc3339(&updated_at_str)
+                .map_err(|e|
+                    PipelineError::SerializationError(
+                        format!("Invalid stage updated_at format: {}", e)
+                    )
+                )?
                 .with_timezone(&chrono::Utc);
 
             // Create stage with proper arguments: name, stage_type, configuration, order
-            let stage = PipelineStage::new(stage_name, stage_type, stage_config, stage_order as u32)?;
+            let stage = PipelineStage::new(
+                stage_name,
+                stage_type,
+                stage_config,
+                stage_order as u32
+            )?;
 
             // Set additional properties that can't be set via constructor
             // Note: We'd need setters or a from_database constructor for this
@@ -765,7 +860,8 @@ impl SqlitePipelineRepository {
 
 // Clean trait implementation that delegates to public methods
 #[async_trait::async_trait]
-impl adaptive_pipeline_domain::repositories::pipeline_repository::PipelineRepository for SqlitePipelineRepository {
+impl adaptive_pipeline_domain::repositories::pipeline_repository::PipelineRepository
+for SqlitePipelineRepository {
     async fn save(&self, entity: &Pipeline) -> Result<(), PipelineError> {
         self.save(entity).await
     }
@@ -802,7 +898,11 @@ impl adaptive_pipeline_domain::repositories::pipeline_repository::PipelineReposi
         self.find_by_name(name).await
     }
 
-    async fn list_paginated(&self, offset: usize, limit: usize) -> Result<Vec<Pipeline>, PipelineError> {
+    async fn list_paginated(
+        &self,
+        offset: usize,
+        limit: usize
+    ) -> Result<Vec<Pipeline>, PipelineError> {
         self.list_paginated(offset, limit).await
     }
 
@@ -838,7 +938,7 @@ mod tests {
             ("/path/to/database.db", "sqlite:///path/to/database.db"),
             ("./local.db", "sqlite://./local.db"),
             (":memory:", "sqlite::memory:"),
-            ("/tmp/test.db", "sqlite:///tmp/test.db"),
+            ("/tmp/test.db", "sqlite:///tmp/test.db")
         ];
 
         for (input_path, expected_url) in test_cases {
@@ -848,7 +948,8 @@ mod tests {
                 format!("sqlite://{}", input_path)
             };
             assert_eq!(
-                formatted_url, expected_url,
+                formatted_url,
+                expected_url,
                 "Database URL formatting failed for path: {}",
                 input_path
             );

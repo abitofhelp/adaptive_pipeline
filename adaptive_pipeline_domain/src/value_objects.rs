@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -196,7 +196,7 @@ pub mod worker_count;
 
 // Re-export all value object types for convenient access
 pub use algorithm::Algorithm;
-pub use binary_file_format::{ChunkFormat, FileHeader, ProcessingStepType};
+pub use binary_file_format::{ ChunkFormat, FileHeader, ProcessingStepType };
 pub use chunk_metadata::ChunkMetadata;
 pub use chunk_size::ChunkSize;
 pub use encryption_benchmark::EncryptionBenchmark;

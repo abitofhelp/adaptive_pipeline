@@ -14,7 +14,7 @@
 
 ### 1.1 Purpose
 
-This Software Test Plan (STP) defines the testing strategy, approach, and organization for the Optimized Adaptive Pipeline system. It ensures the system meets all functional and non-functional requirements specified in the SRS through comprehensive, systematic testing.
+This Software Test Plan (STP) defines the testing strategy, approach, and organization for the Adaptive Pipeline system. It ensures the system meets all functional and non-functional requirements specified in the SRS through comprehensive, systematic testing.
 
 **Intended Audience:**
 - QA engineers implementing tests
@@ -1018,7 +1018,7 @@ cargo audit
 
 ## 14. Conclusion
 
-This Software Test Plan establishes a comprehensive testing strategy for the Optimized Adaptive Pipeline system. Key highlights:
+This Software Test Plan establishes a comprehensive testing strategy for the Adaptive Pipeline system. Key highlights:
 
 - **389 tests** across all levels (314 unit, 35 integration, 11 E2E, 2 architecture, 27 doc)
 - **Organized structure** following Rust best practices

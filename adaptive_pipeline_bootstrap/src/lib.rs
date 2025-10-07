@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -137,8 +137,8 @@ pub mod signals;
 // pub mod app_runner;
 
 // Re-export commonly used types
-pub use cli::{parse_and_validate, ValidatedCli, ValidatedCommand};
-pub use exit_code::{map_error_to_exit_code, result_to_exit_code, ExitCode};
+pub use cli::{ parse_and_validate, ValidatedCli, ValidatedCommand };
+pub use exit_code::{ map_error_to_exit_code, result_to_exit_code, ExitCode };
 
 /// Bootstrap and parse CLI arguments
 ///

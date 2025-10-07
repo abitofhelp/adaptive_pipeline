@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -16,11 +16,11 @@
 use async_trait::async_trait;
 use adaptive_pipeline_domain::error::PipelineError;
 use adaptive_pipeline_domain::services::datetime_serde;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::RwLock;
-use std::time::{Duration, Instant};
+use std::time::{ Duration, Instant };
 
 /// Generic trait for metrics that can be collected and aggregated
 ///
@@ -68,10 +68,7 @@ pub trait CollectibleMetrics: Clone + Debug + Send + Sync + Default + 'static {
 
 /// Generic metric entry with timing and metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MetricEntry<T>
-where
-    T: CollectibleMetrics,
-{
+pub struct MetricEntry<T> where T: CollectibleMetrics {
     pub operation_id: String,
     pub operation_type: String,
     pub metrics: T,
@@ -86,10 +83,7 @@ where
     pub tags: Vec<String>,
 }
 
-impl<T> MetricEntry<T>
-where
-    T: CollectibleMetrics,
-{
+impl<T> MetricEntry<T> where T: CollectibleMetrics {
     pub fn new(operation_id: String, operation_type: String, metrics: T) -> Self {
         let now = chrono::Utc::now();
         Self {
@@ -108,7 +102,8 @@ where
 
     pub fn with_duration(mut self, duration: Duration) -> Self {
         self.duration_ms = duration.as_millis() as u64;
-        self.completed_at = self.started_at + chrono::Duration::milliseconds(self.duration_ms as i64);
+        self.completed_at =
+            self.started_at + chrono::Duration::milliseconds(self.duration_ms as i64);
         self
     }
 
@@ -130,10 +125,7 @@ where
 }
 
 /// Generic metrics collector for any operation type
-pub struct GenericMetricsCollector<T>
-where
-    T: CollectibleMetrics,
-{
+pub struct GenericMetricsCollector<T> where T: CollectibleMetrics {
     collector_name: String,
     entries: RwLock<Vec<MetricEntry<T>>>,
     aggregated_metrics: RwLock<T>,
@@ -142,10 +134,7 @@ where
     auto_aggregate: bool,
 }
 
-impl<T> GenericMetricsCollector<T>
-where
-    T: CollectibleMetrics,
-{
+impl<T> GenericMetricsCollector<T> where T: CollectibleMetrics {
     /// Creates a new metrics collector
     pub fn new(collector_name: String) -> Self {
         Self {
@@ -172,10 +161,11 @@ where
 
     /// Starts tracking an operation
     pub fn start_operation(&self, operation_id: String) -> Result<(), PipelineError> {
-        let mut active_ops = self
-            .active_operations
+        let mut active_ops = self.active_operations
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))?;
+            .map_err(|e|
+                PipelineError::InternalError(format!("Failed to write active operations: {}", e))
+            )?;
 
         active_ops.insert(operation_id, Instant::now());
         Ok(())
@@ -186,13 +176,16 @@ where
         &self,
         operation_id: String,
         operation_type: String,
-        metrics: T,
+        metrics: T
     ) -> Result<(), PipelineError> {
         let start_time = {
-            let mut active_ops = self
-                .active_operations
+            let mut active_ops = self.active_operations
                 .write()
-                .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))?;
+                .map_err(|e|
+                    PipelineError::InternalError(
+                        format!("Failed to write active operations: {}", e)
+                    )
+                )?;
 
             active_ops.remove(&operation_id)
         };
@@ -201,7 +194,9 @@ where
             .map(|start| start.elapsed())
             .unwrap_or_else(|| Duration::from_millis(0));
 
-        let entry = MetricEntry::new(operation_id, operation_type, metrics.clone()).with_duration(duration);
+        let entry = MetricEntry::new(operation_id, operation_type, metrics.clone()).with_duration(
+            duration
+        );
 
         self.record_entry(entry)?;
 
@@ -214,8 +209,7 @@ where
 
     /// Records a metric entry directly
     pub fn record_entry(&self, entry: MetricEntry<T>) -> Result<(), PipelineError> {
-        let mut entries = self
-            .entries
+        let mut entries = self.entries
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write entries: {}", e)))?;
 
@@ -234,13 +228,16 @@ where
         &self,
         operation_id: String,
         operation_type: String,
-        error: PipelineError,
+        error: PipelineError
     ) -> Result<(), PipelineError> {
         let start_time = {
-            let mut active_ops = self
-                .active_operations
+            let mut active_ops = self.active_operations
                 .write()
-                .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))?;
+                .map_err(|e|
+                    PipelineError::InternalError(
+                        format!("Failed to write active operations: {}", e)
+                    )
+                )?;
 
             active_ops.remove(&operation_id)
         };
@@ -258,10 +255,11 @@ where
 
     /// Aggregates metrics into the running total
     fn aggregate_metrics(&self, metrics: &T) -> Result<(), PipelineError> {
-        let mut aggregated = self
-            .aggregated_metrics
+        let mut aggregated = self.aggregated_metrics
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e)))?;
+            .map_err(|e|
+                PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e))
+            )?;
 
         aggregated.merge(metrics);
         Ok(())
@@ -271,7 +269,9 @@ where
     pub fn get_aggregated_metrics(&self) -> Result<T, PipelineError> {
         self.aggregated_metrics
             .read()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to read aggregated metrics: {}", e)))
+            .map_err(|e|
+                PipelineError::InternalError(format!("Failed to read aggregated metrics: {}", e))
+            )
             .map(|metrics| metrics.clone())
     }
 
@@ -284,43 +284,51 @@ where
     }
 
     /// Gets entries filtered by operation type
-    pub fn get_entries_by_type(&self, operation_type: &str) -> Result<Vec<MetricEntry<T>>, PipelineError> {
+    pub fn get_entries_by_type(
+        &self,
+        operation_type: &str
+    ) -> Result<Vec<MetricEntry<T>>, PipelineError> {
         let entries = self.get_entries()?;
-        Ok(entries
-            .into_iter()
-            .filter(|entry| entry.operation_type == operation_type)
-            .collect())
+        Ok(
+            entries
+                .into_iter()
+                .filter(|entry| entry.operation_type == operation_type)
+                .collect()
+        )
     }
 
     /// Gets entries within a time range
     pub fn get_entries_in_range(
         &self,
         start: chrono::DateTime<chrono::Utc>,
-        end: chrono::DateTime<chrono::Utc>,
+        end: chrono::DateTime<chrono::Utc>
     ) -> Result<Vec<MetricEntry<T>>, PipelineError> {
         let entries = self.get_entries()?;
-        Ok(entries
-            .into_iter()
-            .filter(|entry| entry.started_at >= start && entry.completed_at <= end)
-            .collect())
+        Ok(
+            entries
+                .into_iter()
+                .filter(|entry| entry.started_at >= start && entry.completed_at <= end)
+                .collect()
+        )
     }
 
     /// Resets all metrics and entries
     pub fn reset(&self) -> Result<(), PipelineError> {
-        let mut entries = self
-            .entries
+        let mut entries = self.entries
             .write()
             .map_err(|e| PipelineError::InternalError(format!("Failed to write entries: {}", e)))?;
 
-        let mut aggregated = self
-            .aggregated_metrics
+        let mut aggregated = self.aggregated_metrics
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e)))?;
+            .map_err(|e|
+                PipelineError::InternalError(format!("Failed to write aggregated metrics: {}", e))
+            )?;
 
-        let mut active_ops = self
-            .active_operations
+        let mut active_ops = self.active_operations
             .write()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to write active operations: {}", e)))?;
+            .map_err(|e|
+                PipelineError::InternalError(format!("Failed to write active operations: {}", e))
+            )?;
 
         entries.clear();
         aggregated.reset();
@@ -339,21 +347,41 @@ where
         summary.insert("total_entries".to_string(), entries.len().to_string());
         summary.insert(
             "successful_operations".to_string(),
-            entries.iter().filter(|e| e.success).count().to_string(),
+            entries
+                .iter()
+                .filter(|e| e.success)
+                .count()
+                .to_string()
         );
         summary.insert(
             "failed_operations".to_string(),
-            entries.iter().filter(|e| !e.success).count().to_string(),
+            entries
+                .iter()
+                .filter(|e| !e.success)
+                .count()
+                .to_string()
         );
 
         if !entries.is_empty() {
-            let avg_duration = entries.iter().map(|e| e.duration_ms).sum::<u64>() / entries.len() as u64;
+            let avg_duration =
+                entries
+                    .iter()
+                    .map(|e| e.duration_ms)
+                    .sum::<u64>() / (entries.len() as u64);
             summary.insert("average_duration_ms".to_string(), avg_duration.to_string());
 
-            let max_duration = entries.iter().map(|e| e.duration_ms).max().unwrap_or(0);
+            let max_duration = entries
+                .iter()
+                .map(|e| e.duration_ms)
+                .max()
+                .unwrap_or(0);
             summary.insert("max_duration_ms".to_string(), max_duration.to_string());
 
-            let min_duration = entries.iter().map(|e| e.duration_ms).min().unwrap_or(0);
+            let min_duration = entries
+                .iter()
+                .map(|e| e.duration_ms)
+                .min()
+                .unwrap_or(0);
             summary.insert("min_duration_ms".to_string(), min_duration.to_string());
         }
 
@@ -373,17 +401,16 @@ where
     pub fn active_operations_count(&self) -> Result<usize, PipelineError> {
         self.active_operations
             .read()
-            .map_err(|e| PipelineError::InternalError(format!("Failed to read active operations: {}", e)))
+            .map_err(|e|
+                PipelineError::InternalError(format!("Failed to read active operations: {}", e))
+            )
             .map(|ops| ops.len())
     }
 }
 
 /// Trait for services that support metrics collection
 #[async_trait]
-pub trait MetricsEnabled<T>
-where
-    T: CollectibleMetrics,
-{
+pub trait MetricsEnabled<T> where T: CollectibleMetrics {
     /// Gets the metrics collector for this service
     fn metrics_collector(&self) -> &GenericMetricsCollector<T>;
 
@@ -392,10 +419,9 @@ where
         &self,
         operation_id: String,
         operation_type: String,
-        metrics: T,
+        metrics: T
     ) -> Result<(), PipelineError> {
-        self.metrics_collector()
-            .complete_operation(operation_id, operation_type, metrics)
+        self.metrics_collector().complete_operation(operation_id, operation_type, metrics)
     }
 
     /// Records a failed operation
@@ -403,10 +429,9 @@ where
         &self,
         operation_id: String,
         operation_type: String,
-        error: PipelineError,
+        error: PipelineError
     ) -> Result<(), PipelineError> {
-        self.metrics_collector()
-            .record_failure(operation_id, operation_type, error)
+        self.metrics_collector().record_failure(operation_id, operation_type, error)
     }
 
     /// Gets current metrics summary
@@ -461,9 +486,11 @@ mod tests {
 
         fn validate(&self) -> Result<(), PipelineError> {
             if self.operations_count < self.errors_count {
-                return Err(PipelineError::InternalError(
-                    "Error count cannot exceed operations count".to_string(),
-                ));
+                return Err(
+                    PipelineError::InternalError(
+                        "Error count cannot exceed operations count".to_string()
+                    )
+                );
             }
             Ok(())
         }
@@ -522,12 +549,8 @@ mod tests {
             errors_count: 1,
         };
 
-        collector
-            .complete_operation("op1".to_string(), "test".to_string(), metrics1)
-            .unwrap();
-        collector
-            .complete_operation("op2".to_string(), "test".to_string(), metrics2)
-            .unwrap();
+        collector.complete_operation("op1".to_string(), "test".to_string(), metrics1).unwrap();
+        collector.complete_operation("op2".to_string(), "test".to_string(), metrics2).unwrap();
 
         let aggregated = collector.get_aggregated_metrics().unwrap();
         assert_eq!(aggregated.bytes_processed, 3072);
@@ -546,9 +569,7 @@ mod tests {
             errors_count: 0,
         };
 
-        collector
-            .complete_operation("op1".to_string(), "test".to_string(), metrics)
-            .unwrap();
+        collector.complete_operation("op1".to_string(), "test".to_string(), metrics).unwrap();
 
         let summary = collector.get_summary().unwrap();
         assert_eq!(summary.get("collector_name").unwrap(), "test_collector");
@@ -568,7 +589,7 @@ mod tests {
             .record_failure(
                 "op1".to_string(),
                 "test_operation".to_string(),
-                PipelineError::InternalError("Test error".to_string()),
+                PipelineError::InternalError("Test error".to_string())
             )
             .unwrap();
 

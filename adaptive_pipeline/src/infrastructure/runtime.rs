@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -30,7 +30,12 @@ pub mod supervisor;
 
 // Re-export commonly used types
 pub use resource_manager::{
-    init_resource_manager, resource_manager, GlobalResourceManager, ResourceConfig, StorageType, RESOURCE_MANAGER,
+    init_resource_manager,
+    resource_manager,
+    GlobalResourceManager,
+    ResourceConfig,
+    StorageType,
+    RESOURCE_MANAGER,
 };
 
-pub use supervisor::{join_supervised, spawn_supervised, AppResult};
+pub use supervisor::{ join_supervised, spawn_supervised, AppResult };

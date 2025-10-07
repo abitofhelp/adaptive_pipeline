@@ -14,7 +14,7 @@
 
 ### 1.1 Purpose
 
-This Software Requirements Specification (SRS) defines the functional and non-functional requirements for the Optimized Adaptive Pipeline system, a high-performance file processing pipeline implemented in Rust using Domain-Driven Design, Clean Architecture, and Hexagonal Architecture patterns.
+This Software Requirements Specification (SRS) defines the functional and non-functional requirements for the Adaptive Pipeline system, a high-performance file processing pipeline implemented in Rust using Domain-Driven Design, Clean Architecture, and Hexagonal Architecture patterns.
 
 **Intended Audience:**
 - Software developers implementing pipeline features
@@ -24,7 +24,7 @@ This Software Requirements Specification (SRS) defines the functional and non-fu
 
 ### 1.2 Scope
 
-**System Name:** Optimized Adaptive Pipeline RS
+**System Name:** Adaptive Pipeline RS
 
 **System Purpose:** Provide a configurable, extensible pipeline for processing files through multiple stages including compression, encryption, integrity verification, and custom transformations.
 
@@ -88,7 +88,7 @@ This SRS is organized as follows:
 
 ### 2.1 Product Perspective
 
-The Optimized Adaptive Pipeline is a standalone library and CLI application for file processing. It operates as:
+The Adaptive Pipeline is a standalone library and CLI application for file processing. It operates as:
 
 **Architectural Context:**
 ```

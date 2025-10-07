@@ -1,5 +1,5 @@
 # Copyright (c) 2025 A Bit of Help, Inc.
-# Observability Configuration for Optimized Adaptive Pipeline
+# Observability Configuration for Adaptive Pipeline
 
 [observability]
 # Enable structured logging for better log analysis
@@ -111,11 +111,11 @@ enable_encryption_overhead_tracking = true
 
 # Performance monitoring
 track_memory_usage_per_stage = true
-track_cpu_usage_per_stage = false  # Requires additional dependencies
+track_cpu_usage_per_stage = false   # Requires additional dependencies
 track_io_operations = true
 
 # Detailed logging
-log_chunk_processing = false  # Can be verbose
+log_chunk_processing = false    # Can be verbose
 log_stage_transitions = true
 log_error_details = true
 log_performance_warnings = true
@@ -134,7 +134,7 @@ show_error_breakdown = true
 
 [export]
 # Metrics export settings
-export_format = "prometheus"  # prometheus, json, csv
+export_format = "prometheus" # prometheus, json, csv
 export_compressed = true
 export_batch_size = 1000
 

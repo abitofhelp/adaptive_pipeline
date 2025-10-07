@@ -8,7 +8,7 @@
 **Authors:** Michael Gardner
 **Status:** Draft
 
-Get up and running with the Optimized Adaptive Pipeline in 5 minutes.
+Get up and running with the Adaptive Pipeline in 5 minutes.
 
 ## Prerequisites
 

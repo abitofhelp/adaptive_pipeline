@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -111,7 +111,7 @@
 //! - **JSON**: String representation for API compatibility
 //! - **Database**: TEXT column with validation constraints
 
-use std::fmt::{self, Display};
+use std::fmt::{ self, Display };
 
 use crate::PipelineError;
 
@@ -248,13 +248,17 @@ impl EncryptionKeyId {
 
     /// Checks if this is a development key
     pub fn is_development(&self) -> bool {
-        self.0.contains("-dev-") || self.0.contains("_dev_") || self.0.contains("-test-") || self.0.contains("_test_")
+        self.0.contains("-dev-") ||
+            self.0.contains("_dev_") ||
+            self.0.contains("-test-") ||
+            self.0.contains("_test_")
     }
 
     /// Checks if this key supports the given algorithm
     pub fn supports_algorithm(&self, algorithm: &str) -> bool {
         if let Some(key_algo) = self.algorithm() {
-            key_algo.eq_ignore_ascii_case(algorithm) || key_algo.eq_ignore_ascii_case(&algorithm.replace('-', ""))
+            key_algo.eq_ignore_ascii_case(algorithm) ||
+                key_algo.eq_ignore_ascii_case(&algorithm.replace('-', ""))
         } else {
             false
         }
@@ -297,55 +301,69 @@ impl EncryptionKeyId {
             let new_key_id = format!("{}-v{}-{}", algo, next_version, identifier);
             Self::new(new_key_id)
         } else {
-            Err(PipelineError::InvalidConfiguration(
-                "Cannot create next version: invalid key ID format".to_string(),
-            ))
+            Err(
+                PipelineError::InvalidConfiguration(
+                    "Cannot create next version: invalid key ID format".to_string()
+                )
+            )
         }
     }
 
     /// Validates the key ID format
     fn validate_format(key_id: &str) -> Result<(), PipelineError> {
         if key_id.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Encryption key ID cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration("Encryption key ID cannot be empty".to_string())
+            );
         }
 
         if key_id.len() < 8 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Encryption key ID must be at least 8 characters".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Encryption key ID must be at least 8 characters".to_string()
+                )
+            );
         }
 
         if key_id.len() > 64 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Encryption key ID cannot exceed 64 characters".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Encryption key ID cannot exceed 64 characters".to_string()
+                )
+            );
         }
 
         // Key IDs should contain only alphanumeric, hyphens, and underscores
-        if !key_id
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-        {
-            return Err(PipelineError::InvalidConfiguration(
-                "Encryption key ID must contain only alphanumeric characters, hyphens, and underscores".to_string(),
-            ));
+        if !key_id.chars().all(|c| (c.is_ascii_alphanumeric() || c == '-' || c == '_')) {
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Encryption key ID must contain only alphanumeric characters, hyphens, and underscores".to_string()
+                )
+            );
         }
 
         // Cannot start or end with hyphen or underscore
-        if key_id.starts_with('-') || key_id.ends_with('-') || key_id.starts_with('_') || key_id.ends_with('_') {
-            return Err(PipelineError::InvalidConfiguration(
-                "Encryption key ID cannot start or end with hyphen or underscore".to_string(),
-            ));
+        if
+            key_id.starts_with('-') ||
+            key_id.ends_with('-') ||
+            key_id.starts_with('_') ||
+            key_id.ends_with('_')
+        {
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Encryption key ID cannot start or end with hyphen or underscore".to_string()
+                )
+            );
         }
 
         // Should have at least 2 parts separated by hyphen or underscore
         let parts: Vec<&str> = key_id.split(&['-', '_'][..]).collect();
         if parts.len() < 2 {
-            return Err(PipelineError::InvalidConfiguration(
-                "Encryption key ID should have at least algorithm and identifier parts".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Encryption key ID should have at least algorithm and identifier parts".to_string()
+                )
+            );
         }
 
         Ok(())
@@ -398,13 +416,21 @@ impl EncryptionKeyId {
     }
 
     /// Creates a production key ID
-    pub fn production(algorithm: &str, version: u32, identifier: &str) -> Result<Self, PipelineError> {
+    pub fn production(
+        algorithm: &str,
+        version: u32,
+        identifier: &str
+    ) -> Result<Self, PipelineError> {
         let key_id = format!("{}-v{}-prod-{}", algorithm, version, identifier);
         Self::new(key_id)
     }
 
     /// Creates a development key ID
-    pub fn development(algorithm: &str, version: u32, identifier: &str) -> Result<Self, PipelineError> {
+    pub fn development(
+        algorithm: &str,
+        version: u32,
+        identifier: &str
+    ) -> Result<Self, PipelineError> {
         let key_id = format!("{}-v{}-dev-{}", algorithm, version, identifier);
         Self::new(key_id)
     }
@@ -423,7 +449,10 @@ pub mod encryption_key_id_utils {
     }
 
     /// Filters keys by algorithm
-    pub fn filter_by_algorithm(key_ids: &[EncryptionKeyId], algorithm: &str) -> Vec<EncryptionKeyId> {
+    pub fn filter_by_algorithm(
+        key_ids: &[EncryptionKeyId],
+        algorithm: &str
+    ) -> Vec<EncryptionKeyId> {
         key_ids
             .iter()
             .filter(|key_id| key_id.supports_algorithm(algorithm))
@@ -453,27 +482,27 @@ pub mod encryption_key_id_utils {
     pub fn find_latest_version(
         key_ids: &[EncryptionKeyId],
         algorithm: &str,
-        identifier: &str,
+        identifier: &str
     ) -> Option<EncryptionKeyId> {
         key_ids
             .iter()
             .filter(|key_id| {
-                key_id.supports_algorithm(algorithm) && key_id.identifier().is_some_and(|id| id.contains(identifier))
+                key_id.supports_algorithm(algorithm) &&
+                    key_id.identifier().is_some_and(|id| id.contains(identifier))
             })
             .max_by_key(|key_id| key_id.version_number().unwrap_or(0))
             .cloned()
     }
 
     /// Groups keys by algorithm
-    pub fn group_by_algorithm(key_ids: &[EncryptionKeyId]) -> std::collections::HashMap<String, Vec<EncryptionKeyId>> {
+    pub fn group_by_algorithm(
+        key_ids: &[EncryptionKeyId]
+    ) -> std::collections::HashMap<String, Vec<EncryptionKeyId>> {
         let mut groups = std::collections::HashMap::new();
 
         for key_id in key_ids {
             if let Some(algorithm) = key_id.algorithm() {
-                groups
-                    .entry(algorithm.to_string())
-                    .or_insert_with(Vec::new)
-                    .push(key_id.clone());
+                groups.entry(algorithm.to_string()).or_insert_with(Vec::new).push(key_id.clone());
             }
         }
 
@@ -729,7 +758,7 @@ mod tests {
             EncryptionKeyId::aes256(1, "prod-2024").unwrap(),
             EncryptionKeyId::aes256(2, "prod-2024").unwrap(),
             EncryptionKeyId::chacha20(1, "dev-test").unwrap(),
-            EncryptionKeyId::production("rsa2048", 1, "main").unwrap(),
+            EncryptionKeyId::production("rsa2048", 1, "main").unwrap()
         ];
 
         assert!(encryption_key_id_utils::validate_batch(&key_ids).is_ok());

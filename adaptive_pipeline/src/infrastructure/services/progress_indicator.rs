@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -170,11 +170,11 @@
 //! - **Fallback**: Can fall back to silent operation if terminal is unavailable
 //! - **Recovery**: Automatically recovers from transient terminal issues
 
-use std::io::{self, Write};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::io::{ self, Write };
+use std::sync::atomic::{ AtomicU64, Ordering };
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tokio::time::{Duration, Instant};
+use tokio::time::{ Duration, Instant };
 
 /// Real-time progress indicator for user feedback during pipeline processing.
 ///
@@ -296,7 +296,12 @@ impl ProgressIndicatorService {
     /// * `bytes_processed` - Total bytes processed
     /// * `throughput_mb_s` - Processing throughput in MB/s
     /// * `total_duration` - Total time taken for processing
-    pub async fn show_completion(&self, _bytes_processed: u64, _throughput_mb_s: f64, _total_duration: Duration) {
+    pub async fn show_completion(
+        &self,
+        _bytes_processed: u64,
+        _throughput_mb_s: f64,
+        _total_duration: Duration
+    ) {
         let _terminal_lock = self.terminal_mutex.lock().await;
 
         // Clear the progress line and show final progress with correct total
@@ -341,7 +346,7 @@ impl ProgressIndicatorService {
     pub fn progress_percentage(&self) -> f64 {
         let completed = self.completed_chunks.load(Ordering::Relaxed);
         if self.total_chunks > 0 {
-            (completed as f64 / self.total_chunks as f64) * 100.0
+            ((completed as f64) / (self.total_chunks as f64)) * 100.0
         } else {
             0.0
         }
@@ -387,7 +392,7 @@ fn format_bytes(bytes: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::time::{sleep, Duration};
+    use tokio::time::{ sleep, Duration };
 
     #[tokio::test]
     async fn test_progress_indicator_creation() {

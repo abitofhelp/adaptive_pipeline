@@ -11,7 +11,7 @@
 
 ## Overview
 
-The Optimized Adaptive Pipeline uses **SQLite** for data persistence with an automated schema management system powered by **sqlx migrations**. This chapter explains the database schema design, migration strategy, and best practices for schema evolution.
+The Adaptive Pipeline uses **SQLite** for data persistence with an automated schema management system powered by **sqlx migrations**. This chapter explains the database schema design, migration strategy, and best practices for schema evolution.
 
 ### Key Features
 

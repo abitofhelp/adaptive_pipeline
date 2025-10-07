@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -122,7 +122,7 @@
 //! - **JSON**: String representation for API compatibility
 //! - **Database**: TEXT column with validation constraints
 
-use std::fmt::{self, Display};
+use std::fmt::{ self, Display };
 
 use crate::PipelineError;
 
@@ -245,39 +245,33 @@ impl UserId {
 
     /// Checks if this is a username format user ID
     pub fn is_username(&self) -> bool {
-        !self.is_email()
-            && !self.is_uuid()
-            && self
-                .0
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        !self.is_email() &&
+            !self.is_uuid() &&
+            self.0.chars().all(|c| (c.is_ascii_alphanumeric() || c == '_' || c == '-'))
     }
 
     /// Checks if this is a UUID format user ID
     pub fn is_uuid(&self) -> bool {
-        self.0.len() == 36
-            && self.0.chars().enumerate().all(|(i, c)| match i {
-                8 | 13 | 18 | 23 => c == '-',
-                _ => c.is_ascii_hexdigit(),
-            })
+        self.0.len() == 36 &&
+            self.0
+                .chars()
+                .enumerate()
+                .all(|(i, c)| {
+                    match i {
+                        8 | 13 | 18 | 23 => c == '-',
+                        _ => c.is_ascii_hexdigit(),
+                    }
+                })
     }
 
     /// Gets the domain from email format user ID
     pub fn email_domain(&self) -> Option<&str> {
-        if self.is_email() {
-            self.0.split('@').nth(1)
-        } else {
-            None
-        }
+        if self.is_email() { self.0.split('@').nth(1) } else { None }
     }
 
     /// Gets the local part from email format user ID
     pub fn email_local(&self) -> Option<&str> {
-        if self.is_email() {
-            self.0.split('@').next()
-        } else {
-            None
-        }
+        if self.is_email() { self.0.split('@').next() } else { None }
     }
 
     /// Checks if user belongs to a specific domain
@@ -324,18 +318,18 @@ impl UserId {
     ///
     /// # Examples
     pub fn is_system_user(&self) -> bool {
-        self.0.starts_with("system-")
-            || self.0.starts_with("service-")
-            || self.0.starts_with("bot-")
-            || self.0.starts_with("api-")
+        self.0.starts_with("system-") ||
+            self.0.starts_with("service-") ||
+            self.0.starts_with("bot-") ||
+            self.0.starts_with("api-")
     }
 
     /// Checks if this is an admin user (contains 'admin' or ends with '-admin')
     pub fn is_admin_user(&self) -> bool {
-        self.0.contains("admin")
-            || self.0.contains("administrator")
-            || self.0.ends_with("-admin")
-            || self.0.starts_with("admin-")
+        self.0.contains("admin") ||
+            self.0.contains("administrator") ||
+            self.0.ends_with("-admin") ||
+            self.0.starts_with("admin-")
     }
 
     /// Gets the user type based on format and content
@@ -364,58 +358,66 @@ impl UserId {
         let domain = parts[1];
 
         // Basic validation
-        !local.is_empty()
-            && !domain.is_empty()
-            && domain.contains('.')
-            && local.len() <= 64
-            && domain.len() <= 255
-            && !local.starts_with('.')
-            && !local.ends_with('.')
-            && !domain.starts_with('.')
-            && !domain.ends_with('.')
+        !local.is_empty() &&
+            !domain.is_empty() &&
+            domain.contains('.') &&
+            local.len() <= 64 &&
+            domain.len() <= 255 &&
+            !local.starts_with('.') &&
+            !local.ends_with('.') &&
+            !domain.starts_with('.') &&
+            !domain.ends_with('.')
     }
 
     /// Validates the user ID format
     fn validate_format(user_id: &str) -> Result<(), PipelineError> {
         if user_id.is_empty() {
-            return Err(PipelineError::InvalidConfiguration(
-                "User ID cannot be empty".to_string(),
-            ));
+            return Err(PipelineError::InvalidConfiguration("User ID cannot be empty".to_string()));
         }
 
         if user_id.len() < 2 {
-            return Err(PipelineError::InvalidConfiguration(
-                "User ID must be at least 2 characters".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "User ID must be at least 2 characters".to_string()
+                )
+            );
         }
 
         if user_id.len() > 320 {
-            return Err(PipelineError::InvalidConfiguration(
-                "User ID cannot exceed 320 characters".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "User ID cannot exceed 320 characters".to_string()
+                )
+            );
         }
 
         // Check for whitespace at start/end
         if user_id.trim() != user_id {
-            return Err(PipelineError::InvalidConfiguration(
-                "User ID cannot have leading or trailing whitespace".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "User ID cannot have leading or trailing whitespace".to_string()
+                )
+            );
         }
 
         // Check for invalid characters (control characters)
         if user_id.chars().any(|c| c.is_control()) {
-            return Err(PipelineError::InvalidConfiguration(
-                "User ID cannot contain control characters".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "User ID cannot contain control characters".to_string()
+                )
+            );
         }
 
         // If it looks like an email, validate email format
         if user_id.contains('@') {
             let temp_user_id = Self(user_id.to_string());
             if !temp_user_id.is_valid_email_format() {
-                return Err(PipelineError::InvalidConfiguration(
-                    "Invalid email format for user ID".to_string(),
-                ));
+                return Err(
+                    PipelineError::InvalidConfiguration(
+                        "Invalid email format for user ID".to_string()
+                    )
+                );
             }
         }
 
@@ -481,9 +483,11 @@ impl UserId {
     pub fn email(email: &str) -> Result<Self, PipelineError> {
         let user_id = Self::new(email.to_string())?;
         if !user_id.is_email() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Provided string is not a valid email format".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Provided string is not a valid email format".to_string()
+                )
+            );
         }
         Ok(user_id.normalize())
     }
@@ -492,9 +496,11 @@ impl UserId {
     pub fn username(username: &str) -> Result<Self, PipelineError> {
         let user_id = Self::new(username.to_string())?;
         if !user_id.is_username() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Provided string is not a valid username format".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Provided string is not a valid username format".to_string()
+                )
+            );
         }
         Ok(user_id)
     }
@@ -503,9 +509,11 @@ impl UserId {
     pub fn uuid(uuid: &str) -> Result<Self, PipelineError> {
         let user_id = Self::new(uuid.to_string())?;
         if !user_id.is_uuid() {
-            return Err(PipelineError::InvalidConfiguration(
-                "Provided string is not a valid UUID format".to_string(),
-            ));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    "Provided string is not a valid UUID format".to_string()
+                )
+            );
         }
         Ok(user_id)
     }
@@ -573,7 +581,10 @@ pub mod user_id_utils {
 
     /// Normalizes a collection of user IDs
     pub fn normalize_batch(user_ids: &[UserId]) -> Vec<UserId> {
-        user_ids.iter().map(|user_id| user_id.normalize()).collect()
+        user_ids
+            .iter()
+            .map(|user_id| user_id.normalize())
+            .collect()
     }
 
     /// Groups users by domain
@@ -814,7 +825,7 @@ mod tests {
         let username_user = UserId::new("Username123".to_string()).unwrap();
         let normalized = username_user.normalize();
         assert_eq!(normalized.value(), "Username123"); // Username not
-                                                       // normalized
+        // normalized
     }
 
     /// Tests user ID builder methods for type-specific creation.
@@ -911,7 +922,7 @@ mod tests {
             UserId::email("user2@other.com").unwrap(),
             UserId::username("testuser").unwrap(),
             UserId::system("backup").unwrap(),
-            UserId::email("admin@example.com").unwrap(),
+            UserId::email("admin@example.com").unwrap()
         ];
 
         assert!(user_id_utils::validate_batch(&user_ids).is_ok());

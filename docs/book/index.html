@@ -1,47 +1,49 @@
 <!DOCTYPE HTML>
 <html lang="en" class="light sidebar-visible" dir="ltr">
-    <head>
-        <!-- Book generated using mdBook -->
-        <meta charset="UTF-8">
-        <title>Introduction - Optimized Adaptive Pipeline</title>
+
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>Introduction - Adaptive Pipeline</title>
 
 
-        <!-- Custom HTML head -->
+    <!-- Custom HTML head -->
 
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+    <link rel="icon" href="favicon.svg">
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+    <link rel="stylesheet" href="css/print.css" media="print">
 
-        <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    <link rel="stylesheet" href="fonts/fonts.css">
 
-        <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" id="highlight-css" href="highlight.css">
+    <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+    <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
-        <!-- Custom theme stylesheets -->
+    <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root and default themes to javascript -->
-        <script>
-            const path_to_root = "";
-            const default_light_theme = "light";
-            const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex.js";
-        </script>
-        <!-- Start loading toc.js asap -->
-        <script src="toc.js"></script>
-    </head>
-    <body>
+    <!-- Provide site root and default themes to javascript -->
+    <script>
+        const path_to_root = "";
+        const default_light_theme = "light";
+        const default_dark_theme = "navy";
+        window.path_to_searchindex_js = "searchindex.js";
+    </script>
+    <!-- Start loading toc.js asap -->
+    <script src="toc.js"></script>
+</head>
+
+<body>
     <div id="mdbook-help-container">
         <div id="mdbook-help-popup">
             <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
@@ -74,7 +76,7 @@
         <script>
             const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
             let theme;
-            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            try { theme = localStorage.getItem('mdbook-theme'); } catch (e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
             html.classList.remove('light')
@@ -89,7 +91,7 @@
             let sidebar = null;
             const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
-                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch (e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
@@ -119,10 +121,14 @@
                 <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor"
+                            title="Toggle Table of Contents" aria-label="Toggle Table of Contents"
+                            aria-controls="sidebar">
                             <i class="fa fa-bars"></i>
                         </label>
-                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme"
+                            aria-label="Change theme" aria-haspopup="true" aria-expanded="false"
+                            aria-controls="theme-list">
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
@@ -133,12 +139,14 @@
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)"
+                            aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s"
+                            aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Optimized Adaptive Pipeline</h1>
+                    <h1 class="menu-title">Adaptive Pipeline</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -151,7 +159,8 @@
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
                         <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..."
+                                aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                             <div class="spinner-wrapper">
                                 <i class="fa fa-spinner fa-spin"></i>
                             </div>
@@ -168,7 +177,7 @@
                 <script>
                     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
                     document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
-                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function (link) {
                         link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
                     });
                 </script>
@@ -176,60 +185,76 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
-<p><strong>Version:</strong> 0.1.0
-<strong>Date:</strong> October 2025
-<strong>SPDX-License-Identifier:</strong> BSD-3-Clause
-<strong>License File:</strong> See the LICENSE file in the project root.
-<strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
-<strong>Authors:</strong> Michael Gardner
-<strong>Status:</strong> Draft</p>
-<h2 id="welcome"><a class="header" href="#welcome">Welcome</a></h2>
-<p>Welcome to the <strong>Optimized Adaptive Pipeline</strong> documentation. This project is a high-performance, educational file processing pipeline built in Rust, demonstrating advanced software architecture patterns and modern Rust idioms.</p>
-<h2 id="what-is-this-project"><a class="header" href="#what-is-this-project">What is This Project?</a></h2>
-<p>The Optimized Adaptive Pipeline is:</p>
-<ul>
-<li><strong>A File Processing System</strong> - Transform files through configurable stages (compression, encryption, integrity checking)</li>
-<li><strong>An Educational Resource</strong> - Learn advanced Rust patterns, DDD, Clean Architecture, and Hexagonal Architecture</li>
-<li><strong>Open Source</strong> - Licensed under BSD-3-Clause, contributions welcome</li>
-</ul>
-<h2 id="who-is-this-for"><a class="header" href="#who-is-this-for">Who is This For?</a></h2>
-<ul>
-<li><strong>Rust Developers</strong> learning advanced patterns</li>
-<li><strong>Contributors</strong> wanting to extend the pipeline</li>
-<li><strong>Students</strong> exploring software architecture</li>
-<li><strong>Engineers</strong> seeking secure file processing solutions</li>
-</ul>
-<h2 id="documentation-structure"><a class="header" href="#documentation-structure">Documentation Structure</a></h2>
-<p>This documentation is organized for progressive learning:</p>
-<ol>
-<li><strong>Getting Started</strong> - Quick start, installation, first pipeline</li>
-<li><strong>Architecture</strong> - High-level system design</li>
-<li><strong>Reference</strong> - Glossary and API links</li>
-</ol>
-<p>For detailed technical documentation, see the <strong>Pipeline Developer Guide</strong>.</p>
-<h2 id="quick-links"><a class="header" href="#quick-links">Quick Links</a></h2>
-<ul>
-<li><a href="getting-started/quick-start.html">Quick Start</a> - Get running in 5 minutes</li>
-<li><a href="../pipeline/docs/book/index.html">Pipeline Developer Guide</a> - Detailed technical documentation</li>
-<li><a href="../target/doc/pipeline/index.html">API Documentation</a> - Generated API docs</li>
-<li><a href="https://github.com/abitofhelp/optimized_adaptive_pipeline_rs">GitHub Repository</a></li>
-</ul>
-<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
-<ul>
-<li><strong>Issues</strong>: Report bugs on <a href="https://github.com/abitofhelp/optimized_adaptive_pipeline_rs/issues">GitHub Issues</a></li>
-<li><strong>Discussions</strong>: Ask questions in <a href="https://github.com/abitofhelp/optimized_adaptive_pipeline_rs/discussions">GitHub Discussions</a></li>
-<li><strong>Documentation</strong>: Browse this guide and the Pipeline Developer Guide</li>
-</ul>
-<p>Let's get started!</p>
+                        <p><strong>Version:</strong> 0.1.0
+                            <strong>Date:</strong> October 2025
+                            <strong>SPDX-License-Identifier:</strong> BSD-3-Clause
+                            <strong>License File:</strong> See the LICENSE file in the project root.
+                            <strong>Copyright:</strong> © 2025 Michael Gardner, A Bit of Help, Inc.
+                            <strong>Authors:</strong> Michael Gardner
+                            <strong>Status:</strong> Draft
+                        </p>
+                        <h2 id="welcome"><a class="header" href="#welcome">Welcome</a></h2>
+                        <p>Welcome to the <strong>Adaptive Pipeline</strong> documentation. This project is a
+                            high-performance, educational file processing pipeline built in Rust, demonstrating advanced
+                            software architecture patterns and modern Rust idioms.</p>
+                        <h2 id="what-is-this-project"><a class="header" href="#what-is-this-project">What is This
+                                Project?</a></h2>
+                        <p>The Adaptive Pipeline is:</p>
+                        <ul>
+                            <li><strong>A File Processing System</strong> - Transform files through configurable stages
+                                (compression, encryption, integrity checking)</li>
+                            <li><strong>An Educational Resource</strong> - Learn advanced Rust patterns, DDD, Clean
+                                Architecture, and Hexagonal Architecture</li>
+                            <li><strong>Open Source</strong> - Licensed under BSD-3-Clause, contributions welcome</li>
+                        </ul>
+                        <h2 id="who-is-this-for"><a class="header" href="#who-is-this-for">Who is This For?</a></h2>
+                        <ul>
+                            <li><strong>Rust Developers</strong> learning advanced patterns</li>
+                            <li><strong>Contributors</strong> wanting to extend the pipeline</li>
+                            <li><strong>Students</strong> exploring software architecture</li>
+                            <li><strong>Engineers</strong> seeking secure file processing solutions</li>
+                        </ul>
+                        <h2 id="documentation-structure"><a class="header" href="#documentation-structure">Documentation
+                                Structure</a></h2>
+                        <p>This documentation is organized for progressive learning:</p>
+                        <ol>
+                            <li><strong>Getting Started</strong> - Quick start, installation, first pipeline</li>
+                            <li><strong>Architecture</strong> - High-level system design</li>
+                            <li><strong>Reference</strong> - Glossary and API links</li>
+                        </ol>
+                        <p>For detailed technical documentation, see the <strong>Pipeline Developer Guide</strong>.</p>
+                        <h2 id="quick-links"><a class="header" href="#quick-links">Quick Links</a></h2>
+                        <ul>
+                            <li><a href="getting-started/quick-start.html">Quick Start</a> - Get running in 5 minutes
+                            </li>
+                            <li><a href="../pipeline/docs/book/index.html">Pipeline Developer Guide</a> - Detailed
+                                technical documentation</li>
+                            <li><a href="../target/doc/pipeline/index.html">API Documentation</a> - Generated API docs
+                            </li>
+                            <li><a href="https://github.com/abitofhelp/optimized_adaptive_pipeline_rs">GitHub
+                                    Repository</a></li>
+                        </ul>
+                        <h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+                        <ul>
+                            <li><strong>Issues</strong>: Report bugs on <a
+                                    href="https://github.com/abitofhelp/optimized_adaptive_pipeline_rs/issues">GitHub
+                                    Issues</a></li>
+                            <li><strong>Discussions</strong>: Ask questions in <a
+                                    href="https://github.com/abitofhelp/optimized_adaptive_pipeline_rs/discussions">GitHub
+                                    Discussions</a></li>
+                            <li><strong>Documentation</strong>: Browse this guide and the Pipeline Developer Guide</li>
+                        </ul>
+                        <p>Let's get started!</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
 
-                            <a rel="next prefetch" href="getting-started/quick-start.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
+                        <a rel="next prefetch" href="getting-started/quick-start.html" class="mobile-nav-chapters next"
+                            title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <i class="fa fa-angle-right"></i>
+                        </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -238,9 +263,10 @@
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
 
-                    <a rel="next prefetch" href="getting-started/quick-start.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
+                <a rel="next prefetch" href="getting-started/quick-start.html" class="nav-chapters next"
+                    title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <i class="fa fa-angle-right"></i>
+                </a>
             </nav>
 
         </div>
@@ -266,5 +292,6 @@
 
 
     </div>
-    </body>
+</body>
+
 </html>

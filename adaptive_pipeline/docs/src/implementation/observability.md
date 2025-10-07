@@ -11,7 +11,7 @@
 
 ## Overview
 
-Observability is the ability to understand the internal state of a system by examining its external outputs. The Optimized Adaptive Pipeline implements a comprehensive observability strategy that combines **metrics**, **logging**, and **health monitoring** to provide complete system visibility.
+Observability is the ability to understand the internal state of a system by examining its external outputs. The Adaptive Pipeline implements a comprehensive observability strategy that combines **metrics**, **logging**, and **health monitoring** to provide complete system visibility.
 
 ### Key Principles
 

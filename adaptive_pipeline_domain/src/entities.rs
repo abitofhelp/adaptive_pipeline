@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -181,7 +181,7 @@ pub mod security_context;
 
 // Re-export all entity types for convenient access
 pub use pipeline::Pipeline;
-pub use pipeline_stage::{Operation, PipelineStage, StageConfiguration, StagePosition, StageType};
+pub use pipeline_stage::{ Operation, PipelineStage, StageConfiguration, StagePosition, StageType };
 pub use processing_context::ProcessingContext;
 pub use processing_metrics::ProcessingMetrics;
-pub use security_context::{SecurityContext, SecurityLevel};
+pub use security_context::{ SecurityContext, SecurityLevel };

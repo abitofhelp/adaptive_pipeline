@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -186,8 +186,8 @@
 /// for all `DateTime<Utc>` fields across the domain layer.
 ///
 /// Usage:
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Deserializer, Serializer};
+use chrono::{ DateTime, Utc };
+use serde::{ Deserialize, Deserializer, Serializer };
 
 /// Serializes a `DateTime<Utc>` to RFC3339 format
 ///
@@ -214,8 +214,7 @@ use serde::{Deserialize, Deserializer, Serializer};
 ///
 /// # Examples
 pub fn serialize<S>(dt: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
+    where S: Serializer
 {
     let rfc3339_string = dt.to_rfc3339();
     serializer.serialize_str(&rfc3339_string)
@@ -262,8 +261,7 @@ where
 /// 3. Converts the parsed datetime to UTC timezone
 /// 4. Returns the result or a custom Serde error
 pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-where
-    D: Deserializer<'de>,
+    where D: Deserializer<'de>
 {
     let s = String::deserialize(deserializer)?;
     DateTime::parse_from_rfc3339(&s)
@@ -306,8 +304,7 @@ pub mod optional {
     /// - `Some(datetime)` → Serializes to RFC3339 string
     /// - `None` → Serializes to JSON null
     pub fn serialize<S>(opt_dt: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+        where S: Serializer
     {
         match opt_dt {
             Some(dt) => {
@@ -341,14 +338,14 @@ pub mod optional {
     /// - null or absent → Returns `None`
     /// - Invalid string → Returns error
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
-    where
-        D: Deserializer<'de>,
+        where D: Deserializer<'de>
     {
         let opt_s: Option<String> = Option::deserialize(deserializer)?;
         match opt_s {
-            Some(s) => DateTime::parse_from_rfc3339(&s)
-                .map(|dt| Some(dt.with_timezone(&Utc)))
-                .map_err(serde::de::Error::custom),
+            Some(s) =>
+                DateTime::parse_from_rfc3339(&s)
+                    .map(|dt| Some(dt.with_timezone(&Utc)))
+                    .map_err(serde::de::Error::custom),
             None => Ok(None),
         }
     }

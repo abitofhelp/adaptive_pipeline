@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -184,8 +184,8 @@
 //! - **Performance Metrics**: Built-in performance metrics
 //! - **Validation Framework**: Enhanced validation capabilities
 
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::{ DateTime, Utc };
+use serde::{ Deserialize, Serialize };
 use std::collections::HashMap;
 
 use crate::PipelineError;
@@ -239,15 +239,15 @@ impl ChunkMetadata {
     ///   error
     pub fn new(chunk_size: usize, identifier: String) -> Result<Self, PipelineError> {
         if chunk_size == 0 {
-            return Err(PipelineError::ValidationError(
-                "Chunk size must be greater than zero".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError("Chunk size must be greater than zero".to_string())
+            );
         }
 
         if identifier.trim().is_empty() {
-            return Err(PipelineError::ValidationError(
-                "Chunk identifier cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError("Chunk identifier cannot be empty".to_string())
+            );
         }
 
         Ok(Self {
@@ -265,7 +265,7 @@ impl ChunkMetadata {
         chunk_size: usize,
         identifier: String,
         checksum: Option<String>,
-        stage: Option<String>,
+        stage: Option<String>
     ) -> Self {
         Self {
             chunk_size,
@@ -333,15 +333,17 @@ impl ChunkMetadata {
     /// Validates the metadata integrity
     pub fn validate(&self) -> Result<(), PipelineError> {
         if self.chunk_size == 0 {
-            return Err(PipelineError::ValidationError(
-                "Invalid chunk size: must be greater than zero".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError(
+                    "Invalid chunk size: must be greater than zero".to_string()
+                )
+            );
         }
 
         if self.identifier.trim().is_empty() {
-            return Err(PipelineError::ValidationError(
-                "Invalid identifier: cannot be empty".to_string(),
-            ));
+            return Err(
+                PipelineError::ValidationError("Invalid identifier: cannot be empty".to_string())
+            );
         }
 
         Ok(())
@@ -366,7 +368,9 @@ impl std::fmt::Display for ChunkMetadata {
         write!(
             f,
             "ChunkMetadata(id: {}, size: {} bytes, stage: {:?})",
-            self.identifier, self.chunk_size, self.stage
+            self.identifier,
+            self.chunk_size,
+            self.stage
         )
     }
 }

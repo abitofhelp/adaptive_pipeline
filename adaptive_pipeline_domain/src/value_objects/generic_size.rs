@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// Optimized Adaptive Pipeline RS
+// Adaptive Pipeline RS
 // Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
 // SPDX-License-Identifier: BSD-3-Clause
 // See LICENSE file in the project root.
@@ -208,10 +208,10 @@
 //! - **Performance Optimization**: Further performance optimizations
 //! - **Enhanced Validation**: More sophisticated validation rules
 
-use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+use serde::{ Deserialize, Serialize };
+use std::fmt::{ self, Display };
 use std::marker::PhantomData;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{ Add, Div, Mul, Sub };
 
 use crate::PipelineError;
 
@@ -287,12 +287,16 @@ pub trait SizeCategory {
     /// Validates category-specific constraints
     fn validate_size(bytes: u64) -> Result<(), PipelineError> {
         if bytes > Self::max_size() {
-            return Err(PipelineError::InvalidConfiguration(format!(
-                "{} size {} exceeds maximum allowed {}",
-                Self::category_name(),
-                bytes,
-                Self::max_size()
-            )));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    format!(
+                        "{} size {} exceeds maximum allowed {}",
+                        Self::category_name(),
+                        bytes,
+                        Self::max_size()
+                    )
+                )
+            );
         }
         Ok(())
     }
@@ -327,11 +331,11 @@ impl SizeCategory for MemorySizeMarker {
 
     fn validate_size(bytes: u64) -> Result<(), PipelineError> {
         if bytes > Self::max_size() {
-            return Err(PipelineError::InvalidConfiguration(format!(
-                "Memory size {} exceeds maximum allowed {}",
-                bytes,
-                Self::max_size()
-            )));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    format!("Memory size {} exceeds maximum allowed {}", bytes, Self::max_size())
+                )
+            );
         }
 
         // Memory sizes should be power of 2 aligned for efficiency
@@ -359,11 +363,15 @@ impl SizeCategory for NetworkSizeMarker {
 
     fn validate_size(bytes: u64) -> Result<(), PipelineError> {
         if bytes > Self::max_size() {
-            return Err(PipelineError::InvalidConfiguration(format!(
-                "Network transfer size {} exceeds maximum allowed {}",
-                bytes,
-                Self::max_size()
-            )));
+            return Err(
+                PipelineError::InvalidConfiguration(
+                    format!(
+                        "Network transfer size {} exceeds maximum allowed {}",
+                        bytes,
+                        Self::max_size()
+                    )
+                )
+            );
         }
 
         // Network transfers should be reasonably sized chunks
@@ -439,7 +447,9 @@ impl<T: SizeCategory> GenericSize<T> {
     pub fn from_kb(kb: u64) -> Result<Self, PipelineError> {
         let bytes = kb
             .checked_mul(1024)
-            .ok_or_else(|| PipelineError::InvalidConfiguration("Kilobyte value too large".to_string()))?;
+            .ok_or_else(||
+                PipelineError::InvalidConfiguration("Kilobyte value too large".to_string())
+            )?;
         Self::new(bytes)
     }
 
@@ -471,7 +481,9 @@ impl<T: SizeCategory> GenericSize<T> {
     pub fn from_mb(mb: u64) -> Result<Self, PipelineError> {
         let bytes = mb
             .checked_mul(1024 * 1024)
-            .ok_or_else(|| PipelineError::InvalidConfiguration("Megabyte value too large".to_string()))?;
+            .ok_or_else(||
+                PipelineError::InvalidConfiguration("Megabyte value too large".to_string())
+            )?;
         Self::new(bytes)
     }
 
@@ -479,7 +491,9 @@ impl<T: SizeCategory> GenericSize<T> {
     pub fn from_gb(gb: u64) -> Result<Self, PipelineError> {
         let bytes = gb
             .checked_mul(1024 * 1024 * 1024)
-            .ok_or_else(|| PipelineError::InvalidConfiguration("Gigabyte value too large".to_string()))?;
+            .ok_or_else(||
+                PipelineError::InvalidConfiguration("Gigabyte value too large".to_string())
+            )?;
         Self::new(bytes)
     }
 
@@ -519,12 +533,12 @@ impl<T: SizeCategory> GenericSize<T> {
 
     /// Gets size as floating point megabytes
     pub fn as_mb_f64(&self) -> f64 {
-        self.bytes as f64 / (1024.0 * 1024.0)
+        (self.bytes as f64) / (1024.0 * 1024.0)
     }
 
     /// Gets size as floating point gigabytes
     pub fn as_gb_f64(&self) -> f64 {
-        self.bytes as f64 / (1024.0 * 1024.0 * 1024.0)
+        (self.bytes as f64) / (1024.0 * 1024.0 * 1024.0)
     }
 
     /// Checks if size is zero
@@ -539,7 +553,7 @@ impl<T: SizeCategory> GenericSize<T> {
         } else if self.bytes >= 1024 * 1024 {
             format!("{:.2} MB", self.as_mb_f64())
         } else if self.bytes >= 1024 {
-            format!("{:.2} KB", self.bytes as f64 / 1024.0)
+            format!("{:.2} KB", (self.bytes as f64) / 1024.0)
         } else {
             format!("{} bytes", self.bytes)
         }
@@ -547,19 +561,21 @@ impl<T: SizeCategory> GenericSize<T> {
 
     /// Safely adds sizes (checked arithmetic)
     pub fn checked_add(&self, other: Self) -> Result<Self, PipelineError> {
-        let result = self
-            .bytes
+        let result = self.bytes
             .checked_add(other.bytes)
-            .ok_or_else(|| PipelineError::InvalidConfiguration("Size addition would overflow".to_string()))?;
+            .ok_or_else(||
+                PipelineError::InvalidConfiguration("Size addition would overflow".to_string())
+            )?;
         Self::new(result)
     }
 
     /// Safely subtracts sizes (checked arithmetic)
     pub fn checked_sub(&self, other: Self) -> Result<Self, PipelineError> {
-        let result = self
-            .bytes
+        let result = self.bytes
             .checked_sub(other.bytes)
-            .ok_or_else(|| PipelineError::InvalidConfiguration("Size subtraction would underflow".to_string()))?;
+            .ok_or_else(||
+                PipelineError::InvalidConfiguration("Size subtraction would underflow".to_string())
+            )?;
         Self::new(result)
     }
 
@@ -651,11 +667,7 @@ impl FileSize {
 
     /// Estimates transfer time for given bandwidth (MB/s)
     pub fn transfer_time_seconds(&self, bandwidth_mbps: f64) -> f64 {
-        if bandwidth_mbps <= 0.0 {
-            f64::INFINITY
-        } else {
-            self.as_mb_f64() / bandwidth_mbps
-        }
+        if bandwidth_mbps <= 0.0 { f64::INFINITY } else { self.as_mb_f64() / bandwidth_mbps }
     }
 }
 

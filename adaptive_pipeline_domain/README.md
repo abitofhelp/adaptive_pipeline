@@ -4,7 +4,7 @@
 [![crates.io](https://img.shields.io/crates/v/adaptive-pipeline-domain.svg)](https://crates.io/crates/adaptive-pipeline-domain)
 [![Documentation](https://docs.rs/adaptive-pipeline-domain/badge.svg)](https://docs.rs/adaptive-pipeline-domain)
 
-**Pure business logic and domain model for the Optimized Adaptive Pipeline** - A reusable, framework-agnostic library following Domain-Driven Design principles.
+**Pure business logic and domain model for the Adaptive Pipeline** - A reusable, framework-agnostic library following Domain-Driven Design principles.
 
 ## 🎯 Overview
 
