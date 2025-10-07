@@ -18,13 +18,7 @@
 //! ```
 
 use pipeline::application::commands::RestoreFileCommand;
-use std::sync::Arc;
-// TODO: FileRestorationApplicationService was removed during refactoring
-// use pipeline::application::services::FileRestorationApplicationServiceImpl;
-use pipeline::infrastructure::adapters::file_io::TokioFileIO;
-use pipeline_domain::services::file_io_service::FileIOConfig;
 use std::path::PathBuf;
-use tempfile::TempDir;
 
 /// Tests RestoreFileCommand creation and fluent API configuration.
 ///
@@ -55,30 +49,10 @@ async fn test_restore_file_command_creation() {
     assert!(!command.validate_permissions);
 }
 
-/// Tests FileRestorationApplicationServiceImpl creation with dependency
-/// injection.
-///
-/// Verifies that the application service can be instantiated with real
-/// infrastructure dependencies, validating proper dependency injection
-/// patterns.
-#[tokio::test]
-async fn test_file_restoration_service_creation() {
-    // TODO: FileRestorationApplicationServiceImpl was removed during refactoring
-    // This test needs to be reimplemented using use_cases::restore_file
-
-    // // Arrange
-    // let config = FileIOConfig::default();
-    // let file_io_service = Arc::new(TokioFileIO::new(config));
-    //
-    // // Act
-    // let service = FileRestorationApplicationServiceImpl::new(file_io_service);
-    //
-    // // Assert - verify service was created successfully
-    // assert!(std::mem::size_of_val(&service) > 0);
-
-    // Placeholder assertion
-    assert!(true, "Test disabled - restoration service refactoring in progress");
-}
+// Note: FileRestorationApplicationService was removed during architecture refactoring.
+// File restoration is now handled via the restore command in main.rs using
+// restore_file_from_adapipe_v2() function. End-to-end restoration is tested
+// via integration tests that exercise the full command flow.
 
 /// Integration test verifying application layer structure and architecture
 /// compliance.

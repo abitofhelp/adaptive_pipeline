@@ -652,7 +652,6 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[tokio::test]
-    #[ignore] // TODO: Fix this test - currently panicking
     async fn test_file_processing_basic() {
         println!("Starting test_file_processing_basic");
 

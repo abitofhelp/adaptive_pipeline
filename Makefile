@@ -44,7 +44,7 @@ NC := \033[0m # No Color
 # Phony targets
 .PHONY: help setup clean build test check lint lint-strict lint-fix lint-cicd format doc bench audit security \
         install-tools update-deps release debug run examples workspace-check \
-        pipeline-check pipelinelib-check coverage flamegraph bloat pre-commit \
+        pipeline-check pipeline-domain-check bootstrap-check coverage flamegraph bloat pre-commit \
         docker-build docker-run ci-local install-cross-targets build-linux-x86_64 \
         build-linux-aarch64 build-macos-x86_64 build-macos-aarch64 build-windows-x86_64 \
         build-all-platforms diagrams docs serve-docs
@@ -161,8 +161,9 @@ help: ## Display this help message
 	@echo -e "  $(CYAN)version              $(NC) Show version information"
 	@echo ""
 	@echo -e "$(YELLOW)Workspace Management$(NC)"
+	@echo -e "  $(CYAN)bootstrap-check      $(NC) Check bootstrap crate specifically"
 	@echo -e "  $(CYAN)pipeline-check       $(NC) Check pipeline crate specifically"
-	@echo -e "  $(CYAN)pipelinelib-check    $(NC) Check pipelinelib crate specifically"
+	@echo -e "  $(CYAN)pipeline-domain-check$(NC) Check pipeline-domain crate specifically"
 	@echo -e "  $(CYAN)workspace-check      $(NC) Check all workspace members"
 
 pipeline-benchmark-help: ## Show help for pipeline benchmark subcommand
@@ -397,9 +398,13 @@ pipeline-check: ## Check pipeline crate specifically
 	@echo -e "$(BLUE)Checking pipeline crate...$(NC)"
 	@cd pipeline && $(CARGO) check --all-targets --all-features
 
-pipelinelib-check: ## Check pipelinelib crate specifically
-	@echo -e "$(BLUE)Checking pipelinelib crate...$(NC)"
-	@cd pipelinelib && $(CARGO) check --all-targets --all-features
+pipeline-domain-check: ## Check pipeline-domain crate specifically
+	@echo -e "$(BLUE)Checking pipeline-domain crate...$(NC)"
+	@cd pipeline-domain && $(CARGO) check --all-targets --all-features
+
+bootstrap-check: ## Check bootstrap crate specifically
+	@echo -e "$(BLUE)Checking bootstrap crate...$(NC)"
+	@cd bootstrap && $(CARGO) check --all-targets --all-features
 
 ##@ Running
 run: ## Run the main pipeline binary

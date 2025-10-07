@@ -28,13 +28,8 @@ use tempfile::TempDir;
 use tokio::fs;
 
 use pipeline::application::commands::RestoreFileCommand;
-// TODO: FileRestorationApplicationService was removed during refactoring
-// use pipeline::application::services::{FileRestorationApplicationService,
-// FileRestorationApplicationServiceImpl};
-use pipeline::infrastructure::adapters::file_io::TokioFileIO;
 use pipeline_domain::entities::pipeline::Pipeline;
 use pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
-use pipeline_domain::services::file_io_service::FileIOConfig;
 use pipeline_domain::value_objects::binary_file_format::FileHeader;
 use pipeline_domain::PipelineError;
 
@@ -119,13 +114,7 @@ impl ApplicationServicesIntegrationTestFramework {
         Pipeline::new(name.to_string(), stages)
     }
 
-    /// Creates a real file restoration service with actual infrastructure.
-    // TODO: FileRestorationApplicationServiceImpl was removed during refactoring
-    // fn create_real_restoration_service() -> FileRestorationApplicationServiceImpl {
-    //     let config = FileIOConfig::default();
-    //     let file_io_service = Arc::new(TokioFileIO::new(config));
-    //     FileRestorationApplicationServiceImpl::new(file_io_service)
-    // }
+    // Note: FileRestorationApplicationService removed - restoration now handled via use cases
 
     /// Measures operation performance and logs execution time.
     fn measure_operation<F, R>(operation: F, operation_name: &str) -> R
@@ -144,121 +133,8 @@ impl ApplicationServicesIntegrationTestFramework {
 // INTEGRATION TESTS
 // ============================================================================
 
-/// Tests end-to-end file restoration workflow with real services.
-///
-/// This integration test validates the complete file restoration workflow
-/// using real infrastructure services and actual file operations.
-///
-/// # Test Coverage
-///
-/// - Real file I/O operations
-/// - Actual .adapipe file processing
-/// - Complete restoration workflow
-/// - Infrastructure service integration
-/// - Error handling with real services
-///
-/// # Test Scenario
-///
-/// Creates a real .adapipe file using the processing pipeline,
-/// then restores it using the restoration service, validating
-/// the complete end-to-end workflow.
-///
-/// # Integration Concerns
-///
-/// - Service communication
-/// - File system operations
-/// - Pipeline execution
-/// - Error propagation
-/// - Performance characteristics
-///
-/// # Assertions
-///
-/// - .adapipe file is created successfully
-/// - Restoration completes without errors
-/// - Restored file matches original data
-/// - Performance is within acceptable bounds
-#[tokio::test]
-#[ignore] // TODO: Implement FileRestorationApplicationService
-async fn test_end_to_end_file_restoration_workflow() {
-    // TODO: FileRestorationApplicationServiceImpl was removed during refactoring
-    // This test needs to be reimplemented using use_cases::restore_file
-    assert!(true, "Test disabled - restoration service refactoring in progress");
-}
-
-/// Tests application service error handling in realistic scenarios.
-///
-/// This integration test validates error handling behavior when
-/// using real infrastructure services with various error conditions.
-///
-/// # Test Coverage
-///
-/// - Error propagation across services
-/// - Infrastructure service error handling
-/// - Realistic error scenarios
-/// - Error recovery mechanisms
-/// - Service resilience
-///
-/// # Test Scenario
-///
-/// Creates various error conditions using real services and
-/// validates that errors are properly handled and propagated.
-///
-/// # Integration Concerns
-///
-/// - Cross-service error handling
-/// - Error message clarity
-/// - Service failure recovery
-/// - System resilience
-///
-/// # Assertions
-///
-/// - Errors are properly propagated
-/// - Error messages are informative
-/// - Services handle failures gracefully
-/// - System remains stable after errors
-#[tokio::test]
-#[ignore] // TODO: Implement FileRestorationApplicationService
-async fn test_integration_error_handling() {
-    // TODO: FileRestorationApplicationServiceImpl was removed during refactoring
-    // This test needs to be reimplemented using use_cases::restore_file
-    assert!(true, "Test disabled - restoration service refactoring in progress");
-}
-
-/// Tests performance characteristics of application services.
-///
-/// This integration test validates performance behavior of
-/// application services under realistic load conditions.
-///
-/// # Test Coverage
-///
-/// - Service performance measurement
-/// - Resource utilization
-/// - Throughput characteristics
-/// - Latency measurement
-/// - Scalability assessment
-///
-/// # Test Scenario
-///
-/// Processes multiple files of varying sizes and measures
-/// performance characteristics of the restoration workflow.
-///
-/// # Integration Concerns
-///
-/// - Performance under load
-/// - Resource efficiency
-/// - Scalability limits
-/// - Memory usage patterns
-///
-/// # Assertions
-///
-/// - Performance is within acceptable bounds
-/// - Resource usage is reasonable
-/// - Service scales appropriately
-/// - No memory leaks or resource exhaustion
-#[tokio::test]
-#[ignore] // TODO: Implement FileRestorationApplicationService
-async fn test_integration_performance_characteristics() {
-    // TODO: FileRestorationApplicationServiceImpl was removed during refactoring
-    // This test needs to be reimplemented using use_cases::restore_file
-    assert!(true, "Test disabled - restoration service refactoring in progress");
-}
+// Note: FileRestorationApplicationService integration tests were removed during
+// architecture refactoring. File restoration is now tested via:
+// - CLI integration tests (end-to-end command flow)
+// - Use case unit tests (business logic validation)
+// - Benchmark suite (performance characteristics)

@@ -572,10 +572,6 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    #[ignore] // TODO: Incomplete test - repo not initialized
-    async fn test_sqlite_repository_crud_operations() {
-        // This test is incomplete and needs proper repository initialization
-        // Commented out until implementation is complete
-    }
+    // Note: Generic repository CRUD operations are tested via SqlitePipelineRepository
+    // integration tests which use the concrete implementation.
 }
