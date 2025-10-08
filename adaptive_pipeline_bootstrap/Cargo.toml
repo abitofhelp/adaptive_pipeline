@@ -8,6 +8,9 @@ license = "BSD-3-Clause"
 repository = "https://github.com/abitofhelp/adaptive_pipeline.git"
 readme = "README.md"
 
+[lints]
+workspace = true
+
 [dependencies]
 # Async runtime
 tokio = { workspace = true, features = ["full"] }

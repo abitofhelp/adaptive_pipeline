@@ -37,19 +37,25 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - uses: dtolnay/rust-toolchain@stable
-            - run: rustup component add clippy
-            - run: cargo clippy --workspace --all-targets -- -D warnings
+              with:
+                  components: clippy
+            - uses: Swatinem/rust-cache@v2
+
+            # Clippy strict on production code (lib/bins only - denies unwrap/expect/panic)
+            # Tests are allowed to use unwrap/expect and are not checked here
+            - name: Clippy (production code)
+              run: cargo clippy --workspace --lib --bins --all-features -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic -D clippy::todo -D clippy::unimplemented
 
     semver-pipeline-domain:
-        name: semver (pipeline-domain)
+        name: semver (adaptive-pipeline-domain)
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
               with: { fetch-depth: 0 }
-            - name: Find last release tag for pipeline-domain
+            - name: Find last release tag for adaptive-pipeline-domain
               id: baseline
               run: |
-                  echo "BASELINE_TAG=$(git describe --tags --match 'pipeline-domain-v*' --abbrev=0 || echo '')" >> $GITHUB_ENV
+                  echo "BASELINE_TAG=$(git describe --tags --match 'adaptive-pipeline-domain-v*' --abbrev=0 || echo '')" >> $GITHUB_ENV
             - name: No baseline? First release — skip check
               if: env.BASELINE_TAG == ''
               run: echo "No baseline tag found; skipping semver check."
@@ -57,6 +63,6 @@ jobs:
               if: env.BASELINE_TAG != ''
               uses: obi1kenobi/cargo-semver-checks-action@v2
               with:
-                  package: pipeline-domain
+                  package: adaptive-pipeline-domain
                   baseline-revision: ${{ env.BASELINE_TAG }}
                   # derives required bump from Cargo.toml by default; override with "release-type" if needed

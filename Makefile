@@ -290,9 +290,11 @@ check: ## Run cargo check
 	@$(CARGO) check --workspace
 
 lint: clippy ## Run clippy linter (development mode)
-clippy: ## Run clippy linter with strict settings
-	@echo -e "$(BLUE)Running clippy (development mode)...$(NC)"
-	@$(CARGO) clippy --workspace --all-targets --all-features $(CLIPPY_ARGS)
+clippy: ## Run clippy linter with development settings (warnings only)
+	@echo -e "$(BLUE)Running clippy (development mode - warnings only)...$(NC)"
+	@echo -e "$(YELLOW)Note: Shows warnings, allows unwrap/expect in tests$(NC)"
+	@echo -e "$(YELLOW)Use 'make lint-strict' for production code enforcement$(NC)"
+	@$(CARGO) clippy --workspace --all-targets --all-features
 
 lint-strict: ## Run clippy with production-level strictness (denies unwrap/panic/todo)
 	@echo -e "$(BLUE)Running clippy (strict mode - production rules)...$(NC)"
