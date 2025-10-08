@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2025-10-07
+
+### Added
+
+- Add `scripts/set_versions.sh` script for automated version management
+  - Takes version and optional date as arguments
+  - Updates all 3 Cargo.toml files (5 version strings total)
+  - Updates both documentation introduction files
+  - Provides next steps guidance after version update
+
+### Changed
+
+- Update all Cargo.toml version numbers from 1.0.1 to 1.0.5
+  - adaptive_pipeline/Cargo.toml (package version + 2 dependency versions)
+  - adaptive_pipeline_domain/Cargo.toml
+  - adaptive_pipeline_bootstrap/Cargo.toml
+- Update documentation version to 1.0.5
+
+### Fixed
+
+- Move migrations directory into adaptive_pipeline crate for crates.io publishing
+  - Relocate migrations/ from workspace root to adaptive_pipeline/migrations/
+  - Update sqlx::migrate! path from "../migrations" to "./migrations"
+  - Fixes cargo publish error where migrations were not included in package
+
 ## [1.0.4] - 2025-10-07
 
 ### Added
