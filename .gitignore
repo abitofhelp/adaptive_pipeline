@@ -78,5 +78,6 @@ $RECYCLE.BIN/
 **/*.db*
 
 # Documentation
-**/book/  # mdBook generated output
+book/  # mdBook generated output
+**/book/
 benchmark_test_100mb.txt
