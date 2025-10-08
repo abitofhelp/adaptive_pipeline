@@ -531,7 +531,7 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
 
             #[cfg(windows)]
             {
-                use std::io::{Seek, SeekFrom};
+                use std::io::{Seek, SeekFrom, Write};
                 // Note: On Windows, seek+write is not atomic, but sufficient for single-writer
                 // scenario
                 let mut file_mut = file_ref;

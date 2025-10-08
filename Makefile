@@ -476,6 +476,7 @@ build-macos-x86_64: ## Build for macOS x86_64 (Intel)
 
 build-macos-aarch64: ## Build for macOS ARM64 (Apple Silicon)
 	@echo -e "$(BLUE)Building for macOS ARM64...$(NC)"
+	@rustup target add aarch64-apple-darwin
 	@CROSS_LOG=info cross build --release --target aarch64-apple-darwin
 	@echo -e "$(GREEN)✓ Build complete: target/aarch64-apple-darwin/release/$(NC)"
 
