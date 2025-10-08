@@ -1,3 +1,10 @@
+<!--
+Adaptive Pipeline
+Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+SPDX-License-Identifier: BSD-3-Clause
+See LICENSE file in the project root.
+-->
+
 # Pipeline Examples Directory
 
 This directory contains practical examples demonstrating the pipeline system's capabilities. Examples are organized by audience and complexity level.

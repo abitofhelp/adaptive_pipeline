@@ -1,3 +1,10 @@
+<!--
+Adaptive Pipeline
+Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+SPDX-License-Identifier: BSD-3-Clause
+See LICENSE file in the project root.
+-->
+
 # Sample Data for Pipeline Examples
 
 This directory contains test data used by the pipeline examples. All data is synthetic and safe for testing.

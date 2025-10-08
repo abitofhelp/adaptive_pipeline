@@ -1,3 +1,10 @@
+<!--
+Adaptive Pipeline
+Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+SPDX-License-Identifier: BSD-3-Clause
+See LICENSE file in the project root.
+-->
+
 # adaptive-pipeline-domain
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)

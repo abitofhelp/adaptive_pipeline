@@ -1,3 +1,10 @@
+<!--
+Adaptive Pipeline
+Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+SPDX-License-Identifier: BSD-3-Clause
+See LICENSE file in the project root.
+-->
+
 # Infrastructure Adapters
 
 This module provides adapter implementations for integrating with external systems
