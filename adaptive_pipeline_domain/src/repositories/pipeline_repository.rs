@@ -112,7 +112,7 @@
 // Result<bool, String> { Ok(true) } #   fn list_archived(&self) ->
 // Result<Vec<String>, String> { Ok(vec![]) } }
 // ```
-// 
+//
 // ### Integration Testing
 // Test with real database implementations:
 // - Verify data persistence across application restarts

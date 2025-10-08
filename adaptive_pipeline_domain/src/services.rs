@@ -76,7 +76,7 @@
 //     ) -> Result<Vec<u8>, String>;
 // }
 // ```
-// 
+//
 // ### Domain Focus
 // Services operate at the domain level, not infrastructure:
 // ```rust
@@ -96,7 +96,7 @@
 // Infrastructure implementation (separate)
 // struct AesEncryptionService { ... }
 // ```
-// 
+//
 // ## Usage Examples
 //
 // ### Compression Service
@@ -127,7 +127,7 @@
 // assert_eq!(data, decompressed.as_slice());
 // }
 // ```
-// 
+//
 // ### Encryption Service
 // ```rust
 // # use std::collections::HashMap;
@@ -158,7 +158,7 @@
 // assert_eq!(plaintext, decrypted.as_slice());
 // }
 // ```
-// 
+//
 // ### Checksum Service
 // ```rust
 // # use std::collections::HashMap;
@@ -186,7 +186,7 @@
 // println!("Data integrity verified");
 // }
 // ```
-// 
+//
 // ### Pipeline Service Coordination
 // ```rust
 // # use std::collections::HashMap;
@@ -227,7 +227,7 @@
 //     result.len());
 // }
 // ```
-// 
+//
 // ## Service Composition
 //
 // Services can be composed to create complex workflows:
@@ -276,7 +276,7 @@
 //     }
 // }
 // ```
-// 
+//
 // ## Generic Service Patterns
 //
 // ### Service Base
@@ -316,7 +316,7 @@
 //     }
 // }
 // ```
-// 
+//
 // ## Testing Strategies
 //
 // ### Unit Testing
@@ -349,7 +349,7 @@
 //     }
 // }
 // ```
-// 
+//
 // ### Integration Testing
 // Test service composition:
 // ```rust
@@ -389,7 +389,7 @@
 //     }
 // }
 // ```
-// 
+//
 // ## Performance Considerations
 //
 // ### Async Operations

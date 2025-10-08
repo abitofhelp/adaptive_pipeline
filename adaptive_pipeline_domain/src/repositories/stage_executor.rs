@@ -106,7 +106,7 @@
 //     // ... implement other methods ...
 // }
 // ```
-// 
+//
 // ## Error Handling
 //
 // Stage executors should handle various error conditions:
