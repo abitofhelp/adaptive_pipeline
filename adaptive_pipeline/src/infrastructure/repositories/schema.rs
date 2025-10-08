@@ -19,7 +19,7 @@ pub async fn ensure_schema(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     debug!("Ensuring database schema is up to date");
 
     // Run migrations - sqlx will automatically track what's been applied
-    sqlx::migrate!("../migrations").run(pool).await?;
+    sqlx::migrate!("./migrations").run(pool).await?;
 
     info!("Database schema is up to date");
     Ok(())
