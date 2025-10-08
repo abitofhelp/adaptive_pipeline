@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! End-to-End Tests
 //!
 //! This module aggregates all E2E tests for the pipeline application.

@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Application Services Integration Tests
 //!
 //! Framework-based integration tests for application layer services using our

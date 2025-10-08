@@ -29,8 +29,8 @@
 //! ## Usage
 //!
 //! ```rust,no_run
-//! use bootstrap::cli::SecureArgParser;
-//! use bootstrap::config::AppConfig;
+//! use adaptive_pipeline_bootstrap::cli::SecureArgParser;
+//! use adaptive_pipeline_bootstrap::config::AppConfig;
 //!
 //! let args: Vec<String> = std::env::args().collect();
 //! let config = SecureArgParser::parse(&args)?;

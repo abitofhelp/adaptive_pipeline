@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Application Layer Integration Tests
 //!
 //! Integration tests for the application layer components of the adaptive

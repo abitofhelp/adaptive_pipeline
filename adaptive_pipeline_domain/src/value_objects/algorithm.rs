@@ -721,7 +721,7 @@ pub mod algorithm_utils {
 
 #[cfg(test)]
 mod tests {
-    
+
     // Unit tests for Algorithm value object.
     //
     // Tests cover creation, validation, categorization, and serialization.
@@ -730,7 +730,6 @@ mod tests {
     use crate::value_objects::Algorithm;
     use serde_json;
     use std::collections::HashMap;
-    
 
     /// Tests Algorithm creation with valid input values.
     /// Validates that:

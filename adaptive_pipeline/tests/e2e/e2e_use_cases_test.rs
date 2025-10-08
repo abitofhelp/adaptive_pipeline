@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # End-to-End Use Case Tests
 //!
 //! E2E tests for all use cases via the CLI interface. These tests verify

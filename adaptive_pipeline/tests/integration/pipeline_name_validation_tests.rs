@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Pipeline Name Validation Tests
 //!
 //! Tests for pipeline name validation and normalization functionality.

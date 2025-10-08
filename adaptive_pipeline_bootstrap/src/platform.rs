@@ -32,7 +32,7 @@
 //! ## Usage
 //!
 //! ```rust
-//! use bootstrap::platform::create_platform;
+//! use adaptive_pipeline_bootstrap::platform::create_platform;
 //!
 //! let platform = create_platform();
 //! println!("Running on: {}", platform.platform_name());
@@ -227,7 +227,7 @@ type PlatformImpl = WindowsPlatform;
 /// # Examples
 ///
 /// ```rust
-/// use bootstrap::platform::create_platform;
+/// use adaptive_pipeline_bootstrap::platform::create_platform;
 ///
 /// let platform = create_platform();
 /// println!("Running on: {}", platform.platform_name());

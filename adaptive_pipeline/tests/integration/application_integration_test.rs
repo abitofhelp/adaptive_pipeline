@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Application Integration Test
 //!
 //! Integration tests for application layer components, verifying layer

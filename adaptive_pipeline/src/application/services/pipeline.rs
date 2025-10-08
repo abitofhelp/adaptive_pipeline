@@ -1715,9 +1715,7 @@ mod tests {
                 };
 
                 #[allow(unreachable_code)]
-                {
-                    
-                }
+                {}
             }
             Ok::<(), PipelineError>(())
         });

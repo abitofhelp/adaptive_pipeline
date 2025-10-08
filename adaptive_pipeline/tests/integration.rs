@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! Integration Tests
 //!
 //! This module aggregates all integration tests for the pipeline application.

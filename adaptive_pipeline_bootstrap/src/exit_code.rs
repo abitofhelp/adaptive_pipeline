@@ -23,7 +23,7 @@
 //! ## Usage
 //!
 //! ```rust,no_run
-//! use bootstrap::exit_code::ExitCode;
+//! use adaptive_pipeline_bootstrap::exit_code::ExitCode;
 //!
 //! fn run_application() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Application logic here
@@ -271,7 +271,7 @@ impl From<ExitCode> for std::process::ExitCode {
 /// # Example
 ///
 /// ```
-/// use bootstrap::exit_code::map_error_to_exit_code;
+/// use adaptive_pipeline_bootstrap::exit_code::map_error_to_exit_code;
 ///
 /// let code = map_error_to_exit_code("Failed to initialize resource manager");
 /// assert_eq!(code.as_i32(), 70); // EX_SOFTWARE
@@ -308,7 +308,7 @@ pub fn map_error_to_exit_code(error_message: &str) -> ExitCode {
 /// # Example
 ///
 /// ```
-/// use bootstrap::exit_code::result_to_exit_code;
+/// use adaptive_pipeline_bootstrap::exit_code::result_to_exit_code;
 ///
 /// fn run_app() -> Result<(), String> {
 ///     Err("File not found: input.txt".to_string())

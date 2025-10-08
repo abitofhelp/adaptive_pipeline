@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Minimal Application Layer Integration Test
 //!
 //! Lightweight integration test for core application layer functionality

@@ -5,12 +5,10 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Architecture Compliance Test Framework
 //!
 //! Validates architectural compliance with DDD, Clean Architecture, Hexagonal
 //! Architecture, and Dependency Inversion principles.
-
 
 /// Demonstrates comprehensive architectural compliance of the test framework.
 ///

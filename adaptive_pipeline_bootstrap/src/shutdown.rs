@@ -20,7 +20,7 @@
 //! ## Usage
 //!
 //! ```rust
-//! use bootstrap::shutdown::ShutdownCoordinator;
+//! use adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator;
 //! use std::time::Duration;
 //!
 //! #[tokio::main]
@@ -66,7 +66,7 @@ pub const DEFAULT_GRACE_PERIOD_SECS: u64 = 5;
 /// # Examples
 ///
 /// ```
-/// use bootstrap::shutdown::ShutdownCoordinator;
+/// use adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator;
 /// use std::time::Duration;
 ///
 /// # async fn example() {
@@ -196,7 +196,7 @@ impl ShutdownCoordinator {
     /// # Examples
     ///
     /// ```
-    /// use bootstrap::shutdown::ShutdownCoordinator;
+    /// use adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator;
     /// use std::time::Duration;
     ///
     /// # async fn example() {

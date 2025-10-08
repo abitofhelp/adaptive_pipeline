@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # End-to-End Binary Format Tests
 //!
 //! E2E tests for .adapipe binary format: complete roundtrips, multi-chunk

@@ -29,7 +29,7 @@
 //! ## Usage
 //!
 //! ```rust
-//! use bootstrap::logger::{BootstrapLogger, ConsoleLogger};
+//! use adaptive_pipeline_bootstrap::logger::{BootstrapLogger, ConsoleLogger};
 //!
 //! let logger = ConsoleLogger::new();
 //! logger.info("Starting application bootstrap");

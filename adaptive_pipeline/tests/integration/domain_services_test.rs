@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # Domain Services Unit Tests
 //!
 //! Unit tests for domain layer services: compression, encryption, checksum,

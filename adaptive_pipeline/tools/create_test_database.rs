@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 // Test tool with variables for different modes
 #![allow(unused_variables)]
 

@@ -90,7 +90,7 @@
 //! ## Usage Example
 //!
 //! ```rust
-//! use bootstrap::platform::create_platform;
+//! use adaptive_pipeline_bootstrap::platform::create_platform;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -162,12 +162,12 @@ pub use exit_code::{map_error_to_exit_code, result_to_exit_code, ExitCode};
 /// # Example
 ///
 /// ```no_run
-/// use bootstrap::{bootstrap_cli, result_to_exit_code};
+/// use adaptive_pipeline_bootstrap::{bootstrap_cli, result_to_exit_code};
 ///
 /// #[tokio::main]
 /// async fn main() -> std::process::ExitCode {
 ///     // Parse and validate CLI
-///     let validated_cli = match bootstrap::bootstrap_cli() {
+///     let validated_cli = match bootstrap_cli() {
 ///         Ok(cli) => cli,
 ///         Err(e) => {
 ///             eprintln!("CLI Error: {}", e);
@@ -182,7 +182,7 @@ pub use exit_code::{map_error_to_exit_code, result_to_exit_code, ExitCode};
 ///     result_to_exit_code(result)
 /// }
 ///
-/// async fn run_application(cli: bootstrap::ValidatedCli) -> Result<(), String> {
+/// async fn run_application(cli: adaptive_pipeline_bootstrap::ValidatedCli) -> Result<(), String> {
 ///     // Application logic here
 ///     Ok(())
 /// }

@@ -27,7 +27,7 @@
 //! ## Usage
 //!
 //! ```rust
-//! use bootstrap::config::{AppConfig, LogLevel};
+//! use adaptive_pipeline_bootstrap::config::{AppConfig, LogLevel};
 //! use std::path::PathBuf;
 //!
 //! let config = AppConfig::builder()

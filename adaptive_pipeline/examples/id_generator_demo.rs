@@ -5,7 +5,6 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
-
 //! # ID Generator Demo - Database Initialization Utility
 //!
 //! This comprehensive example demonstrates the proper generation and usage of

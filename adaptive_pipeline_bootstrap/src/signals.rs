@@ -26,7 +26,7 @@
 //! ## Usage
 //!
 //! ```rust,no_run
-//! use bootstrap::signals::{SystemSignals, UnixSignalHandler};
+//! use adaptive_pipeline_bootstrap::signals::{SystemSignals, UnixSignalHandler};
 //! use std::sync::atomic::{AtomicBool, Ordering};
 //! use std::sync::Arc;
 //!
