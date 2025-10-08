@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-10-07
+
+### Added
+
+- Add copyright headers to all 9 README.md files
+- Add cross-navigation links between user guide and developer guide
+- Add dual-book deployment to GitHub Pages (user guide at root, developer guide at /developer/)
+- Add documentation URL to all Cargo.toml files (https://abitofhelp.github.io/adaptive_pipeline/)
+
+### Changed
+
+- Update documentation version to 1.0.2 with October 7, 2025 publication date
+- Improve gitignore pattern for mdBook build directories (add both `book/` and `**/book/`)
+- Fix API documentation links to use docs.rs instead of local paths
+- Deploy both user guide and developer guide in single unified GitHub Pages site
+
+### Fixed
+
+- Remove mdBook build artifacts from version control (158 HTML/CSS/JS files)
+- Fix deploy-docs workflow to build both documentation books
+
 ## [1.0.1] - 2025-10-08
 
 ### Added

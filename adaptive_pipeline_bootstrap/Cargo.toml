@@ -7,6 +7,7 @@ authors = ["Michael Gardner <michael@abitofhelp.com>"]
 description = "Bootstrap module for optimized, adaptive pipeline crate - handles entry point, DI, signals, and platform abstraction"
 license = "BSD-3-Clause"
 repository = "https://github.com/abitofhelp/adaptive_pipeline.git"
+documentation = "https://abitofhelp.github.io/adaptive_pipeline/"
 readme = "README.md"
 exclude = [
     ".DS_Store",
