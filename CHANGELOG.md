@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add pipeline stage ordering validation (PreBinary before PostBinary)
 - Add comprehensive E2E tests for all Application Layer use cases
 - Added .gitattributes to improve lang detection at gh.
+- Add missing Write trait import for Windows build
 
 ### Changed
 
@@ -97,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clean up clippy warnings and add license headers for v1.0.1
 - Clean up clippy warnings, add license headers, and configure cross-compilation
 - Trigger CI workflows with updated configuration
+- CHANGELOG.md
 
 ### Fixed
 
@@ -119,21 +121,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Removed release-plz; using git-cliff
-
-# Changelog
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-### Added
-
-### Changed
-
-### Fixed
-
-### Removed
-
-### Security
