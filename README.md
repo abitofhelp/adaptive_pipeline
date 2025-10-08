@@ -868,10 +868,15 @@ export TOKIO_WORKER_THREADS=4
 
 ### Documentation
 
+**📖 Complete Guides:**
+- **[User Guide](https://abitofhelp.github.io/adaptive_pipeline/)** - Getting started, installation, and quick reference
+- **[Developer Guide](https://abitofhelp.github.io/adaptive_pipeline/developer/)** - Architecture deep-dive, patterns, and implementation details
+
+**📝 Additional Resources:**
 - [Channel-Based Architecture](docs/EXECUTION_VS_PROCESSING_PIPELINES.md)
 - [Database Setup](docs/DATABASE_SETUP.md)
 - [Performance Tuning](docs/adaptive-performance-optimization.md)
-- [API Documentation](https://docs.rs/optimized-adaptive-pipeline-rs)
+- [API Documentation](https://docs.rs/adaptive-pipeline)
 
 ## 📄 License
 
