@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "adaptive-pipeline"
-version = "1.0.1"
+version = "1.0.4"
 dependencies = [
  "adaptive-pipeline-bootstrap",
  "adaptive-pipeline-domain",
@@ -56,7 +56,7 @@ dependencies = [
 
 [[package]]
 name = "adaptive-pipeline-bootstrap"
-version = "1.0.1"
+version = "1.0.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -71,7 +71,7 @@ dependencies = [
 
 [[package]]
 name = "adaptive-pipeline-domain"
-version = "1.0.1"
+version = "1.0.4"
 dependencies = [
  "async-trait",
  "chrono",

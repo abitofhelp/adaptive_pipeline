@@ -1,6 +1,6 @@
 [package]
 name = "adaptive-pipeline-domain"
-version = "1.0.1"
+version = "1.0.4"
 description = "Domain layer for optimized, adaptive pipeline - pure reusable business logic, entities, value objects, and domain services following DDD principles"
 edition = "2021"
 rust-version = "1.87"
