@@ -1,3 +1,6 @@
+// Test tool with variables for different modes
+#![allow(unused_variables)]
+
 //! # Database Creation Tool
 //!
 //! This tool creates SQLite databases with proper schema and test data for the

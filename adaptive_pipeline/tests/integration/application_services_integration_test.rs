@@ -22,12 +22,10 @@
 //! - Comprehensive validation
 
 use sha2::Digest;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::path::PathBuf;
 use tempfile::TempDir;
 use tokio::fs;
 
-use adaptive_pipeline::application::commands::RestoreFileCommand;
 use adaptive_pipeline_domain::entities::pipeline::Pipeline;
 use adaptive_pipeline_domain::entities::pipeline_stage::{PipelineStage, StageConfiguration, StageType};
 use adaptive_pipeline_domain::value_objects::binary_file_format::FileHeader;

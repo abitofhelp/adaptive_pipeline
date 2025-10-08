@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure module - contains future features not yet fully utilized
+#![allow(dead_code, unused_imports, unused_variables)]
 //! # SQLite Base Repository Adapter
 //!
 //! This module provides a generic SQLite-based repository adapter

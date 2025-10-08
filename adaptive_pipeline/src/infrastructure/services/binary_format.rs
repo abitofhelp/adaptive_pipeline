@@ -5,6 +5,9 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure service with future buffered writer features
+#![allow(dead_code, unused_variables)]
+
 //! # Binary Format Service Implementation
 //!
 //! Services for reading and writing the Adaptive Pipeline binary format
@@ -511,8 +514,6 @@ impl BinaryFormatWriter for StreamingBinaryWriter {
         // Use spawn_blocking for sync file operations
         let file = self.file.clone();
         tokio::task::spawn_blocking(move || {
-            use std::io::Write;
-
             // Get mutable reference to file for write
             let file_ref = &*file;
 

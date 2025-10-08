@@ -5,6 +5,9 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Application service with infrastructure types and future features
+#![allow(dead_code, unused_imports, unused_variables)]
+
 //! # Pipeline Service Implementation
 //!
 //! Application layer orchestration of file processing workflows. Coordinates
@@ -32,7 +35,7 @@ use futures::future;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{debug, info, warn, Instrument};
+use tracing::{debug, info, warn};
 
 use adaptive_pipeline_domain::aggregates::PipelineAggregate;
 use adaptive_pipeline_domain::entities::pipeline_stage::StageType;
@@ -42,12 +45,12 @@ use adaptive_pipeline_domain::entities::{
 use adaptive_pipeline_domain::repositories::stage_executor::ResourceRequirements;
 use adaptive_pipeline_domain::repositories::{PipelineRepository, StageExecutor};
 use adaptive_pipeline_domain::services::file_io_service::{FileIOService, ReadOptions};
-use adaptive_pipeline_domain::services::file_processor_service::{ChunkProcessor, FileProcessingResult};
+use adaptive_pipeline_domain::services::file_processor_service::ChunkProcessor;
 use adaptive_pipeline_domain::services::{
     CompressionService, EncryptionService, ExecutionRecord, ExecutionState, ExecutionStatus, KeyMaterial,
     PipelineRequirements, PipelineService,
 };
-use adaptive_pipeline_domain::value_objects::{ChunkFormat, ChunkSize, FileChunk, PipelineId, WorkerCount};
+use adaptive_pipeline_domain::value_objects::{ChunkFormat, FileChunk, PipelineId, WorkerCount};
 use adaptive_pipeline_domain::PipelineError;
 
 use crate::infrastructure::services::binary_format::{BinaryFormatService, BinaryFormatWriter};
@@ -197,7 +200,7 @@ async fn reader_task(
     tx_cpu: tokio::sync::mpsc::Sender<ChunkMessage>,
     file_io_service: Arc<dyn FileIOService>,
     channel_capacity: usize,
-    cancel_token: bootstrap::shutdown::CancellationToken,
+    cancel_token: adaptive_pipeline_bootstrap::shutdown::CancellationToken,
 ) -> Result<ReaderStats, PipelineError> {
     use crate::infrastructure::metrics::CONCURRENCY_METRICS;
 
@@ -653,7 +656,6 @@ impl PipelineService for ConcurrentPipeline {
         // Calculate original file checksum incrementally from chunks
         // This way we don't need the entire file in memory
         let original_checksum = {
-            use ring::digest;
             let mut context = ring::digest::Context::new(&ring::digest::SHA256);
             for chunk in &input_chunks {
                 context.update(chunk.data());
@@ -846,7 +848,8 @@ impl PipelineService for ConcurrentPipeline {
         // STEP 4: Create cancellation token for graceful shutdown
         // Educational: Enables graceful cancellation of reader and worker tasks
         // TODO: Wire this to global ShutdownCoordinator for Ctrl-C handling
-        let shutdown_coordinator = bootstrap::shutdown::ShutdownCoordinator::new(std::time::Duration::from_secs(5));
+        let shutdown_coordinator =
+            adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator::new(std::time::Duration::from_secs(5));
         let cancel_token = shutdown_coordinator.token();
 
         // STEP 5: Create bounded channels for pipeline stages
@@ -1577,8 +1580,8 @@ mod tests {
     #[tokio::test]
     async fn test_reader_task_cancellation() {
         use crate::infrastructure::adapters::file_io::TokioFileIO;
+        use adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator;
         use adaptive_pipeline_domain::services::file_io_service::FileIOConfig;
-        use bootstrap::shutdown::ShutdownCoordinator;
         use std::time::Duration;
 
         // Create test file
@@ -1630,8 +1633,8 @@ mod tests {
     async fn test_cancellation_during_processing() {
         use crate::infrastructure::adapters::file_io::TokioFileIO;
         use crate::infrastructure::runtime::{init_resource_manager, ResourceConfig};
+        use adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator;
         use adaptive_pipeline_domain::services::file_io_service::FileIOConfig;
-        use bootstrap::shutdown::ShutdownCoordinator;
         use std::time::Duration;
 
         // Initialize resource manager for test (required by CONCURRENCY_METRICS)
@@ -1685,7 +1688,7 @@ mod tests {
     /// - Resource cleanup in workers
     #[tokio::test]
     async fn test_worker_cancellation() {
-        use bootstrap::shutdown::ShutdownCoordinator;
+        use adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator;
         use std::time::Duration;
 
         // Create a channel that will receive chunks
@@ -1748,8 +1751,8 @@ mod tests {
     #[tokio::test]
     async fn test_early_cancellation_detection() {
         use crate::infrastructure::adapters::file_io::TokioFileIO;
+        use adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator;
         use adaptive_pipeline_domain::services::file_io_service::FileIOConfig;
-        use bootstrap::shutdown::ShutdownCoordinator;
         use std::time::Duration;
 
         let temp_dir = TempDir::new().unwrap();
@@ -1786,7 +1789,7 @@ mod tests {
     /// - Multiple task coordination
     #[tokio::test]
     async fn test_cancellation_token_propagation() {
-        use bootstrap::shutdown::ShutdownCoordinator;
+        use adaptive_pipeline_bootstrap::shutdown::ShutdownCoordinator;
         use std::time::Duration;
 
         let coordinator = ShutdownCoordinator::new(Duration::from_secs(5));

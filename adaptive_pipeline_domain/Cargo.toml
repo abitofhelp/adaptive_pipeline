@@ -3,9 +3,17 @@ name = "adaptive-pipeline-domain"
 version = "1.0.1"
 description = "Domain layer for optimized, adaptive pipeline - pure reusable business logic, entities, value objects, and domain services following DDD principles"
 edition = "2021"
+rust-version = "1.87"
 license = "BSD-3-Clause"
 repository = "https://github.com/abitofhelp/adaptive_pipeline.git"
 readme = "README.md"
+exclude = [
+    ".DS_Store",
+    "*.db-shm",
+    "*.db-wal",
+    "*.db-journal",
+    "tests/fixtures/*",
+]
 
 [lints]
 workspace = true

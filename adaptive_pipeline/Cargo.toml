@@ -3,9 +3,21 @@ name = "adaptive-pipeline"
 version = "1.0.1"
 description = "High-performance optimized, adaptive file processing pipeline with configurable stages, binary format support, and cross-platform compatibility"
 edition = "2021"
+rust-version = "1.87"
 license = "BSD-3-Clause"
 repository = "https://github.com/abitofhelp/adaptive_pipeline.git"
 readme = "README.md"
+exclude = [
+    ".DS_Store",
+    "*.db-shm",
+    "*.db-wal",
+    "*.db-journal",
+    "scripts/test_data/",
+    "tools/",
+    "docs/book/",
+    ".github/",
+    "benchmarks/",
+]
 
 [lints]
 workspace = true

@@ -5,6 +5,9 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure module for future repository implementations
+#![allow(dead_code, unused_imports, unused_variables)]
+
 //! # SQLite Repository Adapter
 //!
 //! This module provides an adapter that bridges between the domain repository

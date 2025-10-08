@@ -429,8 +429,6 @@ impl CompressionConfig {
 /// ```
 impl super::stage_service::FromParameters for CompressionConfig {
     fn from_parameters(params: &std::collections::HashMap<String, String>) -> Result<Self, PipelineError> {
-        use std::str::FromStr;
-
         // Required: algorithm
         let algorithm_str = params
             .get("algorithm")

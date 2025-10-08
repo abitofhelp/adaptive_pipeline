@@ -5,6 +5,9 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Application service with some parameters reserved for future features
+#![allow(unused_variables)]
+
 //! # File Processor Service Implementation
 //!
 //! This module provides the concrete implementation of the file processor
@@ -166,7 +169,7 @@ use async_trait::async_trait;
 use futures::future::try_join_all;
 use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use adaptive_pipeline_domain::services::file_io_service::{FileIOService, ReadOptions, WriteOptions};

@@ -22,8 +22,6 @@
 //! cargo test pipeline_name_validation_tests
 //! ```
 
-use adaptive_pipeline::*;
-
 // Pipeline name validation functions for testing
 // Note: These functions are copied here for testing purposes
 

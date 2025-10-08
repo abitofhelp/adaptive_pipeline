@@ -2,11 +2,19 @@
 name = "adaptive-pipeline-bootstrap"
 version = "1.0.1"
 edition = "2021"
+rust-version = "1.87"
 authors = ["Michael Gardner <michael@abitofhelp.com>"]
 description = "Bootstrap module for optimized, adaptive pipeline crate - handles entry point, DI, signals, and platform abstraction"
 license = "BSD-3-Clause"
 repository = "https://github.com/abitofhelp/adaptive_pipeline.git"
 readme = "README.md"
+exclude = [
+    ".DS_Store",
+    "*.db-shm",
+    "*.db-wal",
+    "*.db-journal",
+    "tests/fixtures/*",
+]
 
 [lints]
 workspace = true
@@ -45,5 +53,5 @@ winapi = { version = "0.3", features = [
 tokio-test = "0.4"
 
 [lib]
-name = "bootstrap"
+name = "adaptive_pipeline_bootstrap"
 path = "src/lib.rs"

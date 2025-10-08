@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure module - contains future features not yet fully utilized
+#![allow(dead_code, unused_imports, unused_variables)]
 //! # Tee Service
 //!
 //! Production-ready tee (data splitting) stage for the adaptive pipeline.

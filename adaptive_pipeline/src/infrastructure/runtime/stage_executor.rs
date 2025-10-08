@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure service with parameters for future features
+#![allow(unused_variables)]
 //! # Stage Executor Implementation
 //!
 //! This module provides a concrete implementation of the stage executor

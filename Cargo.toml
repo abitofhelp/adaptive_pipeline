@@ -6,12 +6,13 @@ members = [
 ]
 resolver = "2"
 
-# Suppress specific warnings that are intentional design choices
-# while keeping other warnings visible for real issues
+# Workspace-level lints configuration
+# Note: Prefer targeted #[allow] attributes on specific modules over blanket allows
 [workspace.lints.rust]
-dead_code = "allow"        # Infrastructure code for future features
-unused_variables = "allow" # Trait method parameters, future use
-unused_imports = "allow"   # False positives from multi-binary workspace
+# Removed blanket allows - use targeted #[allow] in code where needed for:
+# - Infrastructure code for future features (dead_code)
+# - Trait method parameters (unused_variables)
+# - Platform-specific imports (unused_imports)
 
 [workspace.dependencies]
 # Core dependencies
@@ -22,7 +23,15 @@ rand = "0.9"
 thiserror = "2.0"
 async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
-tokio = { version = "1.47", features = ["full"] }
+tokio = { version = "1.47", features = [
+    "rt-multi-thread",
+    "macros",
+    "fs",
+    "io-util",
+    "signal",
+    "sync",
+    "time",
+] }
 anyhow = "1.0"
 
 # Configuration

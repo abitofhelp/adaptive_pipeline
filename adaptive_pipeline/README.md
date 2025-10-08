@@ -253,13 +253,22 @@ File I/O                    Rayon Threads               Concurrent Seeks
 - Direct concurrent writes (no bottleneck)
 - Global resource semaphores
 
-### Benchmarks (M1 Pro, 10-core)
+### Benchmarks (Mac Pro 2019, Intel Xeon W-3235 @ 3.3GHz, 12-core/24-thread, 48GB RAM, NVMe SSD)
 
-| File Size | Throughput | Workers | Chunk Size | Memory |
-|-----------|-----------|---------|------------|---------|
-| 100 MB    | 520 MB/s  | 8       | 4 MB       | 128 MB  |
-| 1 GB      | 580 MB/s  | 10      | 8 MB       | 256 MB  |
-| 10 GB     | 610 MB/s  | 10      | 16 MB      | 512 MB  |
+Measured with `adaptive_pipeline benchmark` command (2025-10-07):
+
+| File Size | Best Throughput | Optimal Config | Adaptive Config |
+|-----------|----------------|----------------|-----------------|
+| 100 MB    | **811 MB/s**   | 16MB chunks, 7 workers | 502 MB/s (16MB, 8 workers) |
+| 1 GB      | **822 MB/s**   | 64MB chunks, 5 workers | 660 MB/s (64MB, 10 workers) |
+
+**Performance Insights:**
+- Consistent **800+ MB/s** throughput shows excellent scalability
+- Lower worker counts (5-7) often outperform higher counts due to reduced context switching
+- Larger chunks (16-64MB) maximize sequential I/O performance
+- Adaptive configuration provides good baseline; fine-tuning can improve by 20-60%
+
+Run your own benchmarks: `adaptive_pipeline benchmark --file <path>`
 
 ## 🔧 Configuration
 

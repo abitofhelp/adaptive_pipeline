@@ -1,6 +1,5 @@
 # Rust
 /target
-Cargo.lock  # Remove this line if building a library
 **/*.rs.bk
 *.pdb
 *.profraw
@@ -71,7 +70,7 @@ $RECYCLE.BIN/
 .metadata
 
 # Project-specific
-plantuml.jar
+**/plantuml.jar
 **/*.adapipe
 **/random_100MB_file.txt
 **/large_test_3gb.txt

@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Binary with many imports for different command features - not all used in every path
+#![allow(dead_code, unused_imports, unused_variables)]
 //! # Adaptive Pipeline CLI Application
 //!
 //! This is the main entry point for the adaptive pipeline command-line
@@ -257,13 +259,13 @@ use crate::infrastructure::services::{
 use adaptive_pipeline_domain::repositories::stage_executor::StageExecutor;
 
 // CLI parsing now handled by bootstrap layer
-// See bootstrap::cli for CLI definitions and validation
-// Exit code mapping now in bootstrap::exit_code
+// See adaptive_pipeline_bootstrap::cli for CLI definitions and validation
+// Exit code mapping now in adaptive_pipeline_bootstrap::exit_code
 
 #[tokio::main]
 async fn main() -> std::process::ExitCode {
     // Bootstrap: Parse and validate CLI arguments with security checks
-    let validated_cli = match bootstrap::bootstrap_cli() {
+    let validated_cli = match adaptive_pipeline_bootstrap::bootstrap_cli() {
         Ok(cli) => cli,
         Err(e) => {
             eprintln!("CLI Error: {}", e);
@@ -275,7 +277,7 @@ async fn main() -> std::process::ExitCode {
     let result = run_app(validated_cli).await;
 
     // Map result to appropriate Unix exit code
-    bootstrap::result_to_exit_code(result)
+    adaptive_pipeline_bootstrap::result_to_exit_code(result)
 }
 
 /// Main application logic separated for testability
@@ -287,7 +289,7 @@ async fn main() -> std::process::ExitCode {
 /// # Returns
 ///
 /// Result indicating success or error
-async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
+async fn run_app(cli: adaptive_pipeline_bootstrap::ValidatedCli) -> Result<()> {
     // === Initialize Global Resource Manager ===
     // Educational: This must happen BEFORE any code uses RESOURCE_MANAGER
     // We configure it from CLI flags, falling back to intelligent defaults.
@@ -379,7 +381,7 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
 
     // Execute command (using validated commands from bootstrap)
     match cli.command {
-        bootstrap::ValidatedCommand::Process {
+        adaptive_pipeline_bootstrap::ValidatedCommand::Process {
             input,
             output,
             pipeline,
@@ -402,27 +404,27 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
             use_case.execute(config).await?;
         }
 
-        bootstrap::ValidatedCommand::Create { name, stages, output } => {
+        adaptive_pipeline_bootstrap::ValidatedCommand::Create { name, stages, output } => {
             let use_case = CreatePipelineUseCase::new(pipeline_repository.clone());
             use_case.execute(name, stages, output).await?;
         }
 
-        bootstrap::ValidatedCommand::List => {
+        adaptive_pipeline_bootstrap::ValidatedCommand::List => {
             let use_case = ListPipelinesUseCase::new(pipeline_repository.clone());
             use_case.execute().await?;
         }
 
-        bootstrap::ValidatedCommand::Show { pipeline } => {
+        adaptive_pipeline_bootstrap::ValidatedCommand::Show { pipeline } => {
             let use_case = ShowPipelineUseCase::new(pipeline_repository.clone());
             use_case.execute(pipeline).await?;
         }
 
-        bootstrap::ValidatedCommand::Delete { pipeline, force } => {
+        adaptive_pipeline_bootstrap::ValidatedCommand::Delete { pipeline, force } => {
             let use_case = DeletePipelineUseCase::new(pipeline_repository.clone());
             use_case.execute(pipeline, force).await?;
         }
 
-        bootstrap::ValidatedCommand::Benchmark {
+        adaptive_pipeline_bootstrap::ValidatedCommand::Benchmark {
             file,
             size_mb,
             iterations,
@@ -431,17 +433,17 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
             use_case.execute(file, size_mb, iterations).await?;
         }
 
-        bootstrap::ValidatedCommand::Validate { config } => {
+        adaptive_pipeline_bootstrap::ValidatedCommand::Validate { config } => {
             let use_case = ValidateConfigUseCase::new();
             use_case.execute(config).await?;
         }
 
-        bootstrap::ValidatedCommand::ValidateFile { file, full } => {
+        adaptive_pipeline_bootstrap::ValidatedCommand::ValidateFile { file, full } => {
             let use_case = ValidateFileUseCase::new();
             use_case.execute(file, full).await?;
         }
 
-        bootstrap::ValidatedCommand::Restore {
+        adaptive_pipeline_bootstrap::ValidatedCommand::Restore {
             input,
             output_dir,
             mkdir,
@@ -451,7 +453,7 @@ async fn run_app(cli: bootstrap::ValidatedCli) -> Result<()> {
             restore_file_from_adapipe_v2(input, output_dir, mkdir, overwrite).await?;
         }
 
-        bootstrap::ValidatedCommand::Compare {
+        adaptive_pipeline_bootstrap::ValidatedCommand::Compare {
             original,
             adapipe,
             detailed,

@@ -198,9 +198,9 @@ impl SqlitePipelineRepository {
     /// - **Network**: Single round-trip for transaction commit
     /// - **Locking**: Row-level locks acquired during transaction
     pub async fn save(&self, entity: &Pipeline) -> Result<(), PipelineError> {
-        println!(
-            "DEBUG: SqlitePipelineRepository::save called for pipeline: {}",
-            entity.name()
+        debug!(
+            pipeline_name = %entity.name(),
+            "SqlitePipelineRepository::save called"
         );
 
         // Start database transaction for ACID compliance
@@ -298,9 +298,9 @@ impl SqlitePipelineRepository {
             .await
             .map_err(|e| PipelineError::database_error(format!("Failed to commit transaction: {}", e)))?;
 
-        println!(
-            "DEBUG: Successfully saved pipeline with ACID transaction: {}",
-            entity.name()
+        debug!(
+            pipeline_name = %entity.name(),
+            "Successfully saved pipeline with ACID transaction"
         );
         Ok(())
     }
@@ -313,16 +313,16 @@ impl SqlitePipelineRepository {
     /// PUBLIC: Domain interface - Update a pipeline
     pub async fn update(&self, pipeline: &Pipeline) -> Result<(), PipelineError> {
         // Implementation simplified for now
-        println!(
-            "DEBUG: SqlitePipelineRepository::update called for pipeline: {}",
-            pipeline.name()
+        debug!(
+            pipeline_name = %pipeline.name(),
+            "SqlitePipelineRepository::update called"
         );
         Ok(())
     }
 
     /// PUBLIC: Domain interface - Soft delete a pipeline with cascading archive
     pub async fn delete(&self, id: PipelineId) -> Result<bool, PipelineError> {
-        println!("DEBUG: Starting delete for pipeline: {}", id);
+        debug!(pipeline_id = %id, "Starting delete for pipeline");
 
         let mut tx = self
             .pool
@@ -333,7 +333,7 @@ impl SqlitePipelineRepository {
         let now = chrono::Utc::now().to_rfc3339();
         let id_str = id.to_string();
 
-        println!("DEBUG: Archiving pipeline stages...");
+        debug!("Archiving pipeline stages...");
         // Archive pipeline stages first
         let stages_query = r#"
             UPDATE pipeline_stages 
@@ -348,9 +348,12 @@ impl SqlitePipelineRepository {
             .await
             .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline stages: {}", e)))?;
 
-        println!("DEBUG: Archived {} stages", stages_result.rows_affected());
+        debug!(
+            stages_archived = stages_result.rows_affected(),
+            "Archived pipeline stages"
+        );
 
-        println!("DEBUG: Archiving stage parameters...");
+        debug!("Archiving stage parameters...");
         // Archive stage parameters
         let params_query = r#"
             UPDATE stage_parameters 
@@ -368,9 +371,12 @@ impl SqlitePipelineRepository {
             .await
             .map_err(|e| PipelineError::database_error(format!("Failed to archive stage parameters: {}", e)))?;
 
-        println!("DEBUG: Archived {} stage parameters", params_result.rows_affected());
+        debug!(
+            parameters_archived = params_result.rows_affected(),
+            "Archived stage parameters"
+        );
 
-        println!("DEBUG: Archiving pipeline configuration...");
+        debug!("Archiving pipeline configuration...");
         // Archive pipeline configuration
         let config_query = r#"
             UPDATE pipeline_configuration 
@@ -385,9 +391,12 @@ impl SqlitePipelineRepository {
             .await
             .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline configuration: {}", e)))?;
 
-        println!("DEBUG: Archived {} config entries", config_result.rows_affected());
+        debug!(
+            config_entries_archived = config_result.rows_affected(),
+            "Archived config entries"
+        );
 
-        println!("DEBUG: Archiving main pipeline...");
+        debug!("Archiving main pipeline...");
         // Finally, archive the main pipeline record
         let pipeline_query = r#"
             UPDATE pipelines 
@@ -403,22 +412,22 @@ impl SqlitePipelineRepository {
             .map_err(|e| PipelineError::database_error(format!("Failed to archive pipeline: {}", e)))?;
 
         let success = result.rows_affected() > 0;
-        println!(
-            "DEBUG: Pipeline archive success: {}, rows affected: {}",
-            success,
-            result.rows_affected()
+        debug!(
+            success = success,
+            rows_affected = result.rows_affected(),
+            "Pipeline archive result"
         );
 
         if success {
             tx.commit()
                 .await
                 .map_err(|e| PipelineError::database_error(format!("Failed to commit archive transaction: {}", e)))?;
-            println!("DEBUG: Transaction committed successfully");
+            debug!("Transaction committed successfully");
         } else {
             tx.rollback()
                 .await
                 .map_err(|e| PipelineError::database_error(format!("Failed to rollback archive transaction: {}", e)))?;
-            println!("DEBUG: Transaction rolled back");
+            debug!("Transaction rolled back");
         }
 
         Ok(success)
@@ -426,7 +435,7 @@ impl SqlitePipelineRepository {
 
     /// PUBLIC: Domain interface - List all active pipelines
     pub async fn list_all(&self) -> Result<Vec<Pipeline>, PipelineError> {
-        println!("DEBUG: SqlitePipelineRepository::list_all called (excluding archived)");
+        debug!("SqlitePipelineRepository::list_all called (excluding archived)");
 
         // Get all non-archived pipelines
         let query = "SELECT id FROM pipelines WHERE archived = false ORDER BY name";
@@ -445,7 +454,7 @@ impl SqlitePipelineRepository {
             }
         }
 
-        println!("DEBUG: Found {} active pipelines", pipelines.len());
+        debug!(pipeline_count = pipelines.len(), "Found active pipelines");
         Ok(pipelines)
     }
 
@@ -457,7 +466,7 @@ impl SqlitePipelineRepository {
 
     /// PUBLIC: Domain interface - List archived pipelines
     pub async fn list_archived(&self) -> Result<Vec<Pipeline>, PipelineError> {
-        println!("DEBUG: SqlitePipelineRepository::list_archived called");
+        debug!("SqlitePipelineRepository::list_archived called");
 
         // Get all archived pipelines
         let query = "SELECT id FROM pipelines WHERE archived = true ORDER BY name";
@@ -476,7 +485,7 @@ impl SqlitePipelineRepository {
             }
         }
 
-        println!("DEBUG: Found {} archived pipelines", pipelines.len());
+        debug!(pipeline_count = pipelines.len(), "Found archived pipelines");
         Ok(pipelines)
     }
 
@@ -508,7 +517,7 @@ impl SqlitePipelineRepository {
             let pipeline_id = PipelineId::from_string(&id_str)?;
             self.load_pipeline_from_db(pipeline_id).await
         } else {
-            println!("DEBUG: No pipeline found with name: {}", name);
+            debug!(pipeline_name = name, "No pipeline found with name");
             Ok(None)
         }
     }
@@ -548,9 +557,10 @@ impl SqlitePipelineRepository {
 
     /// PUBLIC: Domain interface - Find pipelines by configuration parameter
     pub async fn find_by_config(&self, key: &str, value: &str) -> Result<Vec<Pipeline>, PipelineError> {
-        println!(
-            "DEBUG: SqlitePipelineRepository::find_by_config called for key: {}, value: {}",
-            key, value
+        debug!(
+            config_key = key,
+            config_value = value,
+            "SqlitePipelineRepository::find_by_config called"
         );
 
         let query = r#"
@@ -577,11 +587,11 @@ impl SqlitePipelineRepository {
             }
         }
 
-        println!(
-            "DEBUG: Found {} pipelines with config {}={}",
-            pipelines.len(),
-            key,
-            value
+        debug!(
+            pipeline_count = pipelines.len(),
+            config_key = key,
+            config_value = value,
+            "Found pipelines with config"
         );
         Ok(pipelines)
     }

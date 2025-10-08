@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure module - contains future features not yet fully utilized
+#![allow(dead_code, unused_imports, unused_variables)]
 //! # Generic Repository Adapter
 //!
 //! This module provides a generic, in-memory repository adapter implementation

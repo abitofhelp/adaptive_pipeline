@@ -212,22 +212,22 @@ use std::sync::Arc;
 #[async_trait]
 pub trait ProcessingObserver: Send + Sync {
     /// Called when a chunk starts processing
-    async fn on_chunk_started(&self, chunk_id: u64, size: usize) {}
+    async fn on_chunk_started(&self, _chunk_id: u64, _size: usize) {}
 
     /// Called when a chunk completes processing
-    async fn on_chunk_completed(&self, chunk_id: u64, duration: std::time::Duration) {}
+    async fn on_chunk_completed(&self, _chunk_id: u64, _duration: std::time::Duration) {}
 
     /// Called periodically with progress updates
     async fn on_progress_update(&self, _bytes_processed: u64, _total_bytes: u64, _throughput_mbps: f64) {}
 
     /// Called when processing starts
-    async fn on_processing_started(&self, total_bytes: u64) {}
+    async fn on_processing_started(&self, _total_bytes: u64) {}
 
     /// Called when processing completes
     async fn on_processing_completed(
         &self,
-        total_duration: std::time::Duration,
-        final_metrics: Option<&ProcessingMetrics>,
+        _total_duration: std::time::Duration,
+        _final_metrics: Option<&ProcessingMetrics>,
     ) {
     }
 }

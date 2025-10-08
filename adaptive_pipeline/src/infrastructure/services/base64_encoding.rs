@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure service with parameters for future features
+#![allow(unused_variables)]
 //! # Base64 Encoding Service
 //!
 //! Production-ready Base64 encoding/decoding stage for the adaptive pipeline.

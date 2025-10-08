@@ -265,7 +265,7 @@ pub trait PathCategory {
     fn category_name() -> &'static str;
 
     /// Validates category-specific constraints
-    fn validate_category(path: &Path) -> Result<(), PipelineError> {
+    fn validate_category(_path: &Path) -> Result<(), PipelineError> {
         // Default implementation - can be overridden
         Ok(())
     }

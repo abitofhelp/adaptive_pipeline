@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure module - contains future features not yet fully utilized
+#![allow(dead_code, unused_imports, unused_variables)]
 //! # Chunk Processor Adapters
 //!
 //! This module provides adapter implementations that bridge domain services

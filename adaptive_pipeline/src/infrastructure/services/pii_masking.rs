@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure service with parameters for future features
+#![allow(unused_variables)]
 //! # PII Masking Service
 //!
 //! Production-ready PII (Personally Identifiable Information) masking stage for

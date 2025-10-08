@@ -5,6 +5,8 @@
 // See LICENSE file in the project root.
 // /////////////////////////////////////////////////////////////////////////////
 
+// Infrastructure module - contains future features not yet fully utilized
+#![allow(dead_code, unused_imports, unused_variables)]
 //! # Progress Indicator Service
 //!
 //! This module provides a real-time progress indicator for user feedback during
