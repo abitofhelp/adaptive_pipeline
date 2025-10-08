@@ -1,6 +1,6 @@
 # Pipeline Developer Guide
 
-**Version:** 1.0.2
+**Version:** 1.0.3
 **Date:** October 7, 2025
 **SPDX-License-Identifier:** BSD-3-Clause
 **License File:** See the LICENSE file in the project root.
