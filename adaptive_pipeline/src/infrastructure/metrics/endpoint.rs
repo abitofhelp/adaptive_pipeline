@@ -368,13 +368,11 @@ async fn handle_request(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
-    use tokio::time::timeout;
 
     #[tokio::test]
     async fn test_metrics_endpoint_creation() -> Result<(), Box<dyn std::error::Error>> {
         let metrics_service = Arc::new(MetricsService::new()?);
-        let endpoint = MetricsEndpoint::new(metrics_service);
+        let _endpoint = MetricsEndpoint::new(metrics_service);
 
         // Just test that we can create the endpoint
         // No assertion needed - if we get here, creation succeeded
@@ -384,7 +382,7 @@ mod tests {
     #[tokio::test]
     async fn test_metrics_endpoint_start() -> Result<(), Box<dyn std::error::Error>> {
         let metrics_service = Arc::new(MetricsService::new()?);
-        let endpoint = MetricsEndpoint::new(metrics_service);
+        let _endpoint = MetricsEndpoint::new(metrics_service);
 
         // Test binding to a port - use port 0 to get a random available port
         // Since start() runs forever, we'll just test that we can create the endpoint
@@ -392,7 +390,6 @@ mod tests {
         // to avoid port conflicts and hanging tests
 
         // Just verify the endpoint was created successfully
-        assert!(true);
         Ok(())
     }
 }

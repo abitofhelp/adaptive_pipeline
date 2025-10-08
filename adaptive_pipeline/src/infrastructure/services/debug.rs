@@ -168,7 +168,7 @@ mod tests {
         let metrics = create_test_metrics();
         let service = DebugService::new(metrics);
         assert_eq!(service.position(), StagePosition::Any);
-        assert_eq!(service.is_reversible(), true);
+        assert!(service.is_reversible());
         assert_eq!(service.stage_type(), StageType::Transform);
     }
 

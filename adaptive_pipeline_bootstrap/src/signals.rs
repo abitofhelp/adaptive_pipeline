@@ -271,7 +271,7 @@ mod tests {
     #[test]
     fn test_unix_signal_handler_creation() {
         let _handler = UnixSignalHandler::new();
-        let _handler = UnixSignalHandler::default();
+        let _handler = UnixSignalHandler;
     }
 
     #[cfg(windows)]

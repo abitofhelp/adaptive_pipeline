@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # File I/O Service Demonstration
 //!
 //! This example demonstrates the comprehensive file I/O capabilities of the adaptive pipeline system.

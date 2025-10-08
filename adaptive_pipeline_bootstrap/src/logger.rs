@@ -159,6 +159,13 @@ pub enum LogLevel {
 }
 
 #[cfg(test)]
+impl Default for CapturingLogger {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
 impl CapturingLogger {
     pub fn new() -> Self {
         Self {

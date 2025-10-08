@@ -753,198 +753,6 @@ impl Default for AdapipeFormat {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use adaptive_pipeline_domain::value_objects::{ChunkFormat, FileHeader, ProcessingStepType};
-    use tempfile::{NamedTempFile, TempDir};
-    use tokio::fs;
-
-    #[tokio::test]
-    async fn test_binary_format_roundtrip() {
-        // Create a temporary file for testing
-        let temp_dir = TempDir::new().unwrap();
-        let test_file_path = temp_dir.path().join("test.adapipe");
-
-        // Create test header
-        let header = FileHeader::new(
-            "test_file.txt".to_string(),
-            1024,
-            "original_checksum_abc123".to_string(),
-        )
-        .add_compression_step("brotli", 6)
-        .add_encryption_step("aes256gcm", "argon2", 32, 12)
-        .with_chunk_info(1024, 2)
-        .with_pipeline_id("test-pipeline".to_string());
-
-        // Create test chunks
-        let chunk1 = ChunkFormat::new([1u8; 12], vec![0xde, 0xad, 0xbe, 0xef]);
-        let chunk2 = ChunkFormat::new([2u8; 12], vec![0xca, 0xfe, 0xba, 0xbe]);
-
-        // Write file using StreamingBinaryWriter
-        let service = AdapipeFormat::new();
-        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
-        writer.write_chunk(chunk1.clone()).unwrap();
-        writer.write_chunk(chunk2.clone()).unwrap();
-
-        // Finalize with updated header
-        let final_header = header.clone();
-        writer.finalize(final_header).await.unwrap();
-
-        // Read the file back
-        let mut reader = service.create_reader(&test_file_path).await.unwrap();
-
-        // Test read_header
-        let read_header = reader.read_header().unwrap();
-        assert_eq!(read_header.original_filename, "test_file.txt");
-        assert_eq!(read_header.chunk_count, 2);
-        assert!(read_header.is_compressed());
-        assert!(read_header.is_encrypted());
-
-        // Test read_next_chunk
-        let read_chunk1 = reader.read_next_chunk().await.unwrap();
-        assert!(read_chunk1.is_some());
-        let read_chunk1 = read_chunk1.unwrap();
-        assert_eq!(read_chunk1.nonce, chunk1.nonce);
-        assert_eq!(read_chunk1.payload, chunk1.payload);
-
-        let read_chunk2 = reader.read_next_chunk().await.unwrap();
-        assert!(read_chunk2.is_some());
-        let read_chunk2 = read_chunk2.unwrap();
-        assert_eq!(read_chunk2.nonce, chunk2.nonce);
-        assert_eq!(read_chunk2.payload, chunk2.payload);
-
-        // Test EOF
-        let read_chunk3 = reader.read_next_chunk().await.unwrap();
-        assert!(read_chunk3.is_none());
-
-        // Test validate_integrity
-        let is_valid = reader.validate_integrity().await.unwrap();
-        assert!(is_valid, "File integrity validation should pass");
-    }
-
-    #[tokio::test]
-    async fn test_file_validation() {
-        // Create a temporary file for testing
-        let temp_dir = TempDir::new().unwrap();
-        let test_file_path = temp_dir.path().join("test_validation.adapipe");
-
-        // Create test header with specific checksum
-        let header = FileHeader::new(
-            "validation_test.txt".to_string(),
-            2048,
-            "original_checksum_xyz789".to_string(),
-        )
-        .add_compression_step("zstd", 3)
-        .with_chunk_info(1024, 1)
-        .with_pipeline_id("validation-pipeline".to_string());
-
-        // Create test chunk
-        let chunk = ChunkFormat::new([5u8; 12], vec![0x12, 0x34, 0x56, 0x78]);
-
-        // Write file
-        let service = AdapipeFormat::new();
-        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
-        writer.write_chunk(chunk.clone()).unwrap();
-        let final_header = header.clone();
-        writer.finalize(final_header).await.unwrap();
-
-        // Validate the file
-        let validation_result = service.validate_file(&test_file_path).await.unwrap();
-        assert!(validation_result.is_valid);
-        assert_eq!(validation_result.chunk_count, 1);
-        assert_eq!(validation_result.format_version, 1);
-        assert!(validation_result.integrity_verified);
-        assert!(validation_result.errors.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_read_metadata() {
-        // Create a temporary file for testing
-        let temp_dir = TempDir::new().unwrap();
-        let test_file_path = temp_dir.path().join("test_metadata.adapipe");
-
-        // Create test header with metadata
-        let header = FileHeader::new(
-            "metadata_test.txt".to_string(),
-            4096,
-            "checksum_metadata_test".to_string(),
-        )
-        .add_encryption_step("chacha20poly1305", "pbkdf2", 32, 12)
-        .with_chunk_info(2048, 2)
-        .with_pipeline_id("metadata-pipeline".to_string())
-        .with_metadata("custom_key".to_string(), "custom_value".to_string());
-
-        // Create and write chunks
-        let chunk1 = ChunkFormat::new([7u8; 12], vec![0xaa, 0xbb, 0xcc, 0xdd]);
-        let chunk2 = ChunkFormat::new([8u8; 12], vec![0x11, 0x22, 0x33, 0x44]);
-
-        let service = AdapipeFormat::new();
-        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
-        writer.write_chunk(chunk1).unwrap();
-        writer.write_chunk(chunk2).unwrap();
-        let final_header = header.clone();
-        writer.finalize(final_header).await.unwrap();
-
-        // Read metadata
-        let metadata = service.read_metadata(&test_file_path).await.unwrap();
-        assert_eq!(metadata.original_filename, "metadata_test.txt");
-        assert_eq!(metadata.original_size, 4096);
-        assert_eq!(metadata.chunk_count, 2);
-        assert_eq!(metadata.pipeline_id, "metadata-pipeline");
-        assert!(metadata.is_encrypted());
-        assert!(!metadata.is_compressed());
-        assert_eq!(metadata.encryption_algorithm(), Some("chacha20poly1305"));
-        assert_eq!(metadata.metadata.get("custom_key"), Some(&"custom_value".to_string()));
-    }
-
-    #[tokio::test]
-    async fn test_seek_to_chunk() {
-        // Create a temporary file for testing
-        let temp_dir = TempDir::new().unwrap();
-        let test_file_path = temp_dir.path().join("test_seek.adapipe");
-
-        // Create test header
-        let header = FileHeader::new("seek_test.txt".to_string(), 3072, "checksum_seek_test".to_string())
-            .with_chunk_info(1024, 3);
-
-        // Create test chunks with distinct data
-        let chunk1 = ChunkFormat::new([1u8; 12], vec![0x01, 0x02, 0x03, 0x04]);
-        let chunk2 = ChunkFormat::new([2u8; 12], vec![0x05, 0x06, 0x07, 0x08]);
-        let chunk3 = ChunkFormat::new([3u8; 12], vec![0x09, 0x0a, 0x0b, 0x0c]);
-
-        // Write file
-        let service = AdapipeFormat::new();
-        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
-        writer.write_chunk(chunk1.clone()).unwrap();
-        writer.write_chunk(chunk2.clone()).unwrap();
-        writer.write_chunk(chunk3.clone()).unwrap();
-        let final_header = header.clone();
-        writer.finalize(final_header).await.unwrap();
-
-        // Create reader
-        let mut reader = service.create_reader(&test_file_path).await.unwrap();
-
-        // Seek to chunk 2 (0-indexed)
-        reader.seek_to_chunk(2).await.unwrap();
-        let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
-        assert_eq!(read_chunk.nonce, chunk3.nonce);
-        assert_eq!(read_chunk.payload, chunk3.payload);
-
-        // Seek back to chunk 0
-        reader.seek_to_chunk(0).await.unwrap();
-        let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
-        assert_eq!(read_chunk.nonce, chunk1.nonce);
-        assert_eq!(read_chunk.payload, chunk1.payload);
-
-        // Seek to chunk 1
-        reader.seek_to_chunk(1).await.unwrap();
-        let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
-        assert_eq!(read_chunk.nonce, chunk2.nonce);
-        assert_eq!(read_chunk.payload, chunk2.payload);
-    }
-}
-
 // ============================================================================
 // Transactional Binary Writer
 // ============================================================================
@@ -1279,5 +1087,196 @@ impl Drop for TransactionalBinaryWriter {
             );
             warn!("Consider calling rollback() explicitly to clean up resources");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use adaptive_pipeline_domain::value_objects::{ChunkFormat, FileHeader};
+    use tempfile::TempDir;
+
+    #[tokio::test]
+    async fn test_binary_format_roundtrip() {
+        // Create a temporary file for testing
+        let temp_dir = TempDir::new().unwrap();
+        let test_file_path = temp_dir.path().join("test.adapipe");
+
+        // Create test header
+        let header = FileHeader::new(
+            "test_file.txt".to_string(),
+            1024,
+            "original_checksum_abc123".to_string(),
+        )
+        .add_compression_step("brotli", 6)
+        .add_encryption_step("aes256gcm", "argon2", 32, 12)
+        .with_chunk_info(1024, 2)
+        .with_pipeline_id("test-pipeline".to_string());
+
+        // Create test chunks
+        let chunk1 = ChunkFormat::new([1u8; 12], vec![0xde, 0xad, 0xbe, 0xef]);
+        let chunk2 = ChunkFormat::new([2u8; 12], vec![0xca, 0xfe, 0xba, 0xbe]);
+
+        // Write file using StreamingBinaryWriter
+        let service = AdapipeFormat::new();
+        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
+        writer.write_chunk(chunk1.clone()).unwrap();
+        writer.write_chunk(chunk2.clone()).unwrap();
+
+        // Finalize with updated header
+        let final_header = header.clone();
+        writer.finalize(final_header).await.unwrap();
+
+        // Read the file back
+        let mut reader = service.create_reader(&test_file_path).await.unwrap();
+
+        // Test read_header
+        let read_header = reader.read_header().unwrap();
+        assert_eq!(read_header.original_filename, "test_file.txt");
+        assert_eq!(read_header.chunk_count, 2);
+        assert!(read_header.is_compressed());
+        assert!(read_header.is_encrypted());
+
+        // Test read_next_chunk
+        let read_chunk1 = reader.read_next_chunk().await.unwrap();
+        assert!(read_chunk1.is_some());
+        let read_chunk1 = read_chunk1.unwrap();
+        assert_eq!(read_chunk1.nonce, chunk1.nonce);
+        assert_eq!(read_chunk1.payload, chunk1.payload);
+
+        let read_chunk2 = reader.read_next_chunk().await.unwrap();
+        assert!(read_chunk2.is_some());
+        let read_chunk2 = read_chunk2.unwrap();
+        assert_eq!(read_chunk2.nonce, chunk2.nonce);
+        assert_eq!(read_chunk2.payload, chunk2.payload);
+
+        // Test EOF
+        let read_chunk3 = reader.read_next_chunk().await.unwrap();
+        assert!(read_chunk3.is_none());
+
+        // Test validate_integrity
+        let is_valid = reader.validate_integrity().await.unwrap();
+        assert!(is_valid, "File integrity validation should pass");
+    }
+
+    #[tokio::test]
+    async fn test_file_validation() {
+        // Create a temporary file for testing
+        let temp_dir = TempDir::new().unwrap();
+        let test_file_path = temp_dir.path().join("test_validation.adapipe");
+
+        // Create test header with specific checksum
+        let header = FileHeader::new(
+            "validation_test.txt".to_string(),
+            2048,
+            "original_checksum_xyz789".to_string(),
+        )
+        .add_compression_step("zstd", 3)
+        .with_chunk_info(1024, 1)
+        .with_pipeline_id("validation-pipeline".to_string());
+
+        // Create test chunk
+        let chunk = ChunkFormat::new([5u8; 12], vec![0x12, 0x34, 0x56, 0x78]);
+
+        // Write file
+        let service = AdapipeFormat::new();
+        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
+        writer.write_chunk(chunk.clone()).unwrap();
+        let final_header = header.clone();
+        writer.finalize(final_header).await.unwrap();
+
+        // Validate the file
+        let validation_result = service.validate_file(&test_file_path).await.unwrap();
+        assert!(validation_result.is_valid);
+        assert_eq!(validation_result.chunk_count, 1);
+        assert_eq!(validation_result.format_version, 1);
+        assert!(validation_result.integrity_verified);
+        assert!(validation_result.errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_read_metadata() {
+        // Create a temporary file for testing
+        let temp_dir = TempDir::new().unwrap();
+        let test_file_path = temp_dir.path().join("test_metadata.adapipe");
+
+        // Create test header with metadata
+        let header = FileHeader::new(
+            "metadata_test.txt".to_string(),
+            4096,
+            "checksum_metadata_test".to_string(),
+        )
+        .add_encryption_step("chacha20poly1305", "pbkdf2", 32, 12)
+        .with_chunk_info(2048, 2)
+        .with_pipeline_id("metadata-pipeline".to_string())
+        .with_metadata("custom_key".to_string(), "custom_value".to_string());
+
+        // Create and write chunks
+        let chunk1 = ChunkFormat::new([7u8; 12], vec![0xaa, 0xbb, 0xcc, 0xdd]);
+        let chunk2 = ChunkFormat::new([8u8; 12], vec![0x11, 0x22, 0x33, 0x44]);
+
+        let service = AdapipeFormat::new();
+        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
+        writer.write_chunk(chunk1).unwrap();
+        writer.write_chunk(chunk2).unwrap();
+        let final_header = header.clone();
+        writer.finalize(final_header).await.unwrap();
+
+        // Read metadata
+        let metadata = service.read_metadata(&test_file_path).await.unwrap();
+        assert_eq!(metadata.original_filename, "metadata_test.txt");
+        assert_eq!(metadata.original_size, 4096);
+        assert_eq!(metadata.chunk_count, 2);
+        assert_eq!(metadata.pipeline_id, "metadata-pipeline");
+        assert!(metadata.is_encrypted());
+        assert!(!metadata.is_compressed());
+        assert_eq!(metadata.encryption_algorithm(), Some("chacha20poly1305"));
+        assert_eq!(metadata.metadata.get("custom_key"), Some(&"custom_value".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_seek_to_chunk() {
+        // Create a temporary file for testing
+        let temp_dir = TempDir::new().unwrap();
+        let test_file_path = temp_dir.path().join("test_seek.adapipe");
+
+        // Create test header
+        let header = FileHeader::new("seek_test.txt".to_string(), 3072, "checksum_seek_test".to_string())
+            .with_chunk_info(1024, 3);
+
+        // Create test chunks with distinct data
+        let chunk1 = ChunkFormat::new([1u8; 12], vec![0x01, 0x02, 0x03, 0x04]);
+        let chunk2 = ChunkFormat::new([2u8; 12], vec![0x05, 0x06, 0x07, 0x08]);
+        let chunk3 = ChunkFormat::new([3u8; 12], vec![0x09, 0x0a, 0x0b, 0x0c]);
+
+        // Write file
+        let service = AdapipeFormat::new();
+        let mut writer = service.create_writer(&test_file_path, header.clone()).await.unwrap();
+        writer.write_chunk(chunk1.clone()).unwrap();
+        writer.write_chunk(chunk2.clone()).unwrap();
+        writer.write_chunk(chunk3.clone()).unwrap();
+        let final_header = header.clone();
+        writer.finalize(final_header).await.unwrap();
+
+        // Create reader
+        let mut reader = service.create_reader(&test_file_path).await.unwrap();
+
+        // Seek to chunk 2 (0-indexed)
+        reader.seek_to_chunk(2).await.unwrap();
+        let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
+        assert_eq!(read_chunk.nonce, chunk3.nonce);
+        assert_eq!(read_chunk.payload, chunk3.payload);
+
+        // Seek back to chunk 0
+        reader.seek_to_chunk(0).await.unwrap();
+        let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
+        assert_eq!(read_chunk.nonce, chunk1.nonce);
+        assert_eq!(read_chunk.payload, chunk1.payload);
+
+        // Seek to chunk 1
+        reader.seek_to_chunk(1).await.unwrap();
+        let read_chunk = reader.read_next_chunk().await.unwrap().unwrap();
+        assert_eq!(read_chunk.nonce, chunk2.nonce);
+        assert_eq!(read_chunk.payload, chunk2.payload);
     }
 }

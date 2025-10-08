@@ -112,7 +112,7 @@ mod tests {
     fn test_passthrough_service_creation() {
         let service = PassThroughService::new();
         assert_eq!(service.position(), StagePosition::Any);
-        assert_eq!(service.is_reversible(), true);
+        assert!(service.is_reversible());
         assert_eq!(service.stage_type(), StageType::PassThrough);
     }
 

@@ -532,7 +532,7 @@ mod tests {
     /// - Default configuration is applied
     #[test]
     fn test_generic_service_base_creation() {
-        let service = GenericServiceBase::<TestConfig, TestStats>::new("test_service".to_string(), "1.0.0".to_string());
+        let _service = GenericServiceBase::<TestConfig, TestStats>::new("test_service".to_string(), "1.0.0".to_string());
 
         // assert_eq!(service.get_metadata().service_name, "test_service");
         // assert_eq!(service.get_metadata().service_version, "1.0.0");

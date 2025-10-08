@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # End-to-End Binary Format Tests
 //!
 //! E2E tests for .adapipe binary format: complete roundtrips, multi-chunk
@@ -9,7 +17,6 @@ use tokio::fs;
 
 use adaptive_pipeline::infrastructure::services::{AdapipeFormat, BinaryFormatService, BinaryFormatWriter};
 use adaptive_pipeline_domain::value_objects::FileHeader;
-use adaptive_pipeline_domain::PipelineError;
 
 // Import shared test helpers
 use crate::common::{calculate_sha256, get_pipeline_bin};
@@ -40,13 +47,13 @@ async fn test_e2e_real_pipeline_roundtrip() {
     // Step 0: Clean up any existing pipeline from previous test runs
     let _ = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["delete", "--name", "e2e-test-roundtrip", "--force"])
+        .args(["delete", "--name", "e2e-test-roundtrip", "--force"])
         .output();
 
     // Step 1: Create a pipeline using the real CLI
     let create_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "e2e-test-roundtrip", "--stages", "brotli"])
+        .args(["create", "--name", "e2e-test-roundtrip", "--stages", "brotli"])
         .output()
         .expect("Failed to create pipeline");
 
@@ -61,7 +68,7 @@ async fn test_e2e_real_pipeline_roundtrip() {
     // Step 2: Process the file using the real pipeline CLI
     let process_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "process",
             "--input",
             input_file.to_str().unwrap(),
@@ -121,7 +128,7 @@ async fn test_e2e_real_pipeline_roundtrip() {
     // Step 6: Clean up - delete the test pipeline
     let _delete_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["delete", "--name", "e2e-test-roundtrip", "--force"])
+        .args(["delete", "--name", "e2e-test-roundtrip", "--force"])
         .output()
         .expect("Failed to delete pipeline");
 
@@ -149,14 +156,14 @@ async fn test_e2e_binary_format_pass_through() {
     // Step 0: Clean up any existing pipeline from previous test runs
     let _ = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["delete", "--name", "e2e-passthrough", "--force"])
+        .args(["delete", "--name", "e2e-passthrough", "--force"])
         .output();
 
     // Step 1: Create a pipeline with only checksum stages (no
     // compression/encryption)
     let create_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "e2e-passthrough", "--stages", "checksum"])
+        .args(["create", "--name", "e2e-passthrough", "--stages", "checksum"])
         .output()
         .expect("Failed to create pipeline");
 
@@ -165,7 +172,7 @@ async fn test_e2e_binary_format_pass_through() {
     // Step 2: Process the file
     let process_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "process",
             "--input",
             input_file.to_str().unwrap(),
@@ -195,7 +202,7 @@ async fn test_e2e_binary_format_pass_through() {
     // Clean up
     let _delete_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["delete", "--name", "e2e-passthrough", "--force"])
+        .args(["delete", "--name", "e2e-passthrough", "--force"])
         .output()
         .expect("Failed to delete pipeline");
 
@@ -263,13 +270,13 @@ async fn test_e2e_binary_format_large_file() {
     // Step 0: Clean up any existing pipeline from previous test runs
     let _ = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["delete", "--name", "e2e-large-test", "--force"])
+        .args(["delete", "--name", "e2e-large-test", "--force"])
         .output();
 
     // Step 1: Create pipeline
     let create_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "e2e-large-test", "--stages", "brotli"])
+        .args(["create", "--name", "e2e-large-test", "--stages", "brotli"])
         .output()
         .expect("Failed to create pipeline");
 
@@ -283,7 +290,7 @@ async fn test_e2e_binary_format_large_file() {
     // chunks
     let process_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "process",
             "--input",
             input_file.to_str().unwrap(),
@@ -328,7 +335,7 @@ async fn test_e2e_binary_format_large_file() {
     // Clean up
     let _delete_output = Command::new(&pipeline_bin)
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["delete", "--name", "e2e-large-test", "--force"])
+        .args(["delete", "--name", "e2e-large-test", "--force"])
         .output()
         .expect("Failed to delete pipeline");
 

@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # Application Layer Integration Tests
 //!
 //! Integration tests for the application layer components of the adaptive
@@ -74,7 +82,7 @@ async fn test_application_layer_structure() {
     println!("✅ Integration between application and infrastructure layers works");
 
     // Assert - architecture compliance validation
-    assert!(true, "Application layer integration test passed");
+    // Test passes if no panics occur
 }
 
 /// Tests RestoreFileCommand default values.

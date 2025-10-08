@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # Generic Service Integration Demo
 //!
 //! This comprehensive integration example demonstrates how to combine all four generic

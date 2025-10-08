@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # ID Generator Demo - Database Initialization Utility
 //!
 //! This comprehensive example demonstrates the proper generation and usage of

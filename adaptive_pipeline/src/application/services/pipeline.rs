@@ -1704,8 +1704,7 @@ mod tests {
             loop {
                 let mut rx_lock = rx_shared.lock().await;
 
-                #[allow(clippy::await_holding_lock)]
-                let result = tokio::select! {
+                tokio::select! {
                     _ = cancel_clone.cancelled() => {
                         // Graceful shutdown: exit worker loop
                         break;
@@ -1717,7 +1716,7 @@ mod tests {
 
                 #[allow(unreachable_code)]
                 {
-                    result
+                    
                 }
             }
             Ok::<(), PipelineError>(())

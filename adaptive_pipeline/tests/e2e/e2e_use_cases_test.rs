@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # End-to-End Use Case Tests
 //!
 //! E2E tests for all use cases via the CLI interface. These tests verify
@@ -9,7 +17,7 @@ use tempfile::TempDir;
 use tokio::fs;
 
 // Import shared test helpers
-use crate::common::{calculate_sha256, get_pipeline_bin};
+use crate::common::get_pipeline_bin;
 
 /// Tests CreatePipelineUseCase via CLI
 #[tokio::test]
@@ -20,7 +28,7 @@ async fn test_e2e_create_pipeline_use_case() {
     // Create a pipeline using the CLI (which uses CreatePipelineUseCase)
     let output = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "test-create-uc", "--stages", "brotli,aes256gcm"])
+        .args(["create", "--name", "test-create-uc", "--stages", "brotli,aes256gcm"])
         .output()
         .expect("Failed to run create command");
 
@@ -44,7 +52,7 @@ async fn test_e2e_list_pipelines_use_case() {
     for name in &["test-list-1", "test-list-2", "test-list-3"] {
         Command::new(get_pipeline_bin())
             .env("ADAPIPE_SQLITE_PATH", &db_path)
-            .args(&["create", "--name", name, "--stages", "brotli"])
+            .args(["create", "--name", name, "--stages", "brotli"])
             .output()
             .expect("Failed to create pipeline");
     }
@@ -52,7 +60,7 @@ async fn test_e2e_list_pipelines_use_case() {
     // List pipelines using CLI (which uses ListPipelinesUseCase)
     let output = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["list"])
+        .args(["list"])
         .output()
         .expect("Failed to run list command");
 
@@ -81,7 +89,7 @@ async fn test_e2e_show_pipeline_use_case() {
     // Create a pipeline with multiple stages
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "create",
             "--name",
             "test-show-uc",
@@ -94,7 +102,7 @@ async fn test_e2e_show_pipeline_use_case() {
     // Show pipeline details using CLI (which uses ShowPipelineUseCase)
     let output = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["show", "test-show-uc"])
+        .args(["show", "test-show-uc"])
         .output()
         .expect("Failed to run show command");
 
@@ -120,14 +128,14 @@ async fn test_e2e_delete_pipeline_use_case() {
     // Create a pipeline
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "test-delete-uc", "--stages", "brotli"])
+        .args(["create", "--name", "test-delete-uc", "--stages", "brotli"])
         .output()
         .expect("Failed to create pipeline");
 
     // Delete using CLI with --force (which uses DeletePipelineUseCase)
     let output = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["delete", "test-delete-uc", "--force"])
+        .args(["delete", "test-delete-uc", "--force"])
         .output()
         .expect("Failed to run delete command");
 
@@ -140,7 +148,7 @@ async fn test_e2e_delete_pipeline_use_case() {
     // Verify pipeline is gone
     let list_output = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["list"])
+        .args(["list"])
         .output()
         .expect("Failed to list pipelines");
 
@@ -166,14 +174,14 @@ async fn test_e2e_process_file_use_case() {
     // Create pipeline
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "test-process-uc", "--stages", "brotli"])
+        .args(["create", "--name", "test-process-uc", "--stages", "brotli"])
         .output()
         .expect("Failed to create pipeline");
 
     // Process file using CLI (which uses ProcessFileUseCase)
     let output = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "process",
             "--input",
             input_file.to_str().unwrap(),
@@ -196,7 +204,7 @@ async fn test_e2e_process_file_use_case() {
 
     // Verify it's a valid .adapipe file
     let file_data = fs::read(&output_file).await.unwrap();
-    assert!(file_data.len() > 0, "Output file is empty");
+    assert!(!file_data.is_empty(), "Output file is empty");
 }
 
 /// Tests ValidateConfigUseCase via CLI
@@ -219,7 +227,7 @@ stages = ["brotli", "aes256gcm"]
 
     // Validate using CLI (which uses ValidateConfigUseCase)
     let output = Command::new(get_pipeline_bin())
-        .args(&["validate", config_file.to_str().unwrap()])
+        .args(["validate", config_file.to_str().unwrap()])
         .output()
         .expect("Failed to run validate command");
 
@@ -251,7 +259,7 @@ missing_closing_bracket = "oops"
 
     // Validate using CLI - should fail
     let output = Command::new(get_pipeline_bin())
-        .args(&["validate", config_file.to_str().unwrap()])
+        .args(["validate", config_file.to_str().unwrap()])
         .output()
         .expect("Failed to run validate command");
 
@@ -272,13 +280,13 @@ async fn test_e2e_validate_file_use_case() {
 
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "test-validate-file", "--stages", "brotli"])
+        .args(["create", "--name", "test-validate-file", "--stages", "brotli"])
         .output()
         .expect("Failed to create pipeline");
 
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "process",
             "--input",
             input_file.to_str().unwrap(),
@@ -292,7 +300,7 @@ async fn test_e2e_validate_file_use_case() {
 
     // Validate the .adapipe file using CLI (which uses ValidateFileUseCase)
     let output = Command::new(get_pipeline_bin())
-        .args(&["validate-file", "--file", adapipe_file.to_str().unwrap()])
+        .args(["validate-file", "--file", adapipe_file.to_str().unwrap()])
         .output()
         .expect("Failed to run validate-file command");
 
@@ -324,13 +332,13 @@ async fn test_e2e_compare_files_use_case() {
     // Create pipeline and process
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "test-compare", "--stages", "brotli"])
+        .args(["create", "--name", "test-compare", "--stages", "brotli"])
         .output()
         .expect("Failed to create pipeline");
 
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "process",
             "--input",
             input_file.to_str().unwrap(),
@@ -344,7 +352,7 @@ async fn test_e2e_compare_files_use_case() {
 
     // Compare files using CLI (which uses CompareFilesUseCase)
     let output = Command::new(get_pipeline_bin())
-        .args(&[
+        .args([
             "compare",
             "--original",
             input_file.to_str().unwrap(),
@@ -387,13 +395,13 @@ async fn test_e2e_compare_files_modified_use_case() {
     // Create pipeline and process original
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", "test-compare-mod", "--stages", "brotli"])
+        .args(["create", "--name", "test-compare-mod", "--stages", "brotli"])
         .output()
         .expect("Failed to create pipeline");
 
     Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "process",
             "--input",
             input_file.to_str().unwrap(),
@@ -407,7 +415,7 @@ async fn test_e2e_compare_files_modified_use_case() {
 
     // Compare modified file against original .adapipe
     let output = Command::new(get_pipeline_bin())
-        .args(&[
+        .args([
             "compare",
             "--original",
             modified_file.to_str().unwrap(),
@@ -442,7 +450,7 @@ async fn test_e2e_benchmark_system_use_case_smoke() {
 
     // Run minimal benchmark (1 iteration, small size)
     let output = Command::new(get_pipeline_bin())
-        .args(&[
+        .args([
             "benchmark",
             "--file",
             test_file.to_str().unwrap(),
@@ -484,7 +492,7 @@ async fn test_e2e_complete_workflow_all_use_cases() {
     // Note: Using only brotli to avoid needing encryption key configuration
     let create = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["create", "--name", pipeline_name, "--stages", "brotli"])
+        .args(["create", "--name", pipeline_name, "--stages", "brotli"])
         .output()
         .expect("Create failed");
     assert!(create.status.success(), "Create failed");
@@ -492,7 +500,7 @@ async fn test_e2e_complete_workflow_all_use_cases() {
     // Step 2: List pipelines (ListPipelinesUseCase)
     let list = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["list"])
+        .args(["list"])
         .output()
         .expect("List failed");
     assert!(list.status.success(), "List failed");
@@ -501,7 +509,7 @@ async fn test_e2e_complete_workflow_all_use_cases() {
     // Step 3: Show pipeline details (ShowPipelineUseCase)
     let show = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["show", pipeline_name])
+        .args(["show", pipeline_name])
         .output()
         .expect("Show failed");
     assert!(show.status.success(), "Show failed");
@@ -509,7 +517,7 @@ async fn test_e2e_complete_workflow_all_use_cases() {
     // Step 4: Process file (ProcessFileUseCase)
     let process = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&[
+        .args([
             "process",
             "--input",
             input_file.to_str().unwrap(),
@@ -530,14 +538,14 @@ async fn test_e2e_complete_workflow_all_use_cases() {
 
     // Step 5: Validate .adapipe file (ValidateFileUseCase)
     let validate = Command::new(get_pipeline_bin())
-        .args(&["validate-file", "--file", output_file.to_str().unwrap()])
+        .args(["validate-file", "--file", output_file.to_str().unwrap()])
         .output()
         .expect("Validate file failed");
     assert!(validate.status.success(), "Validate file failed");
 
     // Step 6: Compare files (CompareFilesUseCase)
     let compare = Command::new(get_pipeline_bin())
-        .args(&[
+        .args([
             "compare",
             "--original",
             input_file.to_str().unwrap(),
@@ -551,7 +559,7 @@ async fn test_e2e_complete_workflow_all_use_cases() {
     // Step 7: Delete pipeline (DeletePipelineUseCase)
     let delete = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["delete", pipeline_name, "--force"])
+        .args(["delete", pipeline_name, "--force"])
         .output()
         .expect("Delete failed");
     assert!(delete.status.success(), "Delete failed");
@@ -559,7 +567,7 @@ async fn test_e2e_complete_workflow_all_use_cases() {
     // Verify deletion
     let list_after = Command::new(get_pipeline_bin())
         .env("ADAPIPE_SQLITE_PATH", &db_path)
-        .args(&["list"])
+        .args(["list"])
         .output()
         .expect("List after delete failed");
     assert!(!String::from_utf8_lossy(&list_after.stdout).contains(pipeline_name));

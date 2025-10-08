@@ -446,7 +446,7 @@ mod tests {
     //
     // Tests cover creation, validation, conversion utilities, and serialization.
 
-    use super::*;
+    
     use serde_json;
 
     /// Tests ChunkSize creation with valid input values.
@@ -707,7 +707,7 @@ mod tests {
     #[test]
     fn test_chunk_size_hash_consistency() {
         use std::collections::HashMap;
-        use std::path::{Path, PathBuf};
+        
 
         let size1 = ChunkSize::from_mb(16).unwrap();
         let size2 = ChunkSize::from_mb(16).unwrap();

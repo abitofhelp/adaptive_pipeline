@@ -481,8 +481,8 @@ mod tests {
 
     #[derive(Clone, Debug, Default)]
     struct TestMetrics {
-        bytes_processed: u64,
-        duration_ms: u64,
+        _bytes_processed: u64,
+        _duration_ms: u64,
     }
 
     type TestResult = GenericProcessingResult<String, String, TestMetrics>;

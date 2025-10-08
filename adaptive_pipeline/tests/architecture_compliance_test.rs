@@ -1,9 +1,16 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # Architecture Compliance Test Framework
 //!
 //! Validates architectural compliance with DDD, Clean Architecture, Hexagonal
 //! Architecture, and Dependency Inversion principles.
 
-use std::time::Duration;
 
 /// Demonstrates comprehensive architectural compliance of the test framework.
 ///
@@ -111,7 +118,7 @@ async fn test_domain_entity_isolation() {
 
     // Mock domain entity that follows DDD patterns
     struct MockPipelineEntity {
-        id: String,
+        _id: String,
         name: String,
         // Domain logic encapsulated
     }
@@ -119,7 +126,7 @@ async fn test_domain_entity_isolation() {
     impl MockPipelineEntity {
         fn new(name: String) -> Self {
             Self {
-                id: format!("pipeline_{}", name),
+                _id: format!("pipeline_{}", name),
                 name,
             }
         }
@@ -585,5 +592,5 @@ async fn test_generate_architecture_compliance_report() {
     println!("🏗️ Test Framework Architecture Grade: A+");
     println!("📐 Architectural Principles: Fully Honored");
 
-    assert!(true, "Architecture compliance validated");
+    // Test passes if no panics occur - all compliance checks succeeded
 }

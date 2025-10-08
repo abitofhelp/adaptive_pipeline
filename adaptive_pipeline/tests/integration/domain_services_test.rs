@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # Domain Services Unit Tests
 //!
 //! Unit tests for domain layer services: compression, encryption, checksum,
@@ -32,6 +40,7 @@ use adaptive_pipeline_domain::PipelineError;
 /// Test framework for domain services with test data and validation utilities.
 struct DomainServicesTestImpl;
 
+#[allow(dead_code)]
 impl DomainServicesTestImpl {
     fn test_data_small() -> &'static [u8] {
         b"Hello, World! This is test data for domain services."
@@ -282,7 +291,7 @@ async fn test_checksum_service_operations() {
     for algo_name in DomainServicesTestImpl::checksum_algorithms() {
         println!("   🔄 Testing {} checksum...", algo_name);
 
-        let algorithm = DomainServicesTestImpl::create_test_algorithm(algo_name).unwrap();
+        let _algorithm = DomainServicesTestImpl::create_test_algorithm(algo_name).unwrap();
         let test_data = DomainServicesTestImpl::test_data_medium();
 
         // Use ChecksumProcessor with FileChunk instead of raw data
@@ -364,7 +373,7 @@ async fn test_file_io_service_basic_operations() {
     let file_path = temp_dir.path().join("test_file.txt");
 
     // Write file test
-    let write_result = DomainServicesTestImpl::measure_operation(
+    let _write_result = DomainServicesTestImpl::measure_operation(
         || file_io_service.write_file_data(&file_path, &test_data, WriteOptions::default()),
         "write_file_data",
     )
@@ -404,7 +413,7 @@ async fn test_file_io_service_chunked_operations() {
     let file_path = temp_dir.path().join("test_file.txt");
 
     // Chunked operations test
-    let chunk_size = ChunkSize::new(1000).unwrap();
+    let _chunk_size = ChunkSize::new(1000).unwrap();
     let chunks = vec![FileChunk::new(
         0, // sequence_number
         0, // offset
@@ -414,7 +423,7 @@ async fn test_file_io_service_chunked_operations() {
     .unwrap()];
 
     // Write chunked test
-    let write_chunked_result = DomainServicesTestImpl::measure_operation(
+    let _write_chunked_result = DomainServicesTestImpl::measure_operation(
         || file_io_service.write_file_chunks(&file_path, &chunks, WriteOptions::default()),
         "write_file_chunks",
     )
@@ -448,9 +457,9 @@ fn test_domain_services_integration_basic() {
     println!("🔗 Testing domain services integration basic functionality...");
 
     // Test service instantiation
-    let compression_service = MultiAlgoCompression::new();
-    let encryption_service = MultiAlgoEncryption::new();
-    let file_io_service = TokioFileIO::new(FileIOConfig::default());
+    let _compression_service = MultiAlgoCompression::new();
+    let _encryption_service = MultiAlgoEncryption::new();
+    let _file_io_service = TokioFileIO::new(FileIOConfig::default());
 
     // Test configuration creation
     let compression_config = CompressionConfig::new(CompressionAlgorithm::Brotli);

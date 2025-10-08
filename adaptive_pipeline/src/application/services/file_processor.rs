@@ -652,7 +652,6 @@ mod tests {
     use super::*;
     use crate::infrastructure::adapters::file_io::TokioFileIO;
     use adaptive_pipeline_domain::services::checksum_service::ChecksumProcessor;
-    use adaptive_pipeline_domain::ChunkSize;
     use std::io::Write;
     use tempfile::NamedTempFile;
 

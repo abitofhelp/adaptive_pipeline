@@ -763,7 +763,7 @@ mod tests {
     // - Cross-platform compatibility validation
     // - Type safety verification
 
-    use super::*;
+    
     use std::collections::HashMap;
     use std::fs;
     use std::io::Write;
@@ -1329,7 +1329,7 @@ mod tests {
         let valid_logs = vec!["/tmp/logs/app.log", "/tmp/logs/debug.txt", "/var/log/system.log"];
 
         for log_path in valid_logs {
-            if let Ok(path) = LogPath::parse(log_path) {
+            if let Ok(_path) = LogPath::parse(log_path) {
                 // Some may fail due to directory structure, but format should be valid
                 println!("   ✓ Valid log format: {}", log_path);
             }
@@ -1639,10 +1639,10 @@ mod tests {
         fs::write(input_file, "test content").unwrap();
 
         let input_path = InputPath::parse(input_file).unwrap();
-        let output_path = OutputPath::parse("/tmp/test_output.txt").unwrap();
+        let _output_path = OutputPath::parse("/tmp/test_output.txt").unwrap();
 
         // This would be a compile error - cannot compare different path types
-        // assert_eq!(input_path, output_path); // Compile error!
+        // assert_eq!(input_path, _output_path); // Compile error!
 
         // But we can convert between types
         let converted: OutputPath = input_path.into_category().unwrap();

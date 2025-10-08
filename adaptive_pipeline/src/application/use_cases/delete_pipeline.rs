@@ -217,7 +217,6 @@ impl DeletePipelineUseCase {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     // Note: Tests for use cases typically use mock repositories
     // Full integration tests should use real repositories in tests/integration/

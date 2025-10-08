@@ -283,7 +283,6 @@ impl Default for ValidateConfigUseCase {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[tokio::test]
     #[ignore] // Requires test configuration files

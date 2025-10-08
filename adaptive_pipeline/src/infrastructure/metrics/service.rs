@@ -348,7 +348,6 @@ impl Default for MetricsService {
 mod tests {
     use super::*;
     use adaptive_pipeline_domain::ProcessingMetrics;
-    use std::time::Duration;
 
     /// Tests metrics service creation and basic functionality.
     ///
@@ -384,8 +383,8 @@ mod tests {
     /// - Basic metrics collection works
     #[test]
     fn test_metrics_service_creation() {
-        let service = MetricsService::new().unwrap();
-        // assert!(!service.get_metrics()?.is_empty());
+        let _service = MetricsService::new().unwrap();
+        // assert!(!_service.get_metrics()?.is_empty());
     }
 
     /// Tests pipeline completion recording and metrics generation.
@@ -424,7 +423,7 @@ mod tests {
     #[test]
     fn test_record_pipeline_completion() {
         let service = MetricsService::new().unwrap();
-        let metrics = ProcessingMetrics::new(1024, 2048);
+        let _metrics = ProcessingMetrics::new(1024, 2048);
 
         // service.record_pipeline_completion(&metrics);
 

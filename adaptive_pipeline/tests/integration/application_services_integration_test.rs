@@ -1,3 +1,11 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Adaptive Pipeline
+// Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+// See LICENSE file in the project root.
+// /////////////////////////////////////////////////////////////////////////////
+
+
 //! # Application Services Integration Tests
 //!
 //! Framework-based integration tests for application layer services using our
@@ -40,8 +48,10 @@ use adaptive_pipeline_domain::PipelineError;
 /// Provides structured testing patterns using our validated framework
 /// for comprehensive end-to-end application service validation with
 /// real infrastructure services.
+#[allow(dead_code)]
 struct ApplicationServicesIntegrationTestFramework;
 
+#[allow(dead_code)]
 impl ApplicationServicesIntegrationTestFramework {
     /// Creates a real .adapipe file using the actual FileHeader format.
     ///
