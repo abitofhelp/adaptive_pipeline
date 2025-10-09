@@ -188,6 +188,19 @@ class ReleaseAutomation:
         print("STEP 2: Commit Version Changes")
         print("=" * 70)
 
+        # Check if there are changes to commit
+        success, output = self._run_command(
+            "git status --porcelain",
+            "Check for uncommitted changes"
+        )
+
+        if not success:
+            return False
+
+        if not output.strip():
+            print("ℹ️  No changes to commit, skipping")
+            return True
+
         success, _ = self._run_command(
             f'git add . && git commit -m "{message}" && git push',
             "Commit and push version changes"
@@ -211,6 +224,19 @@ class ReleaseAutomation:
         print("\n" + "=" * 70)
         print("STEP 4: Commit CHANGELOG.md")
         print("=" * 70)
+
+        # Check if CHANGELOG.md has changes
+        success, output = self._run_command(
+            "git status --porcelain CHANGELOG.md",
+            "Check for CHANGELOG.md changes"
+        )
+
+        if not success:
+            return False
+
+        if not output.strip():
+            print("ℹ️  No changes to CHANGELOG.md, skipping")
+            return True
 
         success, _ = self._run_command(
             'git add CHANGELOG.md && git commit -m "release: Update CHANGELOG.md" && git push',
