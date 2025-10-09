@@ -66,9 +66,6 @@
 //! ### Configuration Options
 //!
 //! - **modifies_data**: Whether the adapter modifies chunk data
-//! - **requires_security_context**: Whether the adapter needs security context
-//! - **buffer_size**: Buffer size for processing operations
-//! - **parallel_processing**: Enable parallel processing within adapter
 //!
 //! ### Performance Tuning
 //!
@@ -108,7 +105,6 @@
 //! ### Error Recovery
 //!
 //! - **Graceful Degradation**: Graceful handling of service failures
-//! - **Retry Logic**: Configurable retry logic for transient failures
 //! - **Fallback Processing**: Alternative processing strategies
 //!
 //! ## Integration
@@ -132,20 +128,28 @@
 //!
 //! Planned enhancements include:
 //!
+//! - **Retry Logic**: Configurable retry logic for transient failures
+//! - **Security Context Enforcement**: Permission-based operation validation
 //! - **Dynamic Adaptation**: Runtime adaptation of service behavior
 //! - **Metrics Integration**: Built-in metrics collection and reporting
 //! - **Caching**: Intelligent caching of processing results
 //! - **Load Balancing**: Load balancing across multiple service instances
 
 use adaptive_pipeline_domain::services::compression_service::{
-    CompressionAlgorithm, CompressionConfig, CompressionLevel, CompressionService,
+    CompressionAlgorithm,
+    CompressionConfig,
+    CompressionLevel,
+    CompressionService,
 };
 use adaptive_pipeline_domain::services::encryption_service::{
-    EncryptionAlgorithm, EncryptionConfig, EncryptionService, KeyDerivationFunction, KeyMaterial,
+    EncryptionAlgorithm,
+    EncryptionConfig,
+    EncryptionService,
+    KeyDerivationFunction,
+    KeyMaterial,
 };
 use adaptive_pipeline_domain::services::file_processor_service::ChunkProcessor;
-use adaptive_pipeline_domain::{FileChunk, PipelineError, ProcessingContext, SecurityContext};
-use async_trait::async_trait;
+use adaptive_pipeline_domain::{ FileChunk, PipelineError, ProcessingContext, SecurityContext };
 use std::sync::Arc;
 
 /// Generic adapter that wraps any service as a ChunkProcessor
@@ -184,7 +188,22 @@ pub struct ServiceChunkAdapter<T: ?Sized> {
 #[derive(Debug, Clone)]
 pub struct AdapterConfig {
     pub modifies_data: bool,
-    pub requires_security_context: bool,
+
+    // TODO(v2.0 - Security Context Enforcement): Implement security validation
+    // Currently defined but not enforced anywhere in the codebase.
+    //
+    // To implement this feature:
+    // 1. Accept SecurityContext via adapter configuration or constructor
+    // 2. Validate SecurityContext.can_encrypt()/can_compress() before operations
+    // 3. Return PipelineError::SecurityViolation if permissions insufficient
+    // 4. Document security requirements in adapter method docs
+    //
+    // Related:
+    // - Code review Comments 5 & 6
+    // - See docs/roadmap.md for security enforcement design
+    // - ProcessingContext already carries SecurityContext (can be used)
+    //
+    // pub requires_security_context: bool,
 }
 
 impl<T: ?Sized> ServiceChunkAdapter<T> {
@@ -209,21 +228,22 @@ impl ChunkProcessor for CompressionChunkAdapter {
         };
 
         // Create a minimal processing context for the service
+        // NOTE: File paths are managed by CpuWorkerContext (DI pattern), not here
         let security_context = SecurityContext::new(
             Some("chunk_processor".to_string()),
-            adaptive_pipeline_domain::entities::security_context::SecurityLevel::Internal,
+            adaptive_pipeline_domain::entities::security_context::SecurityLevel::Internal
         );
         let mut processing_context = ProcessingContext::new(
-            std::path::PathBuf::from("chunk_processing"),
-            std::path::PathBuf::from("output"),
             chunk.data().len() as u64,
-            security_context,
+            security_context
         );
 
         // Use the compression service to compress the chunk (now sync)
-        let compressed_chunk =
-            self.service
-                .compress_chunk(chunk.clone(), &compression_config, &mut processing_context)?;
+        let compressed_chunk = self.service.compress_chunk(
+            chunk.clone(),
+            &compression_config,
+            &mut processing_context
+        )?;
 
         // Return the compressed chunk (already processed by the service)
         Ok(compressed_chunk)
@@ -257,15 +277,14 @@ impl ChunkProcessor for EncryptionChunkAdapter {
         };
 
         // Create a minimal security context for the service
+        // NOTE: File paths are managed by CpuWorkerContext (DI pattern), not here
         let security_context = SecurityContext::new(
             Some("chunk_processor".to_string()),
-            adaptive_pipeline_domain::entities::security_context::SecurityLevel::Internal,
+            adaptive_pipeline_domain::entities::security_context::SecurityLevel::Internal
         );
         let mut processing_context = ProcessingContext::new(
-            std::path::PathBuf::from("chunk_processing"),
-            std::path::PathBuf::from("output"),
             chunk.data().len() as u64,
-            security_context,
+            security_context
         );
 
         // Create default key material for encryption
@@ -283,7 +302,7 @@ impl ChunkProcessor for EncryptionChunkAdapter {
             chunk.clone(),
             &encryption_config,
             &key_material,
-            &mut processing_context,
+            &mut processing_context
         )?;
 
         // Return the encrypted chunk (already processed by the service)
@@ -301,27 +320,31 @@ impl ChunkProcessor for EncryptionChunkAdapter {
 
 /// Factory functions for creating service adapters
 impl CompressionChunkAdapter {
-    pub fn new_compression_adapter(service: Arc<dyn CompressionService>, name: Option<String>) -> Self {
+    pub fn new_compression_adapter(
+        service: Arc<dyn CompressionService>,
+        name: Option<String>
+    ) -> Self {
         Self::new(
             service,
             name.unwrap_or_else(|| "CompressionAdapter".to_string()),
             AdapterConfig {
                 modifies_data: true,
-                requires_security_context: false,
-            },
+            }
         )
     }
 }
 
 impl EncryptionChunkAdapter {
-    pub fn new_encryption_adapter(service: Arc<dyn EncryptionService>, name: Option<String>) -> Self {
+    pub fn new_encryption_adapter(
+        service: Arc<dyn EncryptionService>,
+        name: Option<String>
+    ) -> Self {
         Self::new(
             service,
             name.unwrap_or_else(|| "EncryptionAdapter".to_string()),
             AdapterConfig {
                 modifies_data: true,
-                requires_security_context: true,
-            },
+            }
         )
     }
 }
@@ -331,12 +354,16 @@ pub struct ServiceAdapterFactory;
 
 impl ServiceAdapterFactory {
     /// Create a compression chunk adapter
-    pub fn create_compression_adapter(service: Arc<dyn CompressionService>) -> Box<dyn ChunkProcessor> {
+    pub fn create_compression_adapter(
+        service: Arc<dyn CompressionService>
+    ) -> Box<dyn ChunkProcessor> {
         Box::new(CompressionChunkAdapter::new_compression_adapter(service, None))
     }
 
     /// Create an encryption chunk adapter
-    pub fn create_encryption_adapter(service: Arc<dyn EncryptionService>) -> Box<dyn ChunkProcessor> {
+    pub fn create_encryption_adapter(
+        service: Arc<dyn EncryptionService>
+    ) -> Box<dyn ChunkProcessor> {
         Box::new(EncryptionChunkAdapter::new_encryption_adapter(service, None))
     }
 
@@ -344,7 +371,7 @@ impl ServiceAdapterFactory {
     pub fn create_custom_adapter<T: Send + Sync + 'static>(
         service: Arc<T>,
         name: String,
-        config: AdapterConfig,
+        config: AdapterConfig
     ) -> ServiceChunkAdapter<T> {
         ServiceChunkAdapter::new(service, name, config)
     }

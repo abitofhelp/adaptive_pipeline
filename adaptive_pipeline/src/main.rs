@@ -742,8 +742,6 @@ async fn restore_file_from_adapipe_v2(
         let security_context =
             SecurityContext::with_permissions(None, vec![Permission::Read, Permission::Write], SecurityLevel::Internal);
         let mut context = ProcessingContext::new(
-            input.clone(),
-            target_path.clone(),
             metadata.original_size,
             security_context,
         );
@@ -1359,8 +1357,6 @@ async fn stream_restore_with_validation(
 
     // Create processing context for restoration
     let mut processing_context = ProcessingContext::new(
-        input_path.to_path_buf(),
-        output_path.to_path_buf(),
         metadata.original_size,
         security_context,
     );

@@ -12,7 +12,6 @@
 //! operations.
 
 use sha2::{Digest, Sha256};
-use std::path::PathBuf;
 use tempfile::{NamedTempFile, TempDir};
 use tokio::fs;
 use tokio::time::Instant;
@@ -180,12 +179,10 @@ fn test_compression_service_basic_functionality() {
 
     // Test processing context creation
     let context = ProcessingContext::new(
-        PathBuf::from("/tmp"),
-        PathBuf::from("/tmp/output"),
         test_data.len() as u64,
         SecurityContext::new(None, SecurityLevel::Secret),
     );
-    assert_eq!(context.input_path(), &PathBuf::from("/tmp"));
+    assert_eq!(context.file_size(), test_data.len() as u64);
 
     println!("   ✅ Compression service basic functionality validated");
 }
@@ -214,12 +211,10 @@ fn test_encryption_service_basic_functionality() {
 
     // Test processing context creation
     let context = ProcessingContext::new(
-        PathBuf::from("/tmp"),
-        PathBuf::from("/tmp/output"),
         test_data.len() as u64,
         security_context,
     );
-    assert_eq!(context.input_path(), &PathBuf::from("/tmp"));
+    assert_eq!(context.file_size(), test_data.len() as u64);
 
     for algo_name in DomainServicesTestImpl::encryption_algorithms() {
         println!("   🔄 Testing {} encryption config...", algo_name);
@@ -258,19 +253,15 @@ fn test_encryption_service_key_management() {
 
     // Test processing contexts with different security levels
     let context1 = ProcessingContext::new(
-        PathBuf::from("/tmp"),
-        PathBuf::from("/tmp/output"),
         test_data.len() as u64,
         SecurityContext::new(None, SecurityLevel::Secret),
     );
     let context2 = ProcessingContext::new(
-        PathBuf::from("/tmp"),
-        PathBuf::from("/tmp/output"),
         test_data.len() as u64,
         SecurityContext::new(None, SecurityLevel::Confidential),
     );
 
-    assert_eq!(context1.input_path(), context2.input_path());
+    assert_eq!(context1.file_size(), context2.file_size());
     assert_ne!(
         context1.security_context().security_level(),
         context2.security_context().security_level()
@@ -480,12 +471,10 @@ fn test_domain_services_integration_basic() {
 
     // Test processing context creation
     let context = ProcessingContext::new(
-        PathBuf::from("/tmp"),
-        PathBuf::from("/tmp/output"),
         test_data.len() as u64,
         SecurityContext::new(None, SecurityLevel::Secret),
     );
-    assert_eq!(context.input_path(), &PathBuf::from("/tmp"));
+    assert_eq!(context.file_size(), test_data.len() as u64);
 
     // Test checksum processor
     let checksum_processor = ChecksumProcessor::sha256_processor(false);

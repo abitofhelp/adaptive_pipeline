@@ -156,8 +156,6 @@ mod tests {
         let security_context =
             SecurityContext::with_permissions(None, vec![Permission::Read, Permission::Write], SecurityLevel::Internal);
         ProcessingContext::new(
-            std::path::PathBuf::from("/tmp/input.txt"),
-            std::path::PathBuf::from("/tmp/output.adapipe"),
             1024,
             security_context,
         )

@@ -434,8 +434,6 @@ mod tests {
         };
 
         let mut context = ProcessingContext::new(
-            PathBuf::from("/tmp/input"),
-            PathBuf::from("/tmp/output"),
             100,
             SecurityContext::new(None, SecurityLevel::Public),
         );

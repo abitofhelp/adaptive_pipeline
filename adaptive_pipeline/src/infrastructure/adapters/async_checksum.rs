@@ -157,7 +157,7 @@ mod tests {
     #[tokio::test]
     async fn test_async_adapter_pattern() {
         use adaptive_pipeline_domain::entities::{ProcessingContext, SecurityContext, SecurityLevel};
-        use std::path::PathBuf;
+        
 
         let sync_service = Arc::new(FakeChecksumService);
         let async_adapter = AsyncChecksumAdapter::new(sync_service);
@@ -165,8 +165,6 @@ mod tests {
         // Test that we can call sync methods
         let security_context = SecurityContext::new(Some("test".to_string()), SecurityLevel::Internal);
         let context = ProcessingContext::new(
-            PathBuf::from("/tmp/test"),
-            PathBuf::from("/tmp/test_out"),
             1024,
             security_context,
         );

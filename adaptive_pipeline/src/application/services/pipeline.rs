@@ -343,8 +343,6 @@ async fn cpu_worker_task(
 
         // Create local processing context for this chunk
         let mut local_context = ProcessingContext::new(
-            ctx.input_path.clone(),
-            ctx.output_path.clone(),
             ctx.input_size,
             ctx.security_context.clone(),
         );
@@ -760,8 +758,6 @@ impl PipelineService for ConcurrentPipeline {
         let security_context_for_tasks = context.security_context.clone();
 
         let mut processing_context = ProcessingContext::new(
-            input_path.to_path_buf(),
-            output_path.to_path_buf(),
             input_size,
             context.security_context,
         );
@@ -933,8 +929,6 @@ impl PipelineService for ConcurrentPipeline {
 
                             // Create local processing context
                             let mut local_context = ProcessingContext::new(
-                                input_path_clone.clone(),
-                                output_path_clone.clone(),
                                 input_size,
                                 security_context_clone.clone(),
                             );

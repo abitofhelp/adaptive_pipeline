@@ -492,7 +492,7 @@ mod tests {
     fn test_reverse_operation_fails() {
         use adaptive_pipeline_domain::entities::pipeline_stage::StageConfiguration;
         use adaptive_pipeline_domain::entities::{SecurityContext, SecurityLevel};
-        use std::path::PathBuf;
+        
 
         let service = PiiMaskingService::new();
         let chunk = FileChunk::new(0, 0, vec![0u8; 100], false).unwrap();
@@ -504,8 +504,6 @@ mod tests {
             chunk_size: None,
         };
         let mut context = ProcessingContext::new(
-            PathBuf::from("/tmp/input"),
-            PathBuf::from("/tmp/output"),
             100,
             SecurityContext::new(None, SecurityLevel::Public),
         );

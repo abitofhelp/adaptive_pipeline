@@ -34,9 +34,8 @@
 //!
 //! The context maintains several categories of state:
 //!
-//! ### File Processing State
-//! - Input and output file paths
-//! - Total file size and bytes processed
+//! ### Chunk Processing State
+//! - Total file size and bytes processed (for progress tracking)
 //! - Progress calculation and completion status
 //!
 //! ### Configuration State
@@ -54,7 +53,6 @@ use crate::value_objects::{ChunkSize, ProcessingContextId, WorkerCount};
 use crate::{ProcessingMetrics, SecurityContext};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 /// Processing context entity that maintains runtime state during pipeline
 /// execution.
@@ -135,10 +133,8 @@ pub struct ProcessingContext {
     // Core business fields (alphabetical within group)
     chunk_size: ChunkSize,
     file_size: u64,
-    input_path: PathBuf,
     metadata: HashMap<String, String>,
     metrics: ProcessingMetrics,
-    output_path: PathBuf,
     processed_bytes: u64,
     security_context: SecurityContext,
     stage_results: HashMap<String, String>,
@@ -154,24 +150,28 @@ pub struct ProcessingContext {
 impl ProcessingContext {
     /// Creates a new processing context for pipeline execution
     ///
-    /// Initializes a new context with default configuration values and empty
-    /// state. The context starts with zero processed bytes and will track
-    /// progress throughout the pipeline execution.
+    /// Initializes a chunk-scoped context with default configuration values and
+    /// empty state. The context starts with zero processed bytes and will track
+    /// progress and metadata as the chunk flows through pipeline stages.
+    ///
+    /// # Design Note
+    ///
+    /// This context is chunk-scoped, not file-scoped. File paths are managed
+    /// by the pipeline worker (via `CpuWorkerContext`) using dependency injection.
+    /// This separation ensures the context focuses on chunk processing metadata
+    /// without coupling to file I/O concerns.
     ///
     /// # Arguments
     ///
-    /// * `input_path` - Path to the input file being processed
-    /// * `output_path` - Path where the processed output will be written
-    /// * `file_size` - Total size of the input file in bytes
-    /// * `security_context` - Security context for authorization and access
-    ///   control
+    /// * `file_size` - Total size of the file being processed (for progress tracking)
+    /// * `security_context` - Security context for authorization and access control
     ///
     /// # Returns
     ///
     /// A new `ProcessingContext` with initialized state
     ///
     /// # Examples
-    pub fn new(input_path: PathBuf, output_path: PathBuf, file_size: u64, security_context: SecurityContext) -> Self {
+    pub fn new(file_size: u64, security_context: SecurityContext) -> Self {
         let now = chrono::Utc::now();
 
         ProcessingContext {
@@ -181,10 +181,8 @@ impl ProcessingContext {
             // Core business fields (alphabetical)
             chunk_size: ChunkSize::from_mb(1).unwrap_or_else(|_| ChunkSize::default()),
             file_size,
-            input_path,
             metadata: HashMap::new(),
             metrics: ProcessingMetrics::default(),
-            output_path,
             processed_bytes: 0,
             security_context,
             stage_results: HashMap::new(),
@@ -205,25 +203,7 @@ impl ProcessingContext {
         &self.id
     }
 
-    /// Gets the path to the input file being processed
-    ///
-    /// # Returns
-    ///
-    /// Reference to the input file path
-    pub fn input_path(&self) -> &PathBuf {
-        &self.input_path
-    }
-
-    /// Gets the path where the processed output will be written
-    ///
-    /// # Returns
-    ///
-    /// Reference to the output file path
-    pub fn output_path(&self) -> &PathBuf {
-        &self.output_path
-    }
-
-    /// Gets the total size of the input file in bytes
+    /// Gets the total size of the file being processed
     ///
     /// # Returns
     ///

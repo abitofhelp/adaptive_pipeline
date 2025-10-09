@@ -198,8 +198,6 @@ impl PipelineAggregate {
         // Create processing context
         let processing_id = Uuid::new_v4();
         let context = ProcessingContext::new(
-            input_path.clone().into(),
-            output_path.clone().into(),
             file_size,
             security_context.clone(),
         );
@@ -340,8 +338,6 @@ impl PipelineAggregate {
             }
             PipelineEvent::ProcessingStarted(event) => {
                 let context = ProcessingContext::new(
-                    event.input_path.clone().into(),
-                    event.output_path.clone().into(),
                     event.file_size,
                     event.security_context.clone(),
                 );
