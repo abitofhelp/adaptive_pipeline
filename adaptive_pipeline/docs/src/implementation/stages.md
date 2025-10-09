@@ -1,7 +1,7 @@
 # Stage Processing
 
 **Version:** 0.1.0
-**Date:** 2025-01-04
+**Date:** October 08, 2025
 **SPDX-License-Identifier:** BSD-3-Clause
 **License File:** See the LICENSE file in the project root.
 **Copyright:** © 2025 Michael Gardner, A Bit of Help, Inc.
@@ -102,7 +102,7 @@ pub enum StageType {
 |------------|---------|----------|------------------|
 | **Compression** | Reduce data size | Brotli, Gzip, Zstd, Lz4 | Minimize storage/bandwidth |
 | **Encryption** | Secure data | AES-256-GCM, ChaCha20 | Data protection |
-| **Transform** | Modify structure | Format conversion | Data reshaping |
+| **Transform** | Inspect/modify data | Tee, Debug | Debugging, monitoring, data forking |
 | **Checksum** | Verify integrity | SHA-256, SHA-512, Blake3 | Data validation |
 | **PassThrough** | No modification | Identity transform | Testing/debugging |
 
@@ -499,6 +499,102 @@ The `BasicStageExecutor` supports:
 - **Compression**: Via `CompressionService` (Brotli, Gzip, Zstd, Lz4)
 - **Encryption**: Via `EncryptionService` (AES-256-GCM, ChaCha20-Poly1305)
 - **Checksum**: Via internal SHA-256 implementation
+- **Transform**: Via `TeeService` and `DebugService` (Tee, Debug)
+
+### Transform Stages Details
+
+Transform stages provide observability and diagnostic capabilities without modifying data flow:
+
+#### Tee Stage
+
+The Tee stage copies data to a secondary output while passing it through unchanged - similar to the Unix `tee` command.
+
+**Configuration:**
+```rust
+let mut params = HashMap::new();
+params.insert("output_path".to_string(), "/tmp/debug-output.bin".to_string());
+params.insert("format".to_string(), "hex".to_string());  // binary, hex, or text
+params.insert("enabled".to_string(), "true".to_string());
+
+let tee_stage = PipelineStage::new(
+    "tee-compressed".to_string(),
+    StageType::Transform,
+    StageConfiguration::new("tee".to_string(), params, false),
+    1,
+)?;
+```
+
+**Use Cases:**
+- **Debugging**: Capture intermediate pipeline data for analysis
+- **Monitoring**: Sample data at specific pipeline stages
+- **Audit Trails**: Record data flow for compliance
+- **Data Forking**: Split data to multiple destinations
+
+**Output Formats:**
+- `binary`: Raw binary output (default)
+- `hex`: Hexadecimal dump with ASCII sidebar (like `hexdump -C`)
+- `text`: UTF-8 text (lossy conversion for non-UTF8)
+
+**Performance**: Limited by I/O speed to tee output file
+
+#### Debug Stage
+
+The Debug stage monitors data flow with zero modification, emitting Prometheus metrics for real-time observability.
+
+**Configuration:**
+```rust
+let mut params = HashMap::new();
+params.insert("label".to_string(), "after-compression".to_string());
+
+let debug_stage = PipelineStage::new(
+    "debug-compressed".to_string(),
+    StageType::Transform,
+    StageConfiguration::new("debug".to_string(), params, false),
+    2,
+)?;
+```
+
+**Use Cases:**
+- **Pipeline Debugging**: Identify where data corruption occurs
+- **Performance Analysis**: Measure throughput between stages
+- **Corruption Detection**: Calculate checksums at intermediate points
+- **Production Monitoring**: Real-time visibility into processing
+
+**Metrics Emitted (Prometheus):**
+- `debug_stage_checksum{label, chunk_id}`: SHA256 of chunk data
+- `debug_stage_bytes{label, chunk_id}`: Bytes processed per chunk
+- `debug_stage_chunks_total{label}`: Total chunks processed
+
+**Performance**: Minimal overhead, pass-through operation with checksum calculation
+
+#### Transform Stage Positioning
+
+Both Tee and Debug stages can be placed anywhere in the pipeline (`StagePosition::Any`) and are fully reversible. They're ideal for:
+
+```rust
+// Example: Debug pipeline with monitoring at key points
+vec![
+    // Input checkpoint
+    PipelineStage::new("debug-input".to_string(), StageType::Transform,
+        debug_config("input"), 0)?,
+
+    // Compression
+    PipelineStage::new("compress".to_string(), StageType::Compression,
+        compression_config(), 1)?,
+
+    // Capture compressed data
+    PipelineStage::new("tee-compressed".to_string(), StageType::Transform,
+        tee_config("/tmp/compressed.bin", "hex"), 2)?,
+
+    // Encryption
+    PipelineStage::new("encrypt".to_string(), StageType::Encryption,
+        encryption_config(), 3)?,
+
+    // Output checkpoint
+    PipelineStage::new("debug-output".to_string(), StageType::Transform,
+        debug_config("output"), 4)?,
+]
+```
 
 ---
 

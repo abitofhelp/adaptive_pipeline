@@ -1,7 +1,7 @@
 # Pipeline Stages
 
 **Version:** 1.0
-**Date:** 2025-01-04
+**Date:** October 08, 2025
 **SPDX-License-Identifier:** BSD-3-Clause
 **License File:** See the LICENSE file in the project root.
 **Copyright:** © 2025 Michael Gardner, A Bit of Help, Inc.
@@ -16,7 +16,7 @@ Think of stages like workstations on an assembly line. Each workstation has spec
 
 ## Stage Types
 
-Our pipeline supports three main categories of stages:
+Our pipeline supports four main categories of stages:
 
 ### 1. Compression Stages
 
@@ -99,6 +99,31 @@ Integrity stages ensure your data hasn't been corrupted or tampered with. They c
   - Security: Strong security properties
   - Performance: Very fast
   - Use Case: High-performance applications
+
+### 4. Transform Stages
+
+Transform stages modify or inspect data for specific purposes like debugging, monitoring, or data flow analysis. Unlike other stages, transforms focus on observability and diagnostics rather than data protection or size reduction.
+
+**Available Transform Stages:**
+
+- **Tee** - Data splitting/inspection stage
+  - Purpose: Copy data to secondary output while passing through
+  - Use Cases: Debugging, monitoring, audit trails, data forking
+  - Performance: Limited by I/O speed to tee output
+  - Configuration:
+    - `output_path` (required): Where to write teed data
+    - `format`: `binary` (default), `hex`, or `text`
+    - `enabled`: `true` (default) or `false` to disable
+  - Example: Capture intermediate pipeline data for analysis
+
+- **Debug** - Diagnostic monitoring stage
+  - Purpose: Monitor data flow with zero data modification
+  - Use Cases: Pipeline debugging, performance analysis, corruption detection
+  - Performance: Minimal overhead, pass-through operation
+  - Configuration:
+    - `label` (required): Unique identifier for metrics
+  - Metrics: Emits Prometheus metrics (checksums, bytes, chunk counts)
+  - Example: Detect where data corruption occurs in complex pipelines
 
 ## Stage Configuration
 
@@ -233,6 +258,45 @@ vec![
         StageType::Checksum,
         StageConfiguration::new("sha256".to_string(), HashMap::new(), false),
         2,
+    )?,
+]
+```
+
+### Debugging Pipeline
+```rust
+vec![
+    PipelineStage::new(
+        "debug-input".to_string(),
+        StageType::Transform,
+        StageConfiguration::new("debug".to_string(), {
+            let mut params = HashMap::new();
+            params.insert("label".to_string(), "input-data".to_string());
+            params
+        }, false),
+        0,
+    )?,
+    PipelineStage::new(
+        "compress".to_string(),
+        StageType::Compression,
+        StageConfiguration::new("zstd".to_string(), HashMap::new(), false),
+        1,
+    )?,
+    PipelineStage::new(
+        "tee-compressed".to_string(),
+        StageType::Transform,
+        StageConfiguration::new("tee".to_string(), {
+            let mut params = HashMap::new();
+            params.insert("output_path".to_string(), "/tmp/compressed.bin".to_string());
+            params.insert("format".to_string(), "hex".to_string());
+            params
+        }, false),
+        2,
+    )?,
+    PipelineStage::new(
+        "encrypt".to_string(),
+        StageType::Encryption,
+        StageConfiguration::new("aes256gcm".to_string(), HashMap::new(), false),
+        3,
     )?,
 ]
 ```

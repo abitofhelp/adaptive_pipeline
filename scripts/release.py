@@ -232,7 +232,25 @@ class ReleaseAutomation:
 
         # Update all documentation markdown files with version headers
         cmd = f"find adaptive_pipeline/docs/src -name '*.md' -type f -exec sed -i '' 's/^\\*\\*Version:\\*\\* [0-9]\\+\\.[0-9]\\+\\.[0-9]\\+/**Version:** {self.version}/' {{}} \\;"
-        success, _ = self._run_command(cmd, "Update all adaptive_pipeline/docs/src/**/*.md files")
+        success, _ = self._run_command(cmd, "Update version in all adaptive_pipeline/docs/src/**/*.md files")
+        if not success:
+            return False
+
+        # Update all documentation markdown files with date headers
+        cmd = f"find adaptive_pipeline/docs/src -name '*.md' -type f -exec sed -i '' 's/^\\*\\*Date:\\*\\* .*/**Date:** {date_str}/' {{}} \\;"
+        success, _ = self._run_command(cmd, "Update date in all adaptive_pipeline/docs/src/**/*.md files")
+        if not success:
+            return False
+
+        # Update main docs (docs/src) - version
+        cmd = f"find docs/src -name '*.md' -type f -exec sed -i '' 's/^\\*\\*Version:\\*\\* [0-9]\\+\\.[0-9]\\+\\.[0-9]\\+/**Version:** {self.version}/' {{}} \\;"
+        success, _ = self._run_command(cmd, "Update version in all docs/src/**/*.md files")
+        if not success:
+            return False
+
+        # Update main docs (docs/src) - date
+        cmd = f"find docs/src -name '*.md' -type f -exec sed -i '' 's/^\\*\\*Date:\\*\\* .*/**Date:** {date_str}/' {{}} \\;"
+        success, _ = self._run_command(cmd, "Update date in all docs/src/**/*.md files")
         if not success:
             return False
 
@@ -271,20 +289,49 @@ class ReleaseAutomation:
         return success
 
     def step_4_update_changelog(self) -> bool:
-        """Step 4: Update CHANGELOG.md with git-cliff"""
+        """Step 4: Update CHANGELOG.md (manual)"""
         print("\n" + "=" * 70)
         print("STEP 4: Update CHANGELOG.md")
         print("=" * 70)
 
-        # TODO: Temporarily disabled for v2.0.0 release - using manual CHANGELOG
-        print("ℹ️  git-cliff step skipped (using manual CHANGELOG)")
-        return True
+        if self.dry_run:
+            print("[DRY RUN] Would prompt for manual CHANGELOG.md update")
+            return True
 
-        # success, _ = self._run_command(
-        #     f"git cliff --tag v{self.version} --prepend CHANGELOG.md --unreleased",
-        #     "Generate changelog with git-cliff"
-        # )
-        # return success
+        print(f"\n📝 Please update CHANGELOG.md for this release.")
+        print(f"   Add a section for version [{self.version}] with release notes.\n")
+
+        input("Press Enter to continue...")
+
+        # Validate that CHANGELOG.md contains the version
+        changelog_path = self.repo_path / "CHANGELOG.md"
+        if changelog_path.exists():
+            try:
+                with open(changelog_path, 'r') as f:
+                    changelog_content = f.read()
+
+                if f"## [{self.version}]" not in changelog_content:
+                    print(f"\n⚠️  Warning: Could not find '## [{self.version}]' in CHANGELOG.md")
+                    response = input("Continue anyway? (y/n): ")
+                    if response.lower() != 'y':
+                        print("❌ Aborted by user")
+                        return False
+                else:
+                    print(f"✅ Found version [{self.version}] in CHANGELOG.md")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not validate CHANGELOG.md: {e}")
+                response = input("Continue anyway? (y/n): ")
+                if response.lower() != 'y':
+                    print("❌ Aborted by user")
+                    return False
+        else:
+            print("⚠️  Warning: CHANGELOG.md not found")
+            response = input("Continue anyway? (y/n): ")
+            if response.lower() != 'y':
+                print("❌ Aborted by user")
+                return False
+
+        return True
 
     def step_5_commit_changelog(self) -> bool:
         """Step 5: Commit CHANGELOG.md"""
@@ -394,8 +441,23 @@ class ReleaseAutomation:
         zip_files = [str(self._get_zip_path(platform)) for platform in self.PLATFORMS]
         zip_args = " ".join(zip_files)
 
+        # Extract version section from CHANGELOG.md and pipe to gh release create
+        # Using awk to extract only the current version's section
+        # Pattern: Find "## [version]" header, print until next "## [" header or EOF
+        awk_script = (
+            f'BEGIN {{ p=0 }} '
+            f'/^## \\[{self.version}\\]/ {{ p=1; print; next }} '
+            f'/^## \\[/ {{ if (p) exit }} '
+            f'p {{ print }}'
+        )
+
+        cmd = (
+            f"awk '{awk_script}' CHANGELOG.md | "
+            f"gh release create v{self.version} -F - --title \"Release v{self.version}\" --latest {zip_args}"
+        )
+
         success, _ = self._run_command(
-            f'gh release create v{self.version} --notes-file CHANGELOG.md --title "Release v{self.version}" --latest {zip_args}',
+            cmd,
             f"Publish GitHub release v{self.version}"
         )
         return success
