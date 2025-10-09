@@ -185,13 +185,14 @@ class ReleaseAutomation:
             return False
 
         # Update main Cargo.toml - domain dependency version
-        cmd = f"sed -i '' 's/adaptive-pipeline-domain = .* path = \"..\/adaptive_pipeline_domain\", version = \".*\" .*/adaptive-pipeline-domain = {{ path = \"..\/adaptive_pipeline_domain\", version = \"{self.version}\" }}/' adaptive_pipeline/Cargo.toml"
+        # Use multiple sed passes to avoid complex escaping issues
+        cmd = f"sed -i '' '/adaptive-pipeline-domain/s/version = \"[^\"]*\"/version = \"{self.version}\"/' adaptive_pipeline/Cargo.toml"
         success, _ = self._run_command(cmd, "Update adaptive_pipeline/Cargo.toml domain dependency")
         if not success:
             return False
 
         # Update main Cargo.toml - bootstrap dependency version
-        cmd = f"sed -i '' 's/adaptive-pipeline-bootstrap = .* path = \"..\/adaptive_pipeline_bootstrap\", version = \".*\" .*/adaptive-pipeline-bootstrap = {{ path = \"..\/adaptive_pipeline_bootstrap\", version = \"{self.version}\" }}/' adaptive_pipeline/Cargo.toml"
+        cmd = f"sed -i '' '/adaptive-pipeline-bootstrap/s/version = \"[^\"]*\"/version = \"{self.version}\"/' adaptive_pipeline/Cargo.toml"
         success, _ = self._run_command(cmd, "Update adaptive_pipeline/Cargo.toml bootstrap dependency")
         if not success:
             return False
