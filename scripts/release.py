@@ -143,10 +143,10 @@ class ReleaseAutomation:
         }
         return mappings.get(platform, platform)
 
-    def step_0_prepare_environment(self) -> bool:
-        """Step 0.5: Prepare build environment"""
+    def step_1_prepare_environment(self) -> bool:
+        """Step 1: Prepare build environment"""
         print("\n" + "=" * 70)
-        print("STEP 0: Prepare Environment")
+        print("STEP 1: Prepare Environment")
         print("=" * 70)
 
         commands = [
@@ -165,27 +165,89 @@ class ReleaseAutomation:
 
         return True
 
-    def step_1_set_version(self) -> bool:
-        """Step 1: Set version throughout codebase"""
+    def step_2_set_version(self) -> bool:
+        """Step 2: Set version throughout codebase"""
         print("\n" + "=" * 70)
-        print(f"STEP 1: Set Version to v{self.version}")
+        print(f"STEP 2: Set Version to v{self.version}")
         print("=" * 70)
 
-        script_path = self.repo_path / "scripts" / "set_versions.sh"
-        if not script_path.exists():
-            print(f"❌ Version script not found: {script_path}")
+        # Get current date
+        from datetime import datetime
+        date_str = datetime.now().strftime("%B %d, %Y")
+
+        # Update Cargo.toml files
+        print("Updating Cargo.toml files...")
+
+        # Update main Cargo.toml - package version
+        cmd = f"sed -i '' 's/^version = \".*\"/version = \"{self.version}\"/' adaptive_pipeline/Cargo.toml"
+        success, _ = self._run_command(cmd, "Update adaptive_pipeline/Cargo.toml package version")
+        if not success:
             return False
 
-        success, _ = self._run_command(
-            f"bash {script_path} {self.version}",
-            f"Set version to v{self.version} across codebase"
-        )
-        return success
+        # Update main Cargo.toml - domain dependency version
+        cmd = f"sed -i '' 's/adaptive-pipeline-domain = .* path = \"..\/adaptive_pipeline_domain\", version = \".*\" .*/adaptive-pipeline-domain = {{ path = \"..\/adaptive_pipeline_domain\", version = \"{self.version}\" }}/' adaptive_pipeline/Cargo.toml"
+        success, _ = self._run_command(cmd, "Update adaptive_pipeline/Cargo.toml domain dependency")
+        if not success:
+            return False
 
-    def step_2_commit_changes(self, message: str) -> bool:
-        """Step 2: Commit version changes"""
+        # Update main Cargo.toml - bootstrap dependency version
+        cmd = f"sed -i '' 's/adaptive-pipeline-bootstrap = .* path = \"..\/adaptive_pipeline_bootstrap\", version = \".*\" .*/adaptive-pipeline-bootstrap = {{ path = \"..\/adaptive_pipeline_bootstrap\", version = \"{self.version}\" }}/' adaptive_pipeline/Cargo.toml"
+        success, _ = self._run_command(cmd, "Update adaptive_pipeline/Cargo.toml bootstrap dependency")
+        if not success:
+            return False
+
+        # Update domain Cargo.toml
+        cmd = f"sed -i '' 's/^version = \".*\"/version = \"{self.version}\"/' adaptive_pipeline_domain/Cargo.toml"
+        success, _ = self._run_command(cmd, "Update adaptive_pipeline_domain/Cargo.toml")
+        if not success:
+            return False
+
+        # Update bootstrap Cargo.toml
+        cmd = f"sed -i '' 's/^version = \".*\"/version = \"{self.version}\"/' adaptive_pipeline_bootstrap/Cargo.toml"
+        success, _ = self._run_command(cmd, "Update adaptive_pipeline_bootstrap/Cargo.toml")
+        if not success:
+            return False
+
+        # Update documentation files
+        print("Updating documentation files...")
+
+        doc_updates = [
+            ("docs/src/introduction.md", [
+                (r'^\*\*Version:\*\* .*', f'**Version:** {self.version}'),
+                (r'^\*\*Date:\*\* .*', f'**Date:** {date_str}'),
+            ]),
+            ("adaptive_pipeline/docs/src/introduction.md", [
+                (r'^\*\*Version:\*\* .*', f'**Version:** {self.version}'),
+                (r'^\*\*Date:\*\* .*', f'**Date:** {date_str}'),
+            ]),
+        ]
+
+        for file_path, replacements in doc_updates:
+            for pattern, replacement in replacements:
+                cmd = f"sed -i '' 's/{pattern}/{replacement}/' {file_path}"
+                success, _ = self._run_command(cmd, f"Update {file_path}")
+                if not success:
+                    return False
+
+        # Update all documentation markdown files with version headers
+        cmd = f"find adaptive_pipeline/docs/src -name '*.md' -type f -exec sed -i '' 's/^\\*\\*Version:\\*\\* [0-9]\\+\\.[0-9]\\+\\.[0-9]\\+/**Version:** {self.version}/' {{}} \\;"
+        success, _ = self._run_command(cmd, "Update all adaptive_pipeline/docs/src/**/*.md files")
+        if not success:
+            return False
+
+        # Update roadmap
+        cmd = f"sed -i '' 's/^\\*\\*Version\\*\\*: [0-9]\\+\\.[0-9]\\+\\.[0-9]\\+/**Version**: {self.version}/' docs/roadmap.md"
+        success, _ = self._run_command(cmd, "Update docs/roadmap.md")
+        if not success:
+            return False
+
+        print(f"✅ Version updated to v{self.version} ({date_str})")
+        return True
+
+    def step_3_commit_changes(self, message: str) -> bool:
+        """Step 3: Commit version changes"""
         print("\n" + "=" * 70)
-        print("STEP 2: Commit Version Changes")
+        print("STEP 3: Commit Version Changes")
         print("=" * 70)
 
         # Check if there are changes to commit
@@ -207,22 +269,26 @@ class ReleaseAutomation:
         )
         return success
 
-    def step_3_update_changelog(self) -> bool:
-        """Step 3: Update CHANGELOG.md with git-cliff"""
+    def step_4_update_changelog(self) -> bool:
+        """Step 4: Update CHANGELOG.md with git-cliff"""
         print("\n" + "=" * 70)
-        print("STEP 3: Update CHANGELOG.md")
+        print("STEP 4: Update CHANGELOG.md")
         print("=" * 70)
 
-        success, _ = self._run_command(
-            f"git cliff --tag v{self.version} --prepend CHANGELOG.md --unreleased",
-            "Generate changelog with git-cliff"
-        )
-        return success
+        # TODO: Temporarily disabled for v2.0.0 release - using manual CHANGELOG
+        print("ℹ️  git-cliff step skipped (using manual CHANGELOG)")
+        return True
 
-    def step_4_commit_changelog(self) -> bool:
-        """Step 4: Commit CHANGELOG.md"""
+        # success, _ = self._run_command(
+        #     f"git cliff --tag v{self.version} --prepend CHANGELOG.md --unreleased",
+        #     "Generate changelog with git-cliff"
+        # )
+        # return success
+
+    def step_5_commit_changelog(self) -> bool:
+        """Step 5: Commit CHANGELOG.md"""
         print("\n" + "=" * 70)
-        print("STEP 4: Commit CHANGELOG.md")
+        print("STEP 5: Commit CHANGELOG.md")
         print("=" * 70)
 
         # Check if CHANGELOG.md has changes
@@ -244,10 +310,10 @@ class ReleaseAutomation:
         )
         return success
 
-    def step_5_create_tag(self) -> bool:
-        """Step 5: Create and push git tag"""
+    def step_6_create_tag(self) -> bool:
+        """Step 6: Create and push git tag"""
         print("\n" + "=" * 70)
-        print(f"STEP 5: Create Git Tag v{self.version}")
+        print(f"STEP 6: Create Git Tag v{self.version}")
         print("=" * 70)
 
         success, _ = self._run_command(
@@ -256,10 +322,10 @@ class ReleaseAutomation:
         )
         return success
 
-    def step_6_build_multiplatform(self) -> bool:
-        """Step 6: Build multi-platform binaries"""
+    def step_7_build_multiplatform(self) -> bool:
+        """Step 7: Build multi-platform binaries"""
         print("\n" + "=" * 70)
-        print("STEP 6: Build Multi-Platform Binaries")
+        print("STEP 7: Build Multi-Platform Binaries")
         print("=" * 70)
 
         success, _ = self._run_command(
@@ -268,23 +334,38 @@ class ReleaseAutomation:
         )
         return success
 
-    def step_7_compress_binaries(self) -> bool:
-        """Step 7: Compress binaries into zip files"""
+    def step_8_compress_binaries(self) -> bool:
+        """Step 8: Compress binaries into zip files"""
         print("\n" + "=" * 70)
-        print("STEP 7: Compress Binaries")
+        print("STEP 8: Compress Binaries")
         print("=" * 70)
 
-        script_path = self.repo_path / "scripts" / "create-release-zips.sh"
-        if not script_path.exists():
-            print(f"❌ Zip creation script not found: {script_path}")
-            return False
+        # Create zip files for each platform
+        for platform in self.PLATFORMS:
+            binary_path = self._get_binary_path(platform)
+            zip_path = self._get_zip_path(platform)
 
-        success, _ = self._run_command(
-            f"bash {script_path} {self.version}",
-            "Create release zip files"
-        )
+            # Get binary extension
+            extension = self.PLATFORM_EXTENSIONS.get(platform, "")
+            source_binary = self.repo_path / "target" / platform / "release" / f"adaptive_pipeline{extension}"
 
-        if success and not self.dry_run:
+            # Create zip command
+            zip_dir = zip_path.parent
+            zip_name = zip_path.name
+            binary_name = binary_path.name
+
+            cmd = f"cd {source_binary.parent} && cp adaptive_pipeline{extension} {binary_name} && zip {zip_name} {binary_name} && rm {binary_name}"
+
+            success, _ = self._run_command(
+                cmd,
+                f"Create {zip_name}"
+            )
+
+            if not success:
+                print(f"❌ Failed to create zip for {platform}")
+                return False
+
+        if not self.dry_run:
             # Verify all zips were created
             missing_zips = []
             for platform in self.PLATFORMS:
@@ -300,12 +381,12 @@ class ReleaseAutomation:
 
             print(f"✅ All {len(self.PLATFORMS)} zip files created successfully")
 
-        return success
+        return True
 
-    def step_8_publish_github(self) -> bool:
-        """Step 8: Publish release to GitHub"""
+    def step_9_publish_github(self) -> bool:
+        """Step 9: Publish release to GitHub"""
         print("\n" + "=" * 70)
-        print("STEP 8: Publish to GitHub")
+        print("STEP 9: Publish to GitHub")
         print("=" * 70)
 
         # Build list of zip files
@@ -319,21 +400,22 @@ class ReleaseAutomation:
         return success
 
     def prep_release(self) -> bool:
-        """Run preparation steps (0-5)"""
+        """Run preparation steps (1-6)"""
         print("\n" + "🎯" * 35)
-        print("PHASE: PREP RELEASE (Steps 0-5)")
+        print("PHASE: PREP RELEASE (Steps 1-6)")
         print("🎯" * 35)
 
         steps = [
-            (self.step_0_prepare_environment, "Prepare environment"),
-            (self.step_1_set_version, "Set version"),
-            (lambda: self.step_2_commit_changes(f"chore: bump version to v{self.version}"), "Commit changes"),
-            (self.step_3_update_changelog, "Update CHANGELOG"),
-            (self.step_4_commit_changelog, "Commit CHANGELOG"),
-            (self.step_5_create_tag, "Create git tag"),
+            (self.step_1_prepare_environment, "Prepare environment"),
+            (self.step_2_set_version, "Set version"),
+            (lambda: self.step_3_commit_changes(f"chore: bump version to v{self.version}"), "Commit changes"),
+            (self.step_4_update_changelog, "Update CHANGELOG"),
+            (self.step_5_commit_changelog, "Commit CHANGELOG"),
+            (self.step_6_create_tag, "Create git tag"),
         ]
 
-        for step_func, step_name in steps:
+        for i, (step_func, step_name) in enumerate(steps, 1):
+            print(f"\n>>> Starting Step {i}/{len(steps)}: {step_name}")
             if not step_func():
                 print(f"\n❌ PREP FAILED at: {step_name}")
                 return False
@@ -344,17 +426,18 @@ class ReleaseAutomation:
         return True
 
     def build_release(self) -> bool:
-        """Run build steps (6-7)"""
+        """Run build steps (7-8)"""
         print("\n" + "🔨" * 35)
-        print("PHASE: BUILD RELEASE (Steps 6-7)")
+        print("PHASE: BUILD RELEASE (Steps 7-8)")
         print("🔨" * 35)
 
         steps = [
-            (self.step_6_build_multiplatform, "Build binaries"),
-            (self.step_7_compress_binaries, "Compress binaries"),
+            (self.step_7_build_multiplatform, "Build binaries"),
+            (self.step_8_compress_binaries, "Compress binaries"),
         ]
 
-        for step_func, step_name in steps:
+        for i, (step_func, step_name) in enumerate(steps, 1):
+            print(f"\n>>> Starting Step {i}/{len(steps)}: {step_name}")
             if not step_func():
                 print(f"\n❌ BUILD FAILED at: {step_name}")
                 return False
@@ -365,12 +448,12 @@ class ReleaseAutomation:
         return True
 
     def publish_release(self) -> bool:
-        """Run publish step (8)"""
+        """Run publish step (9)"""
         print("\n" + "📦" * 35)
-        print("PHASE: PUBLISH RELEASE (Step 8)")
+        print("PHASE: PUBLISH RELEASE (Step 9)")
         print("📦" * 35)
 
-        if not self.step_8_publish_github():
+        if not self.step_9_publish_github():
             print("\n❌ PUBLISH FAILED")
             return False
 
@@ -380,7 +463,7 @@ class ReleaseAutomation:
         return True
 
     def run_all(self) -> bool:
-        """Run all steps (0-8)"""
+        """Run all steps (1-9)"""
         print("\n" + "🚀" * 35)
         print(f"FULL RELEASE AUTOMATION: v{self.version}")
         print("🚀" * 35)
@@ -436,22 +519,22 @@ Examples:
     parser.add_argument(
         "--prep",
         action="store_true",
-        help="Run preparation steps (0-5): version, commits, tagging"
+        help="Run preparation steps (1-6): version, commits, tagging"
     )
     parser.add_argument(
         "--build",
         action="store_true",
-        help="Run build steps (6-7): multi-platform builds and compression"
+        help="Run build steps (7-8): multi-platform builds and compression"
     )
     parser.add_argument(
         "--publish",
         action="store_true",
-        help="Run publish step (8): GitHub release"
+        help="Run publish step (9): GitHub release"
     )
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Run all steps (0-8): complete release automation"
+        help="Run all steps (1-9): complete release automation"
     )
     parser.add_argument(
         "--dry-run",

@@ -81,3 +81,4 @@ $RECYCLE.BIN/
 book/  # mdBook generated output
 **/book/
 benchmark_test_100mb.txt
+__pycache__
