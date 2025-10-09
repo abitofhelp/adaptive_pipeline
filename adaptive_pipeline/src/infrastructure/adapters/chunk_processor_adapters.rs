@@ -184,7 +184,7 @@ pub struct ServiceChunkAdapter<T: ?Sized> {
     config: AdapterConfig,
 }
 
-/// Configuration for service adapters
+/// Configuration for service adapters (generic)
 #[derive(Debug, Clone)]
 pub struct AdapterConfig {
     pub modifies_data: bool,
@@ -206,6 +206,13 @@ pub struct AdapterConfig {
     // pub requires_security_context: bool,
 }
 
+/// Configuration for compression adapters with typed configuration
+#[derive(Debug, Clone)]
+pub struct CompressionAdapterConfig {
+    pub modifies_data: bool,
+    pub compression_config: CompressionConfig,
+}
+
 /// Configuration for encryption adapters with required key material
 #[derive(Debug, Clone)]
 pub struct EncryptionAdapterConfig {
@@ -220,21 +227,35 @@ impl<T: ?Sized> ServiceChunkAdapter<T> {
     }
 }
 
-/// Compression service adapter implementing ChunkProcessor
-pub type CompressionChunkAdapter = ServiceChunkAdapter<dyn CompressionService>;
+/// Compression service adapter with typed configuration
+///
+/// This adapter requires compression configuration to be provided explicitly
+/// following the dependency injection pattern.
+pub struct CompressionChunkAdapter {
+    service: Arc<dyn CompressionService>,
+    name: String,
+    config: CompressionAdapterConfig,
+}
+
+impl CompressionChunkAdapter {
+    /// Creates a new compression adapter with required configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `service` - The compression service implementation
+    /// * `name` - Name for this adapter instance
+    /// * `config` - Configuration including compression settings
+    pub fn new(
+        service: Arc<dyn CompressionService>,
+        name: String,
+        config: CompressionAdapterConfig,
+    ) -> Self {
+        Self { service, name, config }
+    }
+}
 
 impl ChunkProcessor for CompressionChunkAdapter {
     fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
-        // Create a default compression config - in real usage this would be
-        // configurable
-        let compression_config = CompressionConfig {
-            algorithm: CompressionAlgorithm::Brotli,
-            level: CompressionLevel::Balanced,
-            dictionary: None,
-            window_size: None,
-            parallel_processing: false,
-        };
-
         // Create a minimal processing context for the service
         // NOTE: File paths are managed by CpuWorkerContext (DI pattern), not here
         let security_context = SecurityContext::new(
@@ -246,10 +267,10 @@ impl ChunkProcessor for CompressionChunkAdapter {
             security_context
         );
 
-        // Use the compression service to compress the chunk (now sync)
+        // Use the compression config provided via configuration (DI pattern)
         let compressed_chunk = self.service.compress_chunk(
             chunk.clone(),
-            &compression_config,
+            &self.config.compression_config,
             &mut processing_context
         )?;
 
@@ -336,15 +357,24 @@ impl ChunkProcessor for EncryptionChunkAdapter {
 
 /// Factory functions for creating service adapters
 impl CompressionChunkAdapter {
+    /// Creates a new compression adapter with provided configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `service` - The compression service implementation
+    /// * `name` - Optional name for this adapter (defaults to "CompressionAdapter")
+    /// * `compression_config` - Compression algorithm and parameters
     pub fn new_compression_adapter(
         service: Arc<dyn CompressionService>,
-        name: Option<String>
+        name: Option<String>,
+        compression_config: CompressionConfig,
     ) -> Self {
         Self::new(
             service,
             name.unwrap_or_else(|| "CompressionAdapter".to_string()),
-            AdapterConfig {
+            CompressionAdapterConfig {
                 modifies_data: true,
+                compression_config,
             }
         )
     }
@@ -387,11 +417,21 @@ impl EncryptionChunkAdapter {
 pub struct ServiceAdapterFactory;
 
 impl ServiceAdapterFactory {
-    /// Create a compression chunk adapter
+    /// Create a compression chunk adapter with required configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `service` - The compression service implementation
+    /// * `compression_config` - Compression algorithm and parameters
     pub fn create_compression_adapter(
-        service: Arc<dyn CompressionService>
+        service: Arc<dyn CompressionService>,
+        compression_config: CompressionConfig,
     ) -> Box<dyn ChunkProcessor> {
-        Box::new(CompressionChunkAdapter::new_compression_adapter(service, None))
+        Box::new(CompressionChunkAdapter::new_compression_adapter(
+            service,
+            None,
+            compression_config,
+        ))
     }
 
     /// Create an encryption chunk adapter with required configuration
