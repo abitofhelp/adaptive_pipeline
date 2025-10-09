@@ -206,6 +206,14 @@ pub struct AdapterConfig {
     // pub requires_security_context: bool,
 }
 
+/// Configuration for encryption adapters with required key material
+#[derive(Debug, Clone)]
+pub struct EncryptionAdapterConfig {
+    pub modifies_data: bool,
+    pub encryption_config: EncryptionConfig,
+    pub key_material: KeyMaterial,
+}
+
 impl<T: ?Sized> ServiceChunkAdapter<T> {
     pub fn new(service: Arc<T>, name: String, config: AdapterConfig) -> Self {
         Self { service, name, config }
@@ -258,24 +266,41 @@ impl ChunkProcessor for CompressionChunkAdapter {
     }
 }
 
-/// Encryption service adapter implementing ChunkProcessor
-pub type EncryptionChunkAdapter = ServiceChunkAdapter<dyn EncryptionService>;
+/// Encryption service adapter with required configuration
+///
+/// SECURITY: This adapter requires encryption configuration and key material
+/// to be provided explicitly. It will NOT create insecure default keys.
+pub struct EncryptionChunkAdapter {
+    service: Arc<dyn EncryptionService>,
+    name: String,
+    config: EncryptionAdapterConfig,
+}
+
+impl EncryptionChunkAdapter {
+    /// Creates a new encryption adapter with required configuration
+    ///
+    /// # Security
+    ///
+    /// - Requires explicit `EncryptionConfig` with algorithm settings
+    /// - Requires explicit `KeyMaterial` - will NOT generate insecure defaults
+    /// - Validates configuration before accepting
+    ///
+    /// # Arguments
+    ///
+    /// * `service` - The encryption service implementation
+    /// * `name` - Name for this adapter instance
+    /// * `config` - Configuration including encryption settings and key material
+    pub fn new(
+        service: Arc<dyn EncryptionService>,
+        name: String,
+        config: EncryptionAdapterConfig,
+    ) -> Self {
+        Self { service, name, config }
+    }
+}
 
 impl ChunkProcessor for EncryptionChunkAdapter {
     fn process_chunk(&self, chunk: &FileChunk) -> Result<FileChunk, PipelineError> {
-        // Create a default encryption config - in real usage this would be configurable
-        let encryption_config = EncryptionConfig {
-            algorithm: EncryptionAlgorithm::Aes256Gcm,
-            key_derivation: KeyDerivationFunction::Pbkdf2,
-            key_size: 32,
-            nonce_size: 12,
-            salt_size: 16,
-            iterations: 100000,
-            memory_cost: None,
-            parallel_cost: None,
-            associated_data: None,
-        };
-
         // Create a minimal security context for the service
         // NOTE: File paths are managed by CpuWorkerContext (DI pattern), not here
         let security_context = SecurityContext::new(
@@ -287,21 +312,12 @@ impl ChunkProcessor for EncryptionChunkAdapter {
             security_context
         );
 
-        // Create default key material for encryption
-        let key_material = KeyMaterial {
-            key: vec![0u8; 32], // Default 32-byte key
-            nonce: vec![0u8; 12],
-            salt: vec![0u8; 16],
-            algorithm: EncryptionAlgorithm::Aes256Gcm,
-            created_at: chrono::Utc::now(),
-            expires_at: None,
-        };
-
-        // Use the encryption service to encrypt the chunk (now sync)
+        // Use the encryption config and key material provided via configuration
+        // SECURITY: No insecure defaults - config must be provided explicitly
         let encrypted_chunk = self.service.encrypt_chunk(
             chunk.clone(),
-            &encryption_config,
-            &key_material,
+            &self.config.encryption_config,
+            &self.config.key_material,
             &mut processing_context
         )?;
 
@@ -335,15 +351,33 @@ impl CompressionChunkAdapter {
 }
 
 impl EncryptionChunkAdapter {
+    /// Creates a new encryption adapter with provided configuration
+    ///
+    /// # Security
+    ///
+    /// Caller MUST provide:
+    /// - Valid encryption configuration
+    /// - Secure key material (NOT zero-filled or weak keys)
+    ///
+    /// # Arguments
+    ///
+    /// * `service` - The encryption service implementation
+    /// * `name` - Optional name for this adapter (defaults to "EncryptionAdapter")
+    /// * `encryption_config` - Encryption algorithm and parameters
+    /// * `key_material` - Cryptographic key material (must be secure!)
     pub fn new_encryption_adapter(
         service: Arc<dyn EncryptionService>,
-        name: Option<String>
+        name: Option<String>,
+        encryption_config: EncryptionConfig,
+        key_material: KeyMaterial,
     ) -> Self {
         Self::new(
             service,
             name.unwrap_or_else(|| "EncryptionAdapter".to_string()),
-            AdapterConfig {
+            EncryptionAdapterConfig {
                 modifies_data: true,
+                encryption_config,
+                key_material,
             }
         )
     }
@@ -360,11 +394,29 @@ impl ServiceAdapterFactory {
         Box::new(CompressionChunkAdapter::new_compression_adapter(service, None))
     }
 
-    /// Create an encryption chunk adapter
+    /// Create an encryption chunk adapter with required configuration
+    ///
+    /// # Security
+    ///
+    /// Caller MUST provide secure key material. This factory will NOT
+    /// generate insecure defaults.
+    ///
+    /// # Arguments
+    ///
+    /// * `service` - The encryption service implementation
+    /// * `encryption_config` - Encryption algorithm and parameters
+    /// * `key_material` - Cryptographic key material (must be secure!)
     pub fn create_encryption_adapter(
-        service: Arc<dyn EncryptionService>
+        service: Arc<dyn EncryptionService>,
+        encryption_config: EncryptionConfig,
+        key_material: KeyMaterial,
     ) -> Box<dyn ChunkProcessor> {
-        Box::new(EncryptionChunkAdapter::new_encryption_adapter(service, None))
+        Box::new(EncryptionChunkAdapter::new_encryption_adapter(
+            service,
+            None,
+            encryption_config,
+            key_material,
+        ))
     }
 
     /// Create a custom service adapter with specific configuration
