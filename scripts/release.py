@@ -75,7 +75,7 @@ class ReleaseAutomation:
 
     def _run_command(self, cmd: str, description: str, cwd: Path = None) -> Tuple[bool, str]:
         """
-        Run a shell command with error handling
+        Run a shell command with error handling and real-time output streaming
 
         Args:
             cmd: Command to execute
@@ -96,25 +96,35 @@ class ReleaseAutomation:
 
         print(f"⏳ {description}...")
         try:
-            result = subprocess.run(
+            # Use Popen for real-time output streaming
+            process = subprocess.Popen(
                 cmd,
                 shell=True,
                 cwd=cwd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Merge stderr into stdout
                 text=True,
-                check=False,
+                bufsize=1,  # Line buffered
             )
 
-            if result.returncode != 0:
+            # Stream output in real-time
+            output_lines = []
+            for line in process.stdout:
+                print(line, end='')  # Print immediately
+                output_lines.append(line)
+
+            # Wait for process to complete
+            process.wait()
+            output = ''.join(output_lines)
+
+            if process.returncode != 0:
                 print(f"❌ Failed: {description}")
                 print(f"   Command: {cmd}")
-                print(f"   Exit code: {result.returncode}")
-                if result.stderr:
-                    print(f"   Error output:\n{result.stderr}")
-                return False, result.stderr
+                print(f"   Exit code: {process.returncode}")
+                return False, output
 
             print(f"✅ {description}")
-            return True, result.stdout
+            return True, output
 
         except Exception as e:
             print(f"❌ Exception during: {description}")
