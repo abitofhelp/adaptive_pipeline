@@ -485,14 +485,18 @@ build-windows-x86_64: ## Build for Windows x86_64
 	@CROSS_LOG=info cross build --release --target x86_64-pc-windows-gnu
 	@echo -e "$(GREEN)✓ Build complete: target/x86_64-pc-windows-gnu/release/$(NC)"
 
-build-all-platforms: ## Build for all supported platforms
-	@echo -e "$(CYAN)Building for all platforms...$(NC)"
-	@$(MAKE) build-linux-x86_64
-	@$(MAKE) build-linux-aarch64
-	@$(MAKE) build-macos-x86_64
-	@$(MAKE) build-macos-aarch64
-	@$(MAKE) build-windows-x86_64
-	@echo -e "$(GREEN)✓ All platform builds complete!$(NC)"
+build-all-platforms: ## Build for all supported platforms (in parallel)
+	@echo -e "$(CYAN)Building for all platforms in parallel...$(NC)"
+	@echo -e "$(YELLOW)Running 5 cross-compilation builds simultaneously...$(NC)"
+	@( \
+		(echo -e "$(BLUE)[1/5] Starting Linux x86_64 build...$(NC)" && CROSS_LOG=info cross build --release --target x86_64-unknown-linux-gnu && echo -e "$(GREEN)✓ [1/5] Linux x86_64 complete$(NC)") & \
+		(echo -e "$(BLUE)[2/5] Starting Linux ARM64 build...$(NC)" && CROSS_LOG=info cross build --release --target aarch64-unknown-linux-gnu && echo -e "$(GREEN)✓ [2/5] Linux ARM64 complete$(NC)") & \
+		(echo -e "$(BLUE)[3/5] Starting macOS x86_64 build...$(NC)" && CROSS_LOG=info cross build --release --target x86_64-apple-darwin && echo -e "$(GREEN)✓ [3/5] macOS x86_64 complete$(NC)") & \
+		(echo -e "$(BLUE)[4/5] Starting macOS ARM64 build (native)...$(NC)" && rustup target add aarch64-apple-darwin 2>/dev/null; cargo build --release --target aarch64-apple-darwin && echo -e "$(GREEN)✓ [4/5] macOS ARM64 complete$(NC)") & \
+		(echo -e "$(BLUE)[5/5] Starting Windows x86_64 build...$(NC)" && CROSS_LOG=info cross build --release --target x86_64-pc-windows-gnu && echo -e "$(GREEN)✓ [5/5] Windows x86_64 complete$(NC)") & \
+		wait \
+	)
+	@echo -e "$(GREEN)✓ All 5 platform builds complete!$(NC)"
 
 ##@ Docker (if applicable)
 docker-build: ## Build Docker image
