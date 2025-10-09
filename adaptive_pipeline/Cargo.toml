@@ -1,6 +1,6 @@
 [package]
 name = "adaptive-pipeline"
-version = "1.0.5"
+version = "2.0.0"
 description = "High-performance optimized, adaptive file processing pipeline with configurable stages, binary format support, and cross-platform compatibility"
 edition = "2021"
 rust-version = "1.87"
@@ -24,8 +24,8 @@ exclude = [
 workspace = true
 
 [dependencies]
-adaptive-pipeline-domain = { path = "../adaptive_pipeline_domain", version = "1.0.5" }
-adaptive-pipeline-bootstrap = { path = "../adaptive_pipeline_bootstrap", version = "1.0.5" }
+adaptive-pipeline-domain = { path = "../adaptive_pipeline_domain", version = "2.0.0" }
+adaptive-pipeline-bootstrap = { path = "../adaptive_pipeline_bootstrap", version = "2.0.0" }
 
 # Core dependencies
 serde = { workspace = true }

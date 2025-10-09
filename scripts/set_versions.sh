@@ -46,18 +46,28 @@ echo "  ✓ adaptive_pipeline_domain/Cargo.toml"
 echo "  ✓ adaptive_pipeline_bootstrap/Cargo.toml"
 echo ""
 
-# Update documentation introduction files
+# Update documentation files
 echo "Updating documentation files..."
 
-# User guide
+# User guide introduction
 sed -i '' "s/^\*\*Version:\*\* .*/\*\*Version:\*\* ${VERSION}/" docs/src/introduction.md
 sed -i '' "s/^\*\*Date:\*\* .*/\*\*Date:\*\* ${DATE}/" docs/src/introduction.md
 echo "  ✓ docs/src/introduction.md"
 
-# Developer guide
+# Developer guide introduction
 sed -i '' "s/^\*\*Version:\*\* .*/\*\*Version:\*\* ${VERSION}/" adaptive_pipeline/docs/src/introduction.md
 sed -i '' "s/^\*\*Date:\*\* .*/\*\*Date:\*\* ${DATE}/" adaptive_pipeline/docs/src/introduction.md
 echo "  ✓ adaptive_pipeline/docs/src/introduction.md"
+
+# Update all documentation markdown files with version headers
+# This catches files that were missed in previous releases (0.1.0 -> current)
+find adaptive_pipeline/docs/src -name "*.md" -type f -exec sed -i '' "s/^\*\*Version:\*\* [0-9]\+\.[0-9]\+\.[0-9]\+/\*\*Version:\*\* ${VERSION}/" {} \;
+echo "  ✓ All adaptive_pipeline/docs/src/**/*.md files (version headers)"
+
+# Update roadmap
+sed -i '' "s/^\*\*Version\*\*: [0-9]\+\.[0-9]\+\.[0-9]\+/\*\*Version\*\*: ${VERSION}/" docs/roadmap.md
+echo "  ✓ docs/roadmap.md"
+
 echo ""
 
 echo "✅ Version updated to v${VERSION} (${DATE})"
@@ -66,8 +76,13 @@ echo "Files modified:"
 echo "  • adaptive_pipeline/Cargo.toml (3 version strings)"
 echo "  • adaptive_pipeline_domain/Cargo.toml"
 echo "  • adaptive_pipeline_bootstrap/Cargo.toml"
-echo "  • docs/src/introduction.md"
-echo "  • adaptive_pipeline/docs/src/introduction.md"
+echo "  • docs/src/introduction.md (version + date)"
+echo "  • adaptive_pipeline/docs/src/introduction.md (version + date)"
+echo "  • adaptive_pipeline/docs/src/**/*.md (~30 files with version headers)"
+echo "  • docs/roadmap.md (version)"
+echo ""
+echo "Note: This script now comprehensively updates ALL documentation files,"
+echo "      catching any that were missed in previous releases (0.1.0 -> current)."
 echo ""
 echo "Next steps:"
 echo "  1. Build the project: cargo build --release"

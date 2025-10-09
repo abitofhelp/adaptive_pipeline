@@ -529,3 +529,28 @@ dev: watch ## Alias for watch (development mode)
 
 all: clean build test lint doc ## Build, test, lint, and document everything
 	@echo -e "$(GREEN)✓ All tasks completed!$(NC)"
+
+##@ Release Automation
+REPO_PATH := $(CURDIR)
+
+prep-release: ## Run release preparation (steps 0-5: version, commits, tagging)
+	@echo -e "$(CYAN)Running release preparation...$(NC)"
+	@python3 scripts/release.py $(VERSION) $(REPO_PATH) --prep
+
+build-release-platforms: ## Run release build (steps 6-7: multi-platform builds + compression)
+	@echo -e "$(CYAN)Running release build...$(NC)"
+	@python3 scripts/release.py $(VERSION) $(REPO_PATH) --build
+
+publish-github-release: ## Run GitHub release publication (step 8)
+	@echo -e "$(CYAN)Publishing GitHub release...$(NC)"
+	@python3 scripts/release.py $(VERSION) $(REPO_PATH) --publish
+
+full-release: ## Run complete release automation (steps 0-8)
+	@echo -e "$(CYAN)Running full release automation...$(NC)"
+	@python3 scripts/release.py $(VERSION) $(REPO_PATH) --all
+
+dry-run-release: ## Dry-run full release (show commands without executing)
+	@echo -e "$(CYAN)Dry-run: Full release automation...$(NC)"
+	@python3 scripts/release.py $(VERSION) $(REPO_PATH) --all --dry-run
+
+.PHONY: prep-release build-release-platforms publish-github-release full-release dry-run-release
