@@ -91,6 +91,10 @@ This is a major release with significant architectural improvements and critical
   - `EncryptionAdapterConfig` with typed `encryption_config` and `key_material` fields
 - Security documentation for encryption adapters
 - Migration guides in commit messages
+- Transform stages documentation (Tee and Debug stages)
+  - Tee stage: Data splitting/inspection for debugging and monitoring
+  - Debug stage: Diagnostic monitoring with Prometheus metrics
+  - Added to both user guide and developer guide
 
 ### Changed
 
@@ -98,12 +102,17 @@ This is a major release with significant architectural improvements and critical
 - Refactored `EncryptionChunkAdapter` from type alias to dedicated struct (security requirements)
 - Updated all `ProcessingContext::new()` call sites (18 locations across 8 files)
 - Moved retry logic from current features to future enhancements section (Comment 9)
+- Improved release automation script (`scripts/release.py`)
+  - Real-time output streaming for better visibility during builds
+  - Manual CHANGELOG workflow with validation
+  - GitHub release notes extraction using awk (version-specific notes only)
 
 ### Removed
 
 - `input_path()` and `output_path()` methods from `ProcessingContext`
 - Unused `async_trait` import from `chunk_processor_adapters.rs` (Comment 4)
 - Ability to create encryption adapters without secure key material
+- Docker cross-compilation config files (`Cross.toml`, `.cargo/config.toml`) - using default cross behavior
 
 ### Security
 
